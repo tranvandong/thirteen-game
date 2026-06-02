@@ -1,19 +1,102 @@
+import { useState } from "react";
 import { usePWA } from "~/hooks/usePWA";
 
 export function InstallPWA() {
-  const { canInstall, promptInstall } = usePWA();
-console.log(canInstall);
-  if (!canInstall) return null;
+  const {
+    canInstall,
+    promptInstall,
+    isInstalled,
+    showManualInstallHint,
+    isIOSSafari,
+  } = usePWA();
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
 
-  return (
-    <button
-      onClick={promptInstall}
-      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium shadow-md hover:bg-blue-700 transition"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 2v13M8 11l4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
-      </svg>
-      Cài đặt ứng dụng
-    </button>
-  );
+  if (isInstalled) return null;
+
+  if (isIOSSafari) {
+    return (
+      <>
+        <button
+          onClick={() => setShowIOSGuide(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+        >
+          Cài đặt ứng dụng
+        </button>
+
+        {showIOSGuide && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+            <div className="bg-white rounded-t-2xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-semibold mb-4">
+                Cài đặt trên iPhone
+              </h3>
+              <ol className="space-y-3 text-sm text-gray-700">
+                <li className="flex items-start gap-3">
+                  <span className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center font-medium shrink-0">
+                    1
+                  </span>
+                  <span>
+                    Nhấn nút <strong>Chia sẻ</strong>{" "}
+                    <span className="inline-block border border-gray-300 rounded px-1">
+                      ⬆
+                    </span>{" "}
+                    ở thanh dưới Safari
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center font-medium shrink-0">
+                    2
+                  </span>
+                  <span>
+                    Cuộn xuống và chọn{" "}
+                    <strong>"Thêm vào Màn hình chính"</strong>
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center font-medium shrink-0">
+                    3
+                  </span>
+                  <span>
+                    Nhấn <strong>"Thêm"</strong> ở góc trên bên phải
+                  </span>
+                </li>
+              </ol>
+
+              {/* Visual hint arrow chỉ xuống */}
+              <div className="mt-4 text-center text-gray-400 text-xs">
+                ↓ Nút chia sẻ nằm ở thanh dưới cùng của Safari
+              </div>
+
+              <button
+                onClick={() => setShowIOSGuide(false)}
+                className="mt-6 w-full py-3 bg-gray-100 rounded-xl text-sm font-medium"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (canInstall) {
+    return (
+      <button
+        onClick={promptInstall}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+      >
+        Cài đặt ứng dụng
+      </button>
+    );
+  }
+
+  if (showManualInstallHint) {
+    return (
+      <div className="text-sm text-blue-700">
+        Nhấn ⊕ trên thanh địa chỉ để cài đặt
+      </div>
+    );
+  }
+
+  return null;
 }

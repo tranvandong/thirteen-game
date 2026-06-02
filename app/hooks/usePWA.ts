@@ -1,4 +1,23 @@
 import { useEffect, useState } from "react";
+import { getInstallPrompt } from "~/entry.client";
+
+// app/hooks/usePWA.ts — thêm helper detect
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isSafari() {
+  return (
+    /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent)
+  );
+}
+
+function isInStandaloneMode() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as any).standalone === true
+  ); // iOS specific
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -6,11 +25,17 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function usePWA() {
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [swRegistration, setSwRegistration] =
+    useState<ServiceWorkerRegistration | null>(null);
+  const [isIOSSafari, setIsIOSSafari] = useState(false);
 
   useEffect(() => {
+    if (isIOS() && isSafari() && !isInStandaloneMode()) {
+      setIsIOSSafari(true);
+    }
     // Đăng ký Service Worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -21,9 +46,13 @@ export function usePWA() {
         })
         .catch((err) => console.error("[SW] Registration failed:", err));
     }
-
+    const existing = getInstallPrompt();
+    if (existing) {
+      setInstallPrompt(existing as BeforeInstallPromptEvent);
+    }
     // Bắt sự kiện install prompt
     const handler = (e: Event) => {
+      console.log("[PWA] beforeinstallprompt fired ✅");
       e.preventDefault();
       setInstallPrompt(e as BeforeInstallPromptEvent);
     };
@@ -46,5 +75,15 @@ export function usePWA() {
     setInstallPrompt(null);
   };
 
-  return { canInstall: !!installPrompt && !isInstalled, isInstalled, promptInstall, swRegistration };
+  const canInstall = !!installPrompt && !isInstalled;
+  const showManualInstallHint = !installPrompt && !isInstalled;
+
+  return {
+    canInstall: !!installPrompt && !isInstalled,
+    isInstalled,
+    promptInstall,
+    swRegistration,
+    showManualInstallHint,
+    isIOSSafari,
+  };
 }
