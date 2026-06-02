@@ -3,6 +3,8 @@ import type { Route } from "./+types/layout";
 import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import { eq } from "drizzle-orm";
+import { ModeToggle } from "~/components/mode-toggle";
+import { ThemeProvider } from "~/components/theme-provider";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const { sessionId } = params;
@@ -87,56 +89,61 @@ export default function SessionLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-20">
-      {/* Header */}
-      <div className="bg-white shadow-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold text-blue-600">
-            Thirteen Game
-          </Link>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-20">
+        {/* Header */}
+        <div className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <Link to="/" className="text-2xl font-bold text-blue-600">
+              Thirteen Game
+            </Link>
+            <ModeToggle />
+          </div>
         </div>
-      </div>
 
-      <Outlet />
+        <Outlet />
 
-      {/* Bottom Tab Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
-        <div className="flex items-stretch h-16 max-w-lg mx-auto">
-          {tabs.map((tab) => {
-            const isActive = tab.exact
-              ? location.pathname === tab.to
-              : location.pathname.startsWith(tab.to);
+        {/* Bottom Tab Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
+          <div className="flex items-stretch h-16 max-w-lg mx-auto">
+            {tabs.map((tab) => {
+              const isActive = tab.exact
+                ? location.pathname === tab.to
+                : location.pathname.startsWith(tab.to);
 
-            return (
-              <Link
-                key={tab.to}
-                to={tab.to}
-                className="flex flex-col items-center justify-center flex-1 gap-1 transition-colors"
-                style={{ color: isActive ? "#2563eb" : "#9ca3af" }}
-              >
-                <div
-                  className="transition-transform"
-                  style={{ transform: isActive ? "translateY(-2px)" : "none" }}
-                >
-                  {tab.icon(isActive)}
-                </div>
-                <span
-                  className="text-xs font-medium"
+              return (
+                <Link
+                  key={tab.to}
+                  to={tab.to}
+                  className="flex flex-col items-center justify-center flex-1 gap-1 transition-colors"
                   style={{ color: isActive ? "#2563eb" : "#9ca3af" }}
                 >
-                  {tab.label}
-                </span>
-                {isActive && (
                   <div
-                    className="absolute bottom-0 w-10 h-0.5 rounded-full bg-blue-600"
-                    style={{ width: "2.5rem" }}
-                  />
-                )}
-              </Link>
-            );
-          })}
+                    className="transition-transform"
+                    style={{
+                      transform: isActive ? "translateY(-2px)" : "none",
+                    }}
+                  >
+                    {tab.icon(isActive)}
+                  </div>
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: isActive ? "#2563eb" : "#9ca3af" }}
+                  >
+                    {tab.label}
+                  </span>
+                  {isActive && (
+                    <div
+                      className="absolute bottom-0 w-10 h-0.5 rounded-full bg-blue-600"
+                      style={{ width: "2.5rem" }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 }

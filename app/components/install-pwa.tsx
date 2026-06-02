@@ -11,14 +11,23 @@ export function InstallPWA() {
   } = usePWA();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
 
-  if (isInstalled) return null;
+  //   if (isInstalled) return null;
+
+  return (
+    <button
+      onClick={promptInstall}
+      className="w-full hover:text-blue-600 text-white  py-2 px-6 rounded-lg transition duration-200"
+    >
+      Cài đặt ứng dụng
+    </button>
+  );
 
   if (isIOSSafari) {
     return (
       <>
         <button
           onClick={() => setShowIOSGuide(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+          className="w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-2 px-6 rounded-lg transition duration-200"
         >
           Cài đặt ứng dụng
         </button>
@@ -83,7 +92,7 @@ export function InstallPWA() {
     return (
       <button
         onClick={promptInstall}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+        className="w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-2 px-6 rounded-lg transition duration-200"
       >
         Cài đặt ứng dụng
       </button>

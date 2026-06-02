@@ -90,7 +90,7 @@ export default function SessionLobby({ loaderData }: Route.ComponentProps) {
 
   const handleApprove = (joinRequestId: string) => {
     if (sessionId && isOwner) {
-      approveJoinRequest(sessionId, joinRequestId);
+      approveJoinRequest(sessionId, joinRequestId, "displayName");
     }
   };
 
