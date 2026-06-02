@@ -9,7 +9,7 @@ import type { Route } from "./+types/session.create";
 // import { participants } from "~/db/schema/participants";
 // import { redirect } from "react-router";
 // import { eq } from "drizzle-orm";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -98,6 +98,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function CreateSession() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ownerName: "",
     player1: "",
@@ -176,6 +177,8 @@ export default function CreateSession() {
     if (validateForm()) {
       // TODO: Submit form data to server
       console.log("Form data:", formData);
+      // Navigate to session page with mock sessionId
+      navigate("/session/demo-session");
     }
   };
 
