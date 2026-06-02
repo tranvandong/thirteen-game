@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import type { Route } from "./+types/session.create";
-import { db } from "~/db/client.server";
-import { sessions } from "~/db/schema/sessions";
-import { gameConfigs } from "~/db/schema/game-configs";
-import { players as playerSchema } from "~/db/schema/players";
-import { participants } from "~/db/schema/participants";
-import { redirect } from "react-router";
-import { eq } from "drizzle-orm";
+// import { db } from "~/db/client.server";
+// import { sessions } from "~/db/schema/sessions";
+// import { gameConfigs } from "~/db/schema/game-configs";
+// import { players as playerSchema } from "~/db/schema/players";
+// import { participants } from "~/db/schema/participants";
+// import { redirect } from "react-router";
+// import { eq } from "drizzle-orm";
 import { Link } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -21,77 +21,77 @@ import {
 } from "~/components/ui/collapsible";
 import { ChevronDown, ChevronLeft, Users, Trophy, Settings, Play } from "lucide-react";
 
-export async function action({ request }: Route.ActionArgs) {
-  if (request.method !== "POST") {
-    return { error: "Method not allowed" };
-  }
+// export async function action({ request }: Route.ActionArgs) {
+//   if (request.method !== "POST") {
+//     return { error: "Method not allowed" };
+//   }
 
-  const formData = await request.formData();
-  const playerNames = [
-    formData.get("player1") as string,
-    formData.get("player2") as string,
-    formData.get("player3") as string,
-    formData.get("player4") as string,
-  ];
+//   const formData = await request.formData();
+//   const playerNames = [
+//     formData.get("player1") as string,
+//     formData.get("player2") as string,
+//     formData.get("player3") as string,
+//     formData.get("player4") as string,
+//   ];
 
-  const gameConfig = {
-    firstPlaceScore: parseInt(formData.get("firstPlaceScore") as string),
-    secondPlaceScore: parseInt(formData.get("secondPlaceScore") as string),
-    thirdPlaceScore: parseInt(formData.get("thirdPlaceScore") as string),
-    fourthPlaceScore: parseInt(formData.get("fourthPlaceScore") as string),
-    redPigScore: parseInt(formData.get("redPigScore") as string),
-    blackPigScore: parseInt(formData.get("blackPigScore") as string),
-    tripleScore: parseInt(formData.get("tripleScore") as string),
-    khapScore: parseInt(formData.get("khapScore") as string),
-    khapLimit: parseInt(formData.get("khapLimit") as string),
-    sanhScore: parseInt(formData.get("sanhScore") as string),
-    sanhLimit: parseInt(formData.get("sanhLimit") as string),
-  };
+//   const gameConfig = {
+//     firstPlaceScore: parseInt(formData.get("firstPlaceScore") as string),
+//     secondPlaceScore: parseInt(formData.get("secondPlaceScore") as string),
+//     thirdPlaceScore: parseInt(formData.get("thirdPlaceScore") as string),
+//     fourthPlaceScore: parseInt(formData.get("fourthPlaceScore") as string),
+//     redPigScore: parseInt(formData.get("redPigScore") as string),
+//     blackPigScore: parseInt(formData.get("blackPigScore") as string),
+//     tripleScore: parseInt(formData.get("tripleScore") as string),
+//     khapScore: parseInt(formData.get("khapScore") as string),
+//     khapLimit: parseInt(formData.get("khapLimit") as string),
+//     sanhScore: parseInt(formData.get("sanhScore") as string),
+//     sanhLimit: parseInt(formData.get("sanhLimit") as string),
+//   };
 
-  try {
-    const session = await db
-      .insert(sessions)
-      .values({
-        code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        status: "waiting",
-      })
-      .returning();
+//   try {
+//     const session = await db
+//       .insert(sessions)
+//       .values({
+//         code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+//         status: "waiting",
+//       })
+//       .returning();
 
-    const sessionId = session[0].id;
+//     const sessionId = session[0].id;
 
-    await db.insert(gameConfigs).values({
-      sessionId,
-      ...gameConfig,
-    });
+//     await db.insert(gameConfigs).values({
+//       sessionId,
+//       ...gameConfig,
+//     });
 
-    for (let i = 0; i < playerNames.length; i++) {
-      await db.insert(playerSchema).values({
-        sessionId,
-        name: playerNames[i],
-        orderNo: i + 1,
-      });
-    }
+//     for (let i = 0; i < playerNames.length; i++) {
+//       await db.insert(playerSchema).values({
+//         sessionId,
+//         name: playerNames[i],
+//         orderNo: i + 1,
+//       });
+//     }
 
-    const ownerParticipant = await db
-      .insert(participants)
-      .values({
-        sessionId,
-        displayName: formData.get("ownerName") as string,
-        role: "owner",
-      })
-      .returning();
+//     const ownerParticipant = await db
+//       .insert(participants)
+//       .values({
+//         sessionId,
+//         displayName: formData.get("ownerName") as string,
+//         role: "owner",
+//       })
+//       .returning();
 
-    await db
-      .update(sessions)
-      .set({ ownerParticipantId: ownerParticipant[0].id })
-      .where(eq(sessions.id, sessionId));
+//     await db
+//       .update(sessions)
+//       .set({ ownerParticipantId: ownerParticipant[0].id })
+//       .where(eq(sessions.id, sessionId));
 
-    return redirect(`/session/${sessionId}`);
-  } catch (error) {
-    console.error("Error creating session:", error);
-    return { error: "Failed to create session" };
-  }
-}
+//     return redirect(`/session/${sessionId}`);
+//   } catch (error) {
+//     console.error("Error creating session:", error);
+//     return { error: "Failed to create session" };
+//   }
+// }
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Tao phong choi - Thirteen Game" }];
@@ -172,8 +172,10 @@ export default function CreateSession() {
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (!validateForm()) {
-      e.preventDefault();
+    e.preventDefault();
+    if (validateForm()) {
+      // TODO: Submit form data to server
+      console.log("Form data:", formData);
     }
   };
 
@@ -192,7 +194,7 @@ export default function CreateSession() {
       </header>
 
       <main className="pb-24">
-        <form id="create-form" method="POST" onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+        <form id="create-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
           {/* Owner Name Card */}
           <Card>
             <CardHeader>
