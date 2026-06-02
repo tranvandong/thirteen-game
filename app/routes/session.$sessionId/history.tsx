@@ -199,29 +199,6 @@ export default function HistoryPage() {
         </CardContent>
       </Card>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="border-chart-4/30">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-chart-4">{totalKhap}</p>
-            <p className="text-sm text-muted-foreground">Tong So Khap</p>
-          </CardContent>
-        </Card>
-        <Card className="border-chart-1/30">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-chart-1">{totalSanh}</p>
-            <p className="text-sm text-muted-foreground">Tong So Sanh</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Round Count */}
-      <Card>
-        <CardContent className="p-4 text-center">
-          <p className="text-3xl font-bold text-primary">{mockRounds.length}</p>
-          <p className="text-sm text-muted-foreground">Tong So Van Da Choi</p>
-        </CardContent>
-      </Card>
     </main>
   );
 }

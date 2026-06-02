@@ -5,7 +5,7 @@ import { Outlet, Link, useParams, useLocation } from "react-router";
 // import { eq } from "drizzle-orm";
 import { ModeToggle } from "~/components/mode-toggle";
 import { ThemeProvider } from "~/components/theme-provider";
-import { Home, Clock, Settings } from "lucide-react";
+import { Home, Clock, Settings, Spade } from "lucide-react";
 
 // export async function loader({ params }: Route.LoaderArgs) {
 //   const { sessionId } = params;
@@ -52,7 +52,8 @@ export default function SessionLayout() {
         {/* Header */}
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
           <div className="flex items-center justify-between px-4 h-14">
-            <Link to="/" className="text-lg font-bold text-primary">
+            <Link to="/" className="flex items-center gap-2 text-lg font-bold text-primary">
+              <Spade className="size-5" />
               Thirteen Game
             </Link>
             <ModeToggle />

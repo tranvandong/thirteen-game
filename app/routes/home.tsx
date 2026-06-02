@@ -1,6 +1,7 @@
 import { InstallPWA } from "~/components/install-pwa";
 import type { Route } from "./+types/home";
 import { Link } from "react-router";
+import { Plus, Users, Spade } from "lucide-react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -16,27 +17,35 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center px-4">
       <div className="text-center">
-        <h1 className="text-5xl font-bold text-white mb-4">Thirteen Game</h1>
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <Spade className="size-12 text-white" />
+          <h1 className="text-5xl font-bold text-white">Thirteen Game</h1>
+        </div>
         <p className="text-xl text-white mb-8">
-          Ghi điểm Tiến Lên theo thời gian thực
+          Ghi diem Tien Len theo thoi gian thuc
         </p>
 
         <div className="space-y-4 max-w-md mx-auto">
           <Link
             to="/session/create"
-            className="block w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-4 px-6 rounded-lg transition duration-200 text-lg"
+            className="flex items-center justify-center gap-2 w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-4 px-6 rounded-lg transition duration-200 text-lg"
           >
-            Tạo Phòng Chơi Mới
+            <Plus className="size-5" />
+            Tao Phong Choi Moi
           </Link>
 
           <div className="text-white text-center py-4">
-            <p className="mb-4">Hoặc nhập mã phòng để tham gia</p>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Users className="size-5" />
+              <p>Hoac nhap ma phong de tham gia</p>
+            </div>
             <input
               type="text"
-              placeholder="Nhập mã phòng"
+              placeholder="Nhap ma phong"
               className="w-full px-4 py-2 rounded-lg mb-3 text-center focus:outline-none"
             />
-            <button className="w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-2 px-6 rounded-lg transition duration-200">
+            <button className="flex items-center justify-center gap-2 w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-2 px-6 rounded-lg transition duration-200">
+              <Users className="size-4" />
               Tham Gia
             </button>
           </div>
