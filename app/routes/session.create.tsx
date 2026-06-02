@@ -9,6 +9,17 @@ import { players as playerSchema } from "~/db/schema/players";
 import { participants } from "~/db/schema/participants";
 import { redirect } from "react-router";
 import { eq } from "drizzle-orm";
+import { Link } from "react-router";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "~/components/ui/collapsible";
+import { ChevronDown, ChevronLeft, Users, Trophy, Settings, Play } from "lucide-react";
 
 export async function action({ request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -83,7 +94,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Tạo phòng chơi - Thirteen Game" }];
+  return [{ title: "Tao phong choi - Thirteen Game" }];
 }
 
 export default function CreateSession() {
@@ -107,18 +118,19 @@ export default function CreateSession() {
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.ownerName.trim()) {
-      newErrors.ownerName = "Vui lòng nhập tên chủ phòng";
+      newErrors.ownerName = "Vui long nhap ten chu phong";
     }
 
     for (let i = 1; i <= 4; i++) {
       const playerName = formData[`player${i}` as keyof typeof formData] as string;
       if (!playerName.trim()) {
-        newErrors[`player${i}`] = `Vui lòng nhập tên người chơi ${i}`;
+        newErrors[`player${i}`] = `Vui long nhap ten nguoi choi ${i}`;
       }
     }
 
@@ -166,222 +178,278 @@ export default function CreateSession() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Tạo Phòng Chơi</h1>
-          <p className="text-gray-600 mb-8">Cấu hình luật chơi và danh sách người chơi</p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="flex items-center gap-3 px-4 h-14">
+          <Link to="/" className="flex items-center justify-center">
+            <Button variant="ghost" size="icon-sm">
+              <ChevronLeft className="size-5" />
+            </Button>
+          </Link>
+          <h1 className="text-lg font-semibold text-foreground">Tao Phong Choi</h1>
+        </div>
+      </header>
 
-          <form method="POST" className="space-y-8" onSubmit={handleSubmit}>
-            {/* Owner Name */}
-            <div className="bg-blue-50 p-6 rounded-lg">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tên Chủ Phòng
-              </label>
-              <input
-                type="text"
-                name="ownerName"
-                value={formData.ownerName}
-                onChange={(e) => {
-                  setFormData({ ...formData, ownerName: e.target.value });
-                  if (errors.ownerName) {
-                    setErrors({ ...errors, ownerName: "" });
-                  }
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                  errors.ownerName ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
-                }`}
-                placeholder="Nhập tên của bạn"
-              />
-              {errors.ownerName && <p className="text-red-500 text-sm mt-1">{errors.ownerName}</p>}
-            </div>
-
-            {/* Player Names */}
-            <div className="bg-green-50 p-6 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Danh Sách Người Chơi</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Người chơi {i + 1}
-                    </label>
-                    <input
-                      type="text"
-                      name={`player${i + 1}`}
-                      value={formData[`player${i + 1}` as keyof typeof formData] as string}
-                      onChange={(e) => handlePlayerNameChange(i, e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        errors[`player${i + 1}`] ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-green-500"
-                      }`}
-                      placeholder={`Tên người chơi ${i + 1}`}
-                    />
-                    {errors[`player${i + 1}`] && (
-                      <p className="text-red-500 text-sm mt-1">{errors[`player${i + 1}`]}</p>
-                    )}
-                  </div>
-                ))}
+      <main className="pb-24">
+        <form id="create-form" method="POST" onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+          {/* Owner Name Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
+                  <Users className="size-4" />
+                </div>
+                Chu Phong
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ownerName">Ten cua ban</Label>
+                <Input
+                  id="ownerName"
+                  type="text"
+                  name="ownerName"
+                  value={formData.ownerName}
+                  onChange={(e) => {
+                    setFormData({ ...formData, ownerName: e.target.value });
+                    if (errors.ownerName) {
+                      setErrors({ ...errors, ownerName: "" });
+                    }
+                  }}
+                  placeholder="Nhap ten cua ban"
+                  aria-invalid={!!errors.ownerName}
+                />
+                {errors.ownerName && (
+                  <p className="text-destructive text-sm">{errors.ownerName}</p>
+                )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Rank Scores */}
-            <div className="bg-purple-50 p-6 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Điểm Hạng</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hạng Nhất</label>
-                  <input
+          {/* Players Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-8 rounded-full bg-chart-2/20 text-chart-2">
+                  <Users className="size-4" />
+                </div>
+                Nguoi Choi
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex flex-col gap-2">
+                  <Label htmlFor={`player${i + 1}`}>Nguoi choi {i + 1}</Label>
+                  <Input
+                    id={`player${i + 1}`}
+                    type="text"
+                    name={`player${i + 1}`}
+                    value={formData[`player${i + 1}` as keyof typeof formData] as string}
+                    onChange={(e) => handlePlayerNameChange(i, e.target.value)}
+                    placeholder={`Ten nguoi choi ${i + 1}`}
+                    aria-invalid={!!errors[`player${i + 1}`]}
+                  />
+                  {errors[`player${i + 1}`] && (
+                    <p className="text-destructive text-sm">{errors[`player${i + 1}`]}</p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Rank Scores Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
+                  <Trophy className="size-4" />
+                </div>
+                Diem Hang
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="firstPlaceScore">Hang Nhat</Label>
+                  <Input
+                    id="firstPlaceScore"
                     type="number"
                     name="firstPlaceScore"
                     value={formData.firstPlaceScore}
                     onChange={(e) => handleFirstPlaceChange(parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hạng Tư</label>
-                  <input
-                    type="number"
-                    name="fourthPlaceScore"
-                    value={formData.fourthPlaceScore}
-                    onChange={(e) => setFormData({ ...formData, fourthPlaceScore: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hạng Nhì</label>
-                  <input
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="secondPlaceScore">Hang Nhi</Label>
+                  <Input
+                    id="secondPlaceScore"
                     type="number"
                     name="secondPlaceScore"
                     value={formData.secondPlaceScore}
                     onChange={(e) => handleSecondPlaceChange(parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hạng Ba</label>
-                  <input
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="thirdPlaceScore">Hang Ba</Label>
+                  <Input
+                    id="thirdPlaceScore"
                     type="number"
                     name="thirdPlaceScore"
                     value={formData.thirdPlaceScore}
                     onChange={(e) => setFormData({ ...formData, thirdPlaceScore: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="fourthPlaceScore">Hang Tu</Label>
+                  <Input
+                    id="fourthPlaceScore"
+                    type="number"
+                    name="fourthPlaceScore"
+                    value={formData.fourthPlaceScore}
+                    onChange={(e) => setFormData({ ...formData, fourthPlaceScore: parseInt(e.target.value) || 0 })}
                   />
                 </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Pig Scores */}
-            <div className="bg-orange-50 p-6 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Điểm Heo</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Heo Đỏ</label>
-                  <input
-                    type="number"
-                    name="redPigScore"
-                    value={formData.redPigScore}
-                    onChange={(e) => setFormData({ ...formData, redPigScore: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Heo Đen</label>
-                  <input
-                    type="number"
-                    name="blackPigScore"
-                    value={formData.blackPigScore}
-                    onChange={(e) => setFormData({ ...formData, blackPigScore: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-            </div>
+          {/* Advanced Settings Collapsible */}
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer active:bg-muted/50 transition-colors rounded-t-xl">
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <div className="flex items-center justify-center size-8 rounded-full bg-muted text-muted-foreground">
+                        <Settings className="size-4" />
+                      </div>
+                      Cai Dat Nang Cao
+                    </span>
+                    <ChevronDown
+                      className={`size-5 text-muted-foreground transition-transform duration-200 ${
+                        isAdvancedOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="flex flex-col gap-4 pt-0">
+                  {/* Pig Scores */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm font-medium text-muted-foreground">Diem Heo</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="redPigScore">Heo Do</Label>
+                        <Input
+                          id="redPigScore"
+                          type="number"
+                          name="redPigScore"
+                          value={formData.redPigScore}
+                          onChange={(e) => setFormData({ ...formData, redPigScore: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="blackPigScore">Heo Den</Label>
+                        <Input
+                          id="blackPigScore"
+                          type="number"
+                          name="blackPigScore"
+                          value={formData.blackPigScore}
+                          onChange={(e) => setFormData({ ...formData, blackPigScore: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Triple Score */}
-            <div className="bg-pink-50 p-6 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Điểm 3 Đôi Thông</h2>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Điểm 3 Đôi Thông</label>
-                <input
-                  type="number"
-                  name="tripleScore"
-                  value={formData.tripleScore}
-                  onChange={(e) => setFormData({ ...formData, tripleScore: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-            </div>
+                  {/* Triple Score */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm font-medium text-muted-foreground">3 Doi Thong</p>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="tripleScore">Diem</Label>
+                      <Input
+                        id="tripleScore"
+                        type="number"
+                        name="tripleScore"
+                        value={formData.tripleScore}
+                        onChange={(e) => setFormData({ ...formData, tripleScore: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
 
-            {/* Khap Score */}
-            <div className="bg-yellow-50 p-6 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Điểm Khạp</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Điểm Mỗi Khạp</label>
-                  <input
-                    type="number"
-                    name="khapScore"
-                    value={formData.khapScore}
-                    onChange={(e) => setFormData({ ...formData, khapScore: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Giới Hạn Khạp</label>
-                  <input
-                    type="number"
-                    name="khapLimit"
-                    value={formData.khapLimit}
-                    onChange={(e) => setFormData({ ...formData, khapLimit: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  />
-                </div>
-              </div>
-            </div>
+                  {/* Khap Score */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm font-medium text-muted-foreground">Diem Khap</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="khapScore">Diem/Khap</Label>
+                        <Input
+                          id="khapScore"
+                          type="number"
+                          name="khapScore"
+                          value={formData.khapScore}
+                          onChange={(e) => setFormData({ ...formData, khapScore: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="khapLimit">Gioi han</Label>
+                        <Input
+                          id="khapLimit"
+                          type="number"
+                          name="khapLimit"
+                          value={formData.khapLimit}
+                          onChange={(e) => setFormData({ ...formData, khapLimit: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Sanh Score */}
-            <div className="bg-cyan-50 p-6 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Điểm Sảnh</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Điểm Mỗi Sảnh</label>
-                  <input
-                    type="number"
-                    name="sanhScore"
-                    value={formData.sanhScore}
-                    onChange={(e) => setFormData({ ...formData, sanhScore: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Giới Hạn Sảnh</label>
-                  <input
-                    type="number"
-                    name="sanhLimit"
-                    value={formData.sanhLimit}
-                    onChange={(e) => setFormData({ ...formData, sanhLimit: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-              </div>
-            </div>
+                  {/* Sanh Score */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm font-medium text-muted-foreground">Diem Sanh</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="sanhScore">Diem/Sanh</Label>
+                        <Input
+                          id="sanhScore"
+                          type="number"
+                          name="sanhScore"
+                          value={formData.sanhScore}
+                          onChange={(e) => setFormData({ ...formData, sanhScore: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="sanhLimit">Gioi han</Label>
+                        <Input
+                          id="sanhLimit"
+                          type="number"
+                          name="sanhLimit"
+                          value={formData.sanhLimit}
+                          onChange={(e) => setFormData({ ...formData, sanhLimit: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        </form>
+      </main>
 
-            {/* Submit Button */}
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg transition duration-200"
-              >
-                Bắt Đầu Chơi
-              </button>
-              <a
-                href="/"
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-lg text-center transition duration-200"
-              >
-                Quay Lại
-              </a>
-            </div>
-          </form>
+      {/* Fixed Bottom Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t p-4">
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            form="create-form"
+            className="flex-1"
+            size="lg"
+          >
+            <Play className="size-4" />
+            Bat Dau Choi
+          </Button>
         </div>
       </div>
     </div>
