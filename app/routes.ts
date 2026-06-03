@@ -11,8 +11,10 @@ export default [
     route("settings", "routes/session.$sessionId/settings.tsx"),
 
     route("history", "routes/session.$sessionId/history.tsx"),
-    
+
     route("match", "routes/session.$sessionId/match.tsx"),
+
+    route("chart", "routes/session.$sessionId/chart.tsx"),
 
     route("history/:roundId", "routes/session.$sessionId/round-detail.tsx"),
   ]),

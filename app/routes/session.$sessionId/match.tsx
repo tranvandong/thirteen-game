@@ -142,20 +142,23 @@ export default function MatchPage() {
     });
 
     if (khapWinner && khapCount > 0) {
-      const effective = mockAccumulated.khap + khapCount;
-      scores[khapWinner] += mockConfig.khapPoints * 3 * effective;
+      // điểm = tích_lũy × số_khạp_ván_này × điểm_mỗi_người × 3 người còn lại
+      const khapGain =
+        mockAccumulated.khap * khapCount * mockConfig.khapPoints * 3;
+      const khapLoss = mockAccumulated.khap * khapCount * mockConfig.khapPoints;
+      scores[khapWinner] += khapGain;
       mockPlayers.forEach((p) => {
-        if (p.id !== khapWinner)
-          scores[p.id] -= mockConfig.khapPoints * effective;
+        if (p.id !== khapWinner) scores[p.id] -= khapLoss;
       });
     }
 
     if (sanhWinner) {
-      const effective = mockAccumulated.sanh + 1;
-      scores[sanhWinner] += mockConfig.sanhPoints * 3 * effective;
+      // điểm = tích_lũy × điểm_mỗi_người × 3 người còn lại (sảnh chỉ 1 lần/ván)
+      const sanhGain = mockAccumulated.sanh * mockConfig.sanhPoints * 3;
+      const sanhLoss = mockAccumulated.sanh * mockConfig.sanhPoints;
+      scores[sanhWinner] += sanhGain;
       mockPlayers.forEach((p) => {
-        if (p.id !== sanhWinner)
-          scores[p.id] -= mockConfig.sanhPoints * effective;
+        if (p.id !== sanhWinner) scores[p.id] -= sanhLoss;
       });
     }
 
@@ -310,10 +313,18 @@ export default function MatchPage() {
             const khapTaken = khapWinner !== null && !isKhapWinner;
             const sanhTaken = sanhWinner !== null && !isSanhWinner;
 
-            const effectiveKhap = isKhapWinner
-              ? mockAccumulated.khap + khapCount
+            // số khạp ván này (không phải tích lũy)
+            const khapCountDisplay = isKhapWinner ? khapCount : 0;
+            // điểm khạp người thắng nhận được
+            const khapPointsDisplay =
+              isKhapWinner && khapCount > 0
+                ? mockAccumulated.khap * khapCount * mockConfig.khapPoints * 3
+                : 0;
+            const effectiveSanh = isSanhWinner ? mockAccumulated.sanh : 0;
+            // điểm sảnh người thắng nhận được
+            const sanhPointsDisplay = isSanhWinner
+              ? mockAccumulated.sanh * mockConfig.sanhPoints * 3
               : 0;
-            const effectiveSanh = isSanhWinner ? mockAccumulated.sanh + 1 : 0;
 
             // Down disabled nếu vị trí kế là người chưa chọn
             const nextInRanking = ranking[rankIndex + 1];
@@ -398,8 +409,9 @@ export default function MatchPage() {
                   )}
                 </button>
 
-                {/* Row 2: Khap + Sanh */}
-                {isSelected && (
+                {/* Row 2: Khap + Sanh — hiện cho người đã chọn, hoặc tự động cho người cuối khi đã chọn 3 */}
+                {(isSelected ||
+                  (selectCounter >= 3 && rankIndex === ranking.length - 1)) && (
                   <div className="flex gap-2 px-3 pb-2.5 pl-[3.75rem]">
                     {/* Khạp */}
                     <div
@@ -431,7 +443,7 @@ export default function MatchPage() {
                             −
                           </button>
                           <span className="font-bold w-4 text-center">
-                            {effectiveKhap}
+                            {khapCountDisplay}
                           </span>
                           <button
                             onClick={() => updateKhapCount(1)}
@@ -440,6 +452,10 @@ export default function MatchPage() {
                           >
                             +
                           </button>
+                          <span className="mx-1 opacity-30">|</span>
+                          <span className="font-bold text-chart-4">
+                            +{khapPointsDisplay}
+                          </span>
                         </>
                       )}
                     </div>
@@ -461,9 +477,15 @@ export default function MatchPage() {
                       />
                       <span className="font-medium">Sanh</span>
                       {isSanhWinner && (
-                        <span className="font-bold ml-0.5">
-                          {effectiveSanh}
-                        </span>
+                        <>
+                          <span className="font-bold ml-0.5">
+                            {effectiveSanh}
+                          </span>
+                          <span className="mx-1 opacity-30">|</span>
+                          <span className="font-bold">
+                            +{sanhPointsDisplay}
+                          </span>
+                        </>
                       )}
                     </button>
                   </div>
