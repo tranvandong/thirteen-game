@@ -45,7 +45,7 @@ export default function SessionLayout() {
       exact: false,
     },
     {
-      to: `/session/${sessionId}/score-board`,
+      to: `/session/${sessionId}/settings`,
       label: "Cau Hinh",
       icon: Settings,
       exact: false,

@@ -15,6 +15,8 @@ import {
   YAxis,
   Bar,
   BarChart,
+  Cell,
+  LabelList,
 } from "recharts";
 import {
   Card,
@@ -49,15 +51,6 @@ const mockRoundScores = [
   { van: "Van 4", p1: 10, p2: -2, p3: 2, p4: -10 },
   { van: "Van 5", p1: 9, p2: 1, p3: 3, p4: -13 },
   { van: "Van 6", p1: 12, p2: 4, p3: 0, p4: -16 },
-  { van: "Van 6", p1: 12, p2: 4, p3: 0, p4: -16 },
-  { van: "Van 6", p1: 12, p2: 4, p3: 0, p4: -16 },
-  { van: "Van 6", p1: 12, p2: 4, p3: 0, p4: -16 },
-  { van: "Van 6", p1: 12, p2: 4, p3: 0, p4: -16 },
-  { van: "Van 4", p1: 10, p2: -2, p3: 2, p4: -10 },
-  { van: "Van 4", p1: 10, p2: -2, p3: 2, p4: -10 },
-  { van: "Van 4", p1: 10, p2: -2, p3: 2, p4: -10 },
-  { van: "Van 4", p1: 10, p2: -2, p3: 2, p4: -10 },
-
 ];
 
 // Số lần về nhất / về tư
@@ -94,6 +87,18 @@ const bonusChartConfig = {
   khap: { label: "Khap", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
+// Tổng điểm mỗi người chơi
+const mockTotalScores = [
+  { name: "NC1", diem: 20 },
+  { name: "NC2", diem: 4 },
+  { name: "NC3", diem: -8 },
+  { name: "NC4", diem: -16 },
+];
+
+const totalScoreConfig = {
+  diem: { label: "Tong diem" },
+} satisfies ChartConfig;
+
 // ── Loader ───────────────────────────────────────────────────
 export async function loader() {
   return {};
@@ -128,7 +133,7 @@ export default function ChartPage() {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(v) => ""}
+                tickFormatter={(v) => v.replace("Van ", "V")}
               />
               <YAxis
                 tickLine={false}
@@ -145,7 +150,7 @@ export default function ChartPage() {
                   type="monotone"
                   stroke={`var(--color-${p.id})`}
                   strokeWidth={2}
-                  dot={false}
+                  dot={{ r: 3 }}
                   activeDot={{ r: 5 }}
                 />
               ))}
@@ -222,6 +227,38 @@ export default function ChartPage() {
         <CardFooter className="text-sm text-muted-foreground">
           Tong hop sanh va khap trong toan bo phien
         </CardFooter>
+      </Card>
+
+      {/* ── 4. Tổng điểm mỗi người chơi ─────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tong diem</CardTitle>
+          <CardDescription>
+            Tong diem tich luy cua tung nguoi choi
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={totalScoreConfig}>
+            <BarChart accessibilityLayer data={mockTotalScores}>
+              <CartesianGrid vertical={false} />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel hideIndicator />}
+              />
+              <Bar dataKey="diem">
+                <LabelList position="top" dataKey="name" fillOpacity={1} />
+                {mockTotalScores.map((item) => (
+                  <Cell
+                    key={item.name}
+                    fill={
+                      item.diem >= 0 ? "var(--chart-2)" : "var(--destructive)"
+                    }
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
       </Card>
     </main>
   );
