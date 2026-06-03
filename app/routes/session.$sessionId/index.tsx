@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { useParams } from "react-router";
 // import type { Route } from "./+types/index";
@@ -17,7 +19,18 @@ import { useParams } from "react-router";
 // } from "~/services/socket.client";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Copy, Check, Users, Trophy, UserPlus, Plus, Crown } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Trophy,
+  UserPlus,
+  Plus,
+  Crown,
+  X,
+  ArrowBigUpDash,
+  ArrowBigDownDash,
+  Minus,
+} from "lucide-react";
 
 // Mock data for UI development
 const mockData = {
@@ -39,6 +52,7 @@ const mockData = {
   ],
   pendingRequests: [
     { id: "req-1", displayName: "Nguoi Moi", status: "pending" },
+    { id: "req-2", displayName: "Nguoi Moi 2", status: "pending" },
   ],
   totals: [
     { playerId: "p1", totalScore: 50 },
@@ -46,48 +60,17 @@ const mockData = {
     { playerId: "p3", totalScore: -10 },
     { playerId: "p4", totalScore: -60 },
   ],
+  // Previous round ranking to compute rank changes (index = previous rank 0-based)
+  previousRanking: ["p2", "p1", "p3", "p4"], // p2 was 1st, p1 was 2nd before last round
 };
 
-// export async function loader({ params }: Route.LoaderArgs) {
-//   const { sessionId } = params;
-
-//   const session = await db.query.sessions.findFirst({
-//     where: eq(sessions.id, sessionId as any),
-//   });
-
-//   if (!session) {
-//     throw new Response("Session not found", { status: 404 });
-//   }
-
-//   const playerList = await db.query.players.findMany({
-//     where: eq(players.sessionId, sessionId as any),
-//     orderBy: players.orderNo,
-//   });
-
-//   const participantList = await db.query.participants.findMany({
-//     where: eq(participants.sessionId, sessionId as any),
-//   });
-
-//   const pendingRequests = await db.query.joinRequests.findMany({
-//     where: eq(joinRequests.sessionId, sessionId as any),
-//   });
-
-//   const totals = await db.query.sessionTotals.findMany({
-//     where: eq(sessionTotals.sessionId, sessionId as any),
-//   });
-
-//   return {
-//     session,
-//     playerList,
-//     participantList,
-//     pendingRequests: pendingRequests.filter((r) => r.status === "pending"),
-//     totals,
-//   };
-// }
+// export async function loader({ params }: Route.LoaderArgs) { ... }
 
 export default function SessionLobby() {
   const { sessionId } = useParams();
   const [copied, setCopied] = useState(false);
+  const [showRoomCode, setShowRoomCode] = useState(true);
+  const [showJoinRequests, setShowJoinRequests] = useState(true);
   const [state, setState] = useState({
     participantList: mockData.participantList,
     totals: mockData.totals,
@@ -104,14 +87,18 @@ export default function SessionLobby() {
   const handleApprove = (joinRequestId: string) => {
     setState((prev) => ({
       ...prev,
-      pendingRequests: prev.pendingRequests.filter((r) => r.id !== joinRequestId),
+      pendingRequests: prev.pendingRequests.filter(
+        (r) => r.id !== joinRequestId,
+      ),
     }));
   };
 
   const handleReject = (joinRequestId: string) => {
     setState((prev) => ({
       ...prev,
-      pendingRequests: prev.pendingRequests.filter((r) => r.id !== joinRequestId),
+      pendingRequests: prev.pendingRequests.filter(
+        (r) => r.id !== joinRequestId,
+      ),
     }));
   };
 
@@ -123,22 +110,29 @@ export default function SessionLobby() {
 
   // Sort players by score for ranking display
   const sortedPlayers = [...mockData.playerList].sort((a, b) => {
-    const scoreA = state.totals.find((t) => t.playerId === a.id)?.totalScore || 0;
-    const scoreB = state.totals.find((t) => t.playerId === b.id)?.totalScore || 0;
+    const scoreA =
+      state.totals.find((t) => t.playerId === a.id)?.totalScore || 0;
+    const scoreB =
+      state.totals.find((t) => t.playerId === b.id)?.totalScore || 0;
     return scoreB - scoreA;
   });
 
-  const getRankStyle = (index: number) => {
-    switch (index) {
-      case 0:
-        return "bg-chart-4/20 text-chart-4 border-chart-4/30";
-      case 1:
-        return "bg-muted text-muted-foreground border-muted";
-      case 2:
-        return "bg-chart-2/20 text-chart-2 border-chart-2/30";
-      default:
-        return "bg-destructive/10 text-destructive border-destructive/30";
-    }
+  // Compute rank change: compare current rank vs previous rank
+  const getRankChange = (
+    playerId: string,
+    currentIndex: number,
+  ): "up" | "down" | "same" => {
+    const prevIndex = mockData.previousRanking.indexOf(playerId);
+    if (prevIndex === -1) return "same";
+    if (currentIndex < prevIndex) return "up";
+    if (currentIndex > prevIndex) return "down";
+    return "same";
+  };
+
+  const getRankStyle = (score: number) => {
+    return score >= 0
+      ? "bg-chart-2/20 text-chart-2 border-chart-2/30"
+      : "bg-destructive/10 text-destructive border-destructive/30";
   };
 
   const getRankIcon = (index: number) => {
@@ -146,39 +140,138 @@ export default function SessionLobby() {
     return null;
   };
 
+  const RankChangeIndicator = ({
+    change,
+  }: {
+    change: "up" | "down" | "same";
+  }) => {
+    if (change === "up")
+      return (
+        <span className="flex items-center text-chart-2">
+          <ArrowBigUpDash className="size-4" fill="currentColor" />
+        </span>
+      );
+    if (change === "down")
+      return (
+        <span className="flex items-center text-destructive">
+          <ArrowBigDownDash className="size-4" fill="currentColor" />
+        </span>
+      );
+    return (
+      <span className="flex items-center text-muted-foreground opacity-40">
+        <Minus className="size-3" />
+      </span>
+    );
+  };
+
+  const hasNewRequests = state.pendingRequests.length > 0;
+
   return (
     <main className="p-4 flex flex-col gap-4">
-      {/* Room Code & Share */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between">
-            <span className="text-base font-medium text-muted-foreground">Ma Phong</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyLink}
-              className="gap-2"
-            >
-              {copied ? (
-                <>
-                  <Check className="size-4 text-chart-2" />
-                  Da sao chep
-                </>
-              ) : (
-                <>
-                  <Copy className="size-4" />
-                  Sao chep link
-                </>
-              )}
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-4xl font-bold text-primary tracking-wider text-center">
-            {mockData.session.code}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Join Requests — hiển thị ở trên cùng khi có yêu cầu, có thể đóng */}
+      {isOwner && hasNewRequests && showJoinRequests && (
+        <Card className="border-chart-4/40 bg-chart-4/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
+                  <UserPlus className="size-4" />
+                </div>
+                <span className="text-base">
+                  Yeu Cau Tham Gia{" "}
+                  <span className="inline-flex items-center justify-center size-5 rounded-full bg-chart-4 text-background text-xs font-bold ml-1">
+                    {state.pendingRequests.length}
+                  </span>
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowJoinRequests(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 pt-0">
+            {state.pendingRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-chart-4/10 border border-chart-4/20"
+              >
+                <span className="font-medium text-sm">
+                  {request.displayName}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => handleApprove(request.id)}
+                    className="bg-chart-2 hover:bg-chart-2/90 h-7 text-xs px-3"
+                  >
+                    Duyet
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleReject(request.id)}
+                    className="h-7 text-xs px-3"
+                  >
+                    Tu choi
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Room Code — compact, collapsible */}
+      {showRoomCode && (
+        <Card>
+          <CardContent className="py-2 px-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+                  Ma Phong
+                </span>
+                <span className="text-xl font-bold text-primary tracking-wider">
+                  {mockData.session.code}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyLink}
+                  className="gap-1.5 h-8 text-xs px-2"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="size-3.5 text-chart-2" />
+                      <span className="hidden sm:inline">Da sao chep</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-3.5" />
+                      <span className="hidden sm:inline">Sao chep link</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowRoomCode(false)}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Score Board */}
       <Card>
@@ -194,18 +287,25 @@ export default function SessionLobby() {
           {sortedPlayers.map((player, index) => {
             const total = state.totals.find((t) => t.playerId === player.id);
             const score = total?.totalScore || 0;
+            const rankChange = getRankChange(player.id, index);
 
             return (
               <div
                 key={player.id}
-                className={`flex items-center justify-between p-3 rounded-lg border ${getRankStyle(index)}`}
+                className={`flex items-center justify-between p-3 rounded-lg border ${getRankStyle(score)}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center size-6 rounded-full bg-background text-xs font-bold">
-                    {index + 1}
-                  </span>
+                  {index === 0 ? (
+                    <span className="flex items-center justify-center size-6">
+                      <Crown className="size-4 text-chart-4" />
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center size-6 rounded-full bg-background text-xs font-bold">
+                      {index + 1}
+                    </span>
+                  )}
                   <span className="font-medium">{player.name}</span>
-                  {getRankIcon(index)}
+                  <RankChangeIndicator change={rankChange} />
                 </div>
                 <span
                   className={`text-lg font-bold ${
@@ -220,95 +320,15 @@ export default function SessionLobby() {
         </CardContent>
       </Card>
 
-      {/* Participants */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
-              <Users className="size-4" />
-            </div>
-            Nguoi Tham Gia ({state.participantList.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2">
-            {state.participantList.map((participant) => (
-              <div
-                key={participant.id}
-                className={`flex flex-col items-center gap-1 p-3 rounded-lg ${
-                  participant.role === "owner"
-                    ? "bg-primary/10 border border-primary/20"
-                    : "bg-muted"
-                }`}
-              >
-                <div className="flex items-center justify-center size-10 rounded-full bg-background">
-                  <Users className="size-5 text-muted-foreground" />
-                </div>
-                <p className="font-medium text-sm text-center">{participant.displayName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {participant.role === "owner" ? "Chu phong" : "Nguoi choi"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Join Requests */}
-      {isOwner && state.pendingRequests.length > 0 && (
-        <Card className="border-chart-4/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
-                <UserPlus className="size-4" />
-              </div>
-              Yeu Cau Tham Gia ({state.pendingRequests.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {state.pendingRequests.map((request) => (
-              <div
-                key={request.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-chart-4/10 border border-chart-4/20"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center size-8 rounded-full bg-background">
-                    <Users className="size-4 text-muted-foreground" />
-                  </div>
-                  <span className="font-medium text-sm">{request.displayName}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => handleApprove(request.id)}
-                    className="bg-chart-2 hover:bg-chart-2/90"
-                  >
-                    Duyet
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleReject(request.id)}
-                  >
-                    Tu choi
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Add Round Button - Fixed at bottom above tab bar */}
-      {isOwner && (
+      {/* {isOwner && (
         <div className="fixed bottom-20 right-4 z-40">
           <Button size="lg" className="rounded-full size-14 shadow-lg">
             <Plus className="size-6" />
             <span className="sr-only">Them van dau</span>
           </Button>
         </div>
-      )}
+      )} */}
     </main>
   );
 }

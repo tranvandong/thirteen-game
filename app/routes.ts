@@ -8,9 +8,11 @@ export default [
   route("session/:sessionId", "routes/session.$sessionId/layout.tsx", [
     index("routes/session.$sessionId/index.tsx"),
 
-    route("score-board", "routes/session.$sessionId/score-board.tsx"),
+    route("settings", "routes/session.$sessionId/settings.tsx"),
 
     route("history", "routes/session.$sessionId/history.tsx"),
+    
+    route("match", "routes/session.$sessionId/match.tsx"),
 
     route("history/:roundId", "routes/session.$sessionId/round-detail.tsx"),
   ]),

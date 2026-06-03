@@ -17,8 +17,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center px-4">
       <div className="text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <Spade className="size-12 text-white" />
+        <div className="flex flex-col items-center justify-center gap-12 mb-4">
+          <img
+            src="/icons/icon-72x72.png"
+            alt="logo"
+            className="w-24 h-24 rounded-full"
+          />
           <h1 className="text-5xl font-bold text-white">Thirteen Game</h1>
         </div>
         <p className="text-xl text-white mb-8">
