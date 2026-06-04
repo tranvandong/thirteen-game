@@ -14,173 +14,145 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge"; 
+import { Separator } from "~/components/ui/separator";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
-import { ChevronDown, ChevronLeft, Users, Trophy, Settings, Play } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  Users,
+  Trophy,
+  Settings,
+  Play,
+  Spade,
+  Flame,
+  Sparkles,
+  PiggyBank,
+  Swords,
+} from "lucide-react";
 
-// export async function action({ request }: Route.ActionArgs) {
-//   if (request.method !== "POST") {
-//     return { error: "Method not allowed" };
-//   }
-
-//   const formData = await request.formData();
-//   const playerNames = [
-//     formData.get("player1") as string,
-//     formData.get("player2") as string,
-//     formData.get("player3") as string,
-//     formData.get("player4") as string,
-//   ];
-
-//   const gameConfig = {
-//     firstPlaceScore: parseInt(formData.get("firstPlaceScore") as string),
-//     secondPlaceScore: parseInt(formData.get("secondPlaceScore") as string),
-//     thirdPlaceScore: parseInt(formData.get("thirdPlaceScore") as string),
-//     fourthPlaceScore: parseInt(formData.get("fourthPlaceScore") as string),
-//     redPigScore: parseInt(formData.get("redPigScore") as string),
-//     blackPigScore: parseInt(formData.get("blackPigScore") as string),
-//     tripleScore: parseInt(formData.get("tripleScore") as string),
-//     khapScore: parseInt(formData.get("khapScore") as string),
-//     khapLimit: parseInt(formData.get("khapLimit") as string),
-//     sanhScore: parseInt(formData.get("sanhScore") as string),
-//     sanhLimit: parseInt(formData.get("sanhLimit") as string),
-//   };
-
-//   try {
-//     const session = await db
-//       .insert(sessions)
-//       .values({
-//         code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-//         status: "waiting",
-//       })
-//       .returning();
-
-//     const sessionId = session[0].id;
-
-//     await db.insert(gameConfigs).values({
-//       sessionId,
-//       ...gameConfig,
-//     });
-
-//     for (let i = 0; i < playerNames.length; i++) {
-//       await db.insert(playerSchema).values({
-//         sessionId,
-//         name: playerNames[i],
-//         orderNo: i + 1,
-//       });
-//     }
-
-//     const ownerParticipant = await db
-//       .insert(participants)
-//       .values({
-//         sessionId,
-//         displayName: formData.get("ownerName") as string,
-//         role: "owner",
-//       })
-//       .returning();
-
-//     await db
-//       .update(sessions)
-//       .set({ ownerParticipantId: ownerParticipant[0].id })
-//       .where(eq(sessions.id, sessionId));
-
-//     return redirect(`/session/${sessionId}`);
-//   } catch (error) {
-//     console.error("Error creating session:", error);
-//     return { error: "Failed to create session" };
-//   }
-// }
+// export async function action({ request }: Route.ActionArgs) { ... }
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Tao phong choi - Thirteen Game" }];
 }
 
+// ── Score preview helper ─────────────────────────────────
+const RANK_LABELS = ["Hang 1", "Hang 2", "Hang 3", "Hang 4"];
+const RANK_COLORS = [
+  "text-chart-4 bg-chart-4/10 border-chart-4/30",
+  "text-chart-2 bg-chart-2/10 border-chart-2/30",
+  "text-muted-foreground bg-muted/40 border-muted",
+  "text-destructive bg-destructive/10 border-destructive/30",
+];
+
+// ── Number stepper component ─────────────────────────────
+function ScoreInput({
+  id,
+  label,
+  name,
+  value,
+  onChange,
+  hint,
+}: {
+  id: string;
+  label: string;
+  name: string;
+  value: number;
+  onChange: (v: number) => void;
+  hint?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <Label htmlFor={id} className="text-xs font-medium">
+          {label}
+        </Label>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      </div>
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={() => onChange(value - 1)}
+          className="flex items-center justify-center size-9 rounded-l-md border border-r-0 border-input bg-muted hover:bg-muted/70 text-muted-foreground font-bold transition-colors"
+        >
+          −
+        </button>
+        <Input
+          id={id}
+          type="number"
+          name={name}
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value) || 0)}
+          className="rounded-none text-center font-bold h-9 border-x-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(value + 1)}
+          className="flex items-center justify-center size-9 rounded-r-md border border-l-0 border-input bg-muted hover:bg-muted/70 text-muted-foreground font-bold transition-colors"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function CreateSession() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    ownerName: "",
-    player1: "",
-    player2: "",
-    player3: "",
-    player4: "",
-    firstPlaceScore: 20,
-    secondPlaceScore: 10,
-    thirdPlaceScore: 0,
-    fourthPlaceScore: -30,
-    redPigScore: 20,
-    blackPigScore: 10,
+    ownerName: "Chu Phong",
+    player1: "An",
+    player2: "Binh",
+    player3: "Cuong",
+    player4: "Dung",
+    firstPlaceScore: 3,
+    secondPlaceScore: 1,
+    thirdPlaceScore: -1,
+    fourthPlaceScore: -3,
+    redPigScore: 3,
+    blackPigScore: 5,
     tripleScore: 20,
-    khapScore: 1,
-    khapLimit: 3,
-    sanhScore: 1,
-    sanhLimit: 2,
+    khapScore: 3,
+    khapLimit: 5,
+    sanhScore: 5,
+    sanhLimit: 3,
+    nhotPenalty: 2,
   });
 
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
+  const set = (key: keyof typeof formData, val: string | number) =>
+    setFormData((prev) => ({ ...prev, [key]: val }));
+
   const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.ownerName.trim()) {
-      newErrors.ownerName = "Vui long nhap ten chu phong";
-    }
-
+    const errs: Record<string, string> = {};
+    if (!formData.ownerName.trim())
+      errs.ownerName = "Vui long nhap ten chu phong";
     for (let i = 1; i <= 4; i++) {
-      const playerName = formData[`player${i}` as keyof typeof formData] as string;
-      if (!playerName.trim()) {
-        newErrors[`player${i}`] = `Vui long nhap ten nguoi choi ${i}`;
-      }
+      const v = formData[`player${i}` as keyof typeof formData] as string;
+      if (!v?.trim()) errs[`player${i}`] = `Vui long nhap ten nguoi choi ${i}`;
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handlePlayerNameChange = (index: number, value: string) => {
-    const key = `player${index + 1}` as keyof typeof formData;
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    if (errors[`player${index + 1}`]) {
-      setErrors((prev) => ({
-        ...prev,
-        [`player${index + 1}`]: "",
-      }));
-    }
-  };
-
-  const handleFirstPlaceChange = (value: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      firstPlaceScore: value,
-      fourthPlaceScore: prev.fourthPlaceScore === -prev.firstPlaceScore ? -value : prev.fourthPlaceScore,
-      redPigScore: prev.redPigScore === prev.firstPlaceScore ? value : prev.redPigScore,
-      tripleScore: prev.tripleScore === prev.firstPlaceScore ? value : prev.tripleScore,
-    }));
-  };
-
-  const handleSecondPlaceChange = (value: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      secondPlaceScore: value,
-      thirdPlaceScore: prev.thirdPlaceScore === prev.secondPlaceScore ? value : prev.thirdPlaceScore,
-      blackPigScore: prev.blackPigScore === prev.secondPlaceScore ? value : prev.blackPigScore,
-    }));
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (validateForm()) {
-      // TODO: Submit form data to server
-      console.log("Form data:", formData);
-      // Navigate to session page with mock sessionId
-      navigate("/session/demo-session");
-    }
+    if (validateForm()) navigate("/session/demo-session");
   };
+
+  const rankScores = [
+    formData.firstPlaceScore,
+    formData.secondPlaceScore,
+    formData.thirdPlaceScore,
+    formData.fourthPlaceScore,
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -188,252 +160,337 @@ export default function CreateSession() {
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="flex items-center gap-3 px-4 h-14">
           <Link to="/" className="flex items-center justify-center">
-            <Button variant="ghost" size="icon-sm">
+            <Button variant="ghost" size="icon">
               <ChevronLeft className="size-5" />
             </Button>
           </Link>
-          <h1 className="text-lg font-semibold text-foreground">Tao Phong Choi</h1>
+          <div className="flex items-center gap-2">
+            <Spade className="size-4 text-primary" />
+            <h1 className="text-base font-semibold">Tao Phong Choi</h1>
+          </div>
         </div>
       </header>
 
-      <main className="pb-24">
-        <form id="create-form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
-          {/* Owner Name Card */}
+      <main className="pb-28">
+        <form
+          id="create-form"
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 p-4"
+        >
+          {/* ── Chủ phòng ─────────────────────────────────── */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
-                  <Users className="size-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex items-center justify-center size-7 rounded-full bg-primary/10 text-primary">
+                  <Spade className="size-3.5" />
                 </div>
                 Chu Phong
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ownerName">Ten cua ban</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ownerName" className="text-xs font-medium">
+                  Ten cua ban
+                </Label>
                 <Input
                   id="ownerName"
-                  type="text"
                   name="ownerName"
                   value={formData.ownerName}
                   onChange={(e) => {
-                    setFormData({ ...formData, ownerName: e.target.value });
-                    if (errors.ownerName) {
-                      setErrors({ ...errors, ownerName: "" });
-                    }
+                    set("ownerName", e.target.value);
+                    if (errors.ownerName)
+                      setErrors((p) => ({ ...p, ownerName: "" }));
                   }}
                   placeholder="Nhap ten cua ban"
-                  aria-invalid={!!errors.ownerName}
+                  className={errors.ownerName ? "border-destructive" : ""}
                 />
                 {errors.ownerName && (
-                  <p className="text-destructive text-sm">{errors.ownerName}</p>
+                  <p className="text-destructive text-xs">{errors.ownerName}</p>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Players Card */}
+          {/* ── Người chơi ────────────────────────────────── */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="flex items-center justify-center size-8 rounded-full bg-chart-2/20 text-chart-2">
-                  <Users className="size-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex items-center justify-center size-7 rounded-full bg-chart-2/20 text-chart-2">
+                  <Users className="size-3.5" />
                 </div>
                 Nguoi Choi
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  4 nguoi
+                </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  <Label htmlFor={`player${i + 1}`}>Nguoi choi {i + 1}</Label>
-                  <Input
-                    id={`player${i + 1}`}
-                    type="text"
-                    name={`player${i + 1}`}
-                    value={formData[`player${i + 1}` as keyof typeof formData] as string}
-                    onChange={(e) => handlePlayerNameChange(i, e.target.value)}
-                    placeholder={`Ten nguoi choi ${i + 1}`}
-                    aria-invalid={!!errors[`player${i + 1}`]}
-                  />
-                  {errors[`player${i + 1}`] && (
-                    <p className="text-destructive text-sm">{errors[`player${i + 1}`]}</p>
-                  )}
-                </div>
-              ))}
+            <CardContent className="flex flex-col gap-0 p-0">
+              {[0, 1, 2, 3].map((i) => {
+                const key = `player${i + 1}` as keyof typeof formData;
+                const err = errors[`player${i + 1}`];
+                const rankColor = RANK_COLORS[i];
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-3 px-4 py-3 ${i < 3 ? "border-b border-muted/60" : ""}`}
+                  >
+                    <span
+                      className={`flex items-center justify-center size-7 rounded-full text-xs font-bold border shrink-0 ${rankColor}`}
+                    >
+                      {i + 1}
+                    </span>
+                    <Input
+                      id={`player${i + 1}`}
+                      name={`player${i + 1}`}
+                      value={formData[key] as string}
+                      onChange={(e) => {
+                        set(key, e.target.value);
+                        if (err)
+                          setErrors((p) => ({ ...p, [`player${i + 1}`]: "" }));
+                      }}
+                      placeholder={`Ten nguoi choi ${i + 1}`}
+                      className={`border-0 shadow-none bg-transparent focus-visible:ring-0 px-0 font-medium ${err ? "placeholder:text-destructive" : ""}`}
+                    />
+                    {err && (
+                      <p className="text-destructive text-xs shrink-0">!</p>
+                    )}
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
-          {/* Rank Scores Card */}
+          {/* ── Điểm hạng ─────────────────────────────────── */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
-                  <Trophy className="size-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex items-center justify-center size-7 rounded-full bg-chart-4/20 text-chart-4">
+                  <Trophy className="size-3.5" />
                 </div>
                 Diem Hang
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
+              {/* Preview bar */}
+              <div className="flex gap-1.5 rounded-lg overflow-hidden border border-muted p-1 bg-muted/30">
+                {rankScores.map((score, i) => (
+                  <div
+                    key={i}
+                    className={`flex-1 flex flex-col items-center py-1.5 rounded-md border text-xs font-bold ${RANK_COLORS[i]}`}
+                  >
+                    <span className="text-[10px] opacity-70 mb-0.5">
+                      {RANK_LABELS[i]}
+                    </span>
+                    <span>{score > 0 ? `+${score}` : score}</span>
+                  </div>
+                ))}
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="firstPlaceScore">Hang Nhat</Label>
-                  <Input
-                    id="firstPlaceScore"
-                    type="number"
-                    name="firstPlaceScore"
-                    value={formData.firstPlaceScore}
-                    onChange={(e) => handleFirstPlaceChange(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="secondPlaceScore">Hang Nhi</Label>
-                  <Input
-                    id="secondPlaceScore"
-                    type="number"
-                    name="secondPlaceScore"
-                    value={formData.secondPlaceScore}
-                    onChange={(e) => handleSecondPlaceChange(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="thirdPlaceScore">Hang Ba</Label>
-                  <Input
-                    id="thirdPlaceScore"
-                    type="number"
-                    name="thirdPlaceScore"
-                    value={formData.thirdPlaceScore}
-                    onChange={(e) => setFormData({ ...formData, thirdPlaceScore: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="fourthPlaceScore">Hang Tu</Label>
-                  <Input
-                    id="fourthPlaceScore"
-                    type="number"
-                    name="fourthPlaceScore"
-                    value={formData.fourthPlaceScore}
-                    onChange={(e) => setFormData({ ...formData, fourthPlaceScore: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
+                <ScoreInput
+                  id="firstPlaceScore"
+                  label="Hang Nhat"
+                  name="firstPlaceScore"
+                  value={formData.firstPlaceScore}
+                  onChange={(v) =>
+                    setFormData((p) => ({
+                      ...p,
+                      firstPlaceScore: v,
+                      fourthPlaceScore:
+                        p.fourthPlaceScore === -p.firstPlaceScore
+                          ? -v
+                          : p.fourthPlaceScore,
+                    }))
+                  }
+                />
+                <ScoreInput
+                  id="secondPlaceScore"
+                  label="Hang Nhi"
+                  name="secondPlaceScore"
+                  value={formData.secondPlaceScore}
+                  onChange={(v) => set("secondPlaceScore", v)}
+                />
+                <ScoreInput
+                  id="thirdPlaceScore"
+                  label="Hang Ba"
+                  name="thirdPlaceScore"
+                  value={formData.thirdPlaceScore}
+                  onChange={(v) => set("thirdPlaceScore", v)}
+                />
+                <ScoreInput
+                  id="fourthPlaceScore"
+                  label="Hang Tu"
+                  name="fourthPlaceScore"
+                  value={formData.fourthPlaceScore}
+                  onChange={(v) => set("fourthPlaceScore", v)}
+                />
               </div>
             </CardContent>
           </Card>
 
-          {/* Advanced Settings Collapsible */}
+          {/* ── Cài đặt nâng cao ──────────────────────────── */}
           <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
             <Card>
               <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer active:bg-muted/50 transition-colors rounded-t-xl">
-                  <CardTitle className="flex items-center justify-between">
+                <CardHeader className="cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors rounded-xl pb-3">
+                  <CardTitle className="flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
-                      <div className="flex items-center justify-center size-8 rounded-full bg-muted text-muted-foreground">
-                        <Settings className="size-4" />
+                      <div className="flex items-center justify-center size-7 rounded-full bg-muted text-muted-foreground">
+                        <Settings className="size-3.5" />
                       </div>
                       Cai Dat Nang Cao
                     </span>
                     <ChevronDown
-                      className={`size-5 text-muted-foreground transition-transform duration-200 ${
-                        isAdvancedOpen ? "rotate-180" : ""
-                      }`}
+                      className={`size-4 text-muted-foreground transition-transform duration-200 ${isAdvancedOpen ? "rotate-180" : ""}`}
                     />
                   </CardTitle>
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent className="flex flex-col gap-4 pt-0">
-                  {/* Pig Scores */}
+                <CardContent className="flex flex-col gap-5 pt-0">
+                  {/* Heo */}
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm font-medium text-muted-foreground">Diem Heo</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="redPigScore">Heo Do</Label>
-                        <Input
-                          id="redPigScore"
-                          type="number"
-                          name="redPigScore"
-                          value={formData.redPigScore}
-                          onChange={(e) => setFormData({ ...formData, redPigScore: parseInt(e.target.value) || 0 })}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="blackPigScore">Heo Den</Label>
-                        <Input
-                          id="blackPigScore"
-                          type="number"
-                          name="blackPigScore"
-                          value={formData.blackPigScore}
-                          onChange={(e) => setFormData({ ...formData, blackPigScore: parseInt(e.target.value) || 0 })}
-                        />
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <PiggyBank className="size-3.5 text-muted-foreground" />
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Diem Heo
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Triple Score */}
-                  <div className="flex flex-col gap-3">
-                    <p className="text-sm font-medium text-muted-foreground">3 Doi Thong</p>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="tripleScore">Diem</Label>
-                      <Input
-                        id="tripleScore"
-                        type="number"
-                        name="tripleScore"
-                        value={formData.tripleScore}
-                        onChange={(e) => setFormData({ ...formData, tripleScore: parseInt(e.target.value) || 0 })}
+                    <div className="grid grid-cols-2 gap-3">
+                      <ScoreInput
+                        id="redPigScore"
+                        label="Heo Do"
+                        name="redPigScore"
+                        hint="đ/nguoi"
+                        value={formData.redPigScore}
+                        onChange={(v) => set("redPigScore", v)}
+                      />
+                      <ScoreInput
+                        id="blackPigScore"
+                        label="Heo Den"
+                        name="blackPigScore"
+                        hint="đ/nguoi"
+                        value={formData.blackPigScore}
+                        onChange={(v) => set("blackPigScore", v)}
                       />
                     </div>
                   </div>
 
-                  {/* Khap Score */}
+                  <Separator />
+
+                  {/* Khạp */}
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm font-medium text-muted-foreground">Diem Khap</p>
+                    <div className="flex items-center gap-2">
+                      <Flame className="size-3.5 text-chart-4" />
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Diem Khap
+                      </p>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="khapScore">Diem/Khap</Label>
-                        <Input
-                          id="khapScore"
-                          type="number"
-                          name="khapScore"
-                          value={formData.khapScore}
-                          onChange={(e) => setFormData({ ...formData, khapScore: parseInt(e.target.value) || 0 })}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="khapLimit">Gioi han</Label>
-                        <Input
-                          id="khapLimit"
-                          type="number"
-                          name="khapLimit"
-                          value={formData.khapLimit}
-                          onChange={(e) => setFormData({ ...formData, khapLimit: parseInt(e.target.value) || 0 })}
-                        />
-                      </div>
+                      <ScoreInput
+                        id="khapScore"
+                        label="Diem/Khap"
+                        name="khapScore"
+                        hint="đ/nguoi"
+                        value={formData.khapScore}
+                        onChange={(v) => set("khapScore", v)}
+                      />
+                      <ScoreInput
+                        id="khapLimit"
+                        label="Gioi Han"
+                        name="khapLimit"
+                        hint="van"
+                        value={formData.khapLimit}
+                        onChange={(v) => set("khapLimit", v)}
+                      />
+                    </div>
+                    {/* Preview */}
+                    <div className="flex gap-1.5 p-2.5 rounded-lg bg-chart-4/5 border border-chart-4/20 text-xs text-muted-foreground">
+                      <Flame className="size-3.5 text-chart-4 shrink-0 mt-0.5" />
+                      <span>
+                        Moi khap tich luy, nguoi thang nhan{" "}
+                        <strong className="text-chart-4">
+                          {formData.khapScore * 3}đ
+                        </strong>
+                        , 3 nguoi con lai moi nguoi mat{" "}
+                        <strong className="text-chart-4">
+                          {formData.khapScore}đ
+                        </strong>
+                        . Toi da {formData.khapLimit} van.
+                      </span>
                     </div>
                   </div>
 
-                  {/* Sanh Score */}
+                  <Separator />
+
+                  {/* Sảnh */}
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm font-medium text-muted-foreground">Diem Sanh</p>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="size-3.5 text-chart-1" />
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Diem Sanh
+                      </p>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="sanhScore">Diem/Sanh</Label>
-                        <Input
-                          id="sanhScore"
-                          type="number"
-                          name="sanhScore"
-                          value={formData.sanhScore}
-                          onChange={(e) => setFormData({ ...formData, sanhScore: parseInt(e.target.value) || 0 })}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="sanhLimit">Gioi han</Label>
-                        <Input
-                          id="sanhLimit"
-                          type="number"
-                          name="sanhLimit"
-                          value={formData.sanhLimit}
-                          onChange={(e) => setFormData({ ...formData, sanhLimit: parseInt(e.target.value) || 0 })}
-                        />
-                      </div>
+                      <ScoreInput
+                        id="sanhScore"
+                        label="Diem/Sanh"
+                        name="sanhScore"
+                        hint="đ/nguoi"
+                        value={formData.sanhScore}
+                        onChange={(v) => set("sanhScore", v)}
+                      />
+                      <ScoreInput
+                        id="sanhLimit"
+                        label="Gioi Han"
+                        name="sanhLimit"
+                        hint="van"
+                        value={formData.sanhLimit}
+                        onChange={(v) => set("sanhLimit", v)}
+                      />
+                    </div>
+                    <div className="flex gap-1.5 p-2.5 rounded-lg bg-chart-1/5 border border-chart-1/20 text-xs text-muted-foreground">
+                      <Sparkles className="size-3.5 text-chart-1 shrink-0 mt-0.5" />
+                      <span>
+                        Moi sanh tich luy (1 lan/van), nguoi thang nhan{" "}
+                        <strong className="text-chart-1">
+                          {formData.sanhScore * 3}đ
+                        </strong>
+                        , 3 nguoi con lai moi nguoi mat{" "}
+                        <strong className="text-chart-1">
+                          {formData.sanhScore}đ
+                        </strong>
+                        . Toi da {formData.sanhLimit} van.
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Nhốt */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <Swords className="size-3.5 text-chart-3" />
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Nhot Bai
+                      </p>
+                    </div>
+                    <ScoreInput
+                      id="nhotPenalty"
+                      label="Phat Nguoi Ngoai (Nhot 2)"
+                      name="nhotPenalty"
+                      hint="đ cố định"
+                      value={formData.nhotPenalty}
+                      onChange={(v) => set("nhotPenalty", v)}
+                    />
+                    <div className="flex gap-1.5 p-2.5 rounded-lg bg-chart-3/5 border border-chart-3/20 text-xs text-muted-foreground">
+                      <Swords className="size-3.5 text-chart-3 shrink-0 mt-0.5" />
+                      <span>
+                        Khi nhot 2 nguoi, nguoi con lai bi phat{" "}
+                        <strong className="text-chart-3">
+                          {formData.nhotPenalty}đ
+                        </strong>{" "}
+                        co dinh.
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -443,19 +500,17 @@ export default function CreateSession() {
         </form>
       </main>
 
-      {/* Fixed Bottom Action Bar */}
+      {/* Fixed Bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t p-4">
-        <div className="flex gap-3">
-          <Button
-            type="submit"
-            form="create-form"
-            className="flex-1"
-            size="lg"
-          >
-            <Play className="size-4" />
-            Bat Dau Choi
-          </Button>
-        </div>
+        <Button
+          type="submit"
+          form="create-form"
+          className="w-full gap-2"
+          size="lg"
+        >
+          <Play className="size-4" />
+          Bat Dau Choi
+        </Button>
       </div>
     </div>
   );

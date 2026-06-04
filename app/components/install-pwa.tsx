@@ -11,16 +11,7 @@ export function InstallPWA() {
   } = usePWA();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
 
-  //   if (isInstalled) return null;
-
-  return (
-    <button
-      onClick={promptInstall}
-      className="w-full hover:text-blue-600 text-white  py-2 px-6 rounded-lg transition duration-200"
-    >
-      Cài đặt ứng dụng
-    </button>
-  );
+  if (isInstalled) return null;
 
   if (isIOSSafari) {
     return (
