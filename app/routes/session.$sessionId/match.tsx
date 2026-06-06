@@ -88,12 +88,11 @@ export default function MatchPage() {
     nhotterId: string;
     victims: VictimHeo[];
   }>({ nhotterId: "", victims: [] });
-  const [expandBonus, setExpandBonus] = useState(true);
+  const [expandBonus, setExpandBonus] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
 
   // ── Derived nhot state ────────────────────────────────────
-  // Chỉ xét nhốt bài đầu tiên (1 nhốt/ván)
   const activeNhot = nhotList[0] ?? null;
   const nhotCount = activeNhot ? activeNhot.victims.length : 0;
   const nhotterId = activeNhot?.nhotterId ?? null;
@@ -103,19 +102,15 @@ export default function MatchPage() {
     .filter((id) => id !== nhotterId && !nhotVictimIds.includes(id));
 
   // ── Ranking logic phụ thuộc vào nhốt ─────────────────────
-  // Ai được phép chọn thứ hạng (tương tác tap)
   const selectableIds = useMemo(() => {
     if (!activeNhot) return mockPlayers.map((p) => p.id);
-    if (nhotCount === 3) return []; // nhốt tất cả → không chọn hạng
-    if (nhotCount === 2) return []; // nhốt 2 → bystander auto hạng 3, không chọn
-    // nhốt 1 → chỉ 2 người còn lại (others) được chọn hạng 2 và 3
+    if (nhotCount === 3) return [];
+    if (nhotCount === 2) return [];
     return nhotOthers;
   }, [activeNhot, nhotCount, nhotOthers]);
 
-  // Số hạng cần chọn
   const requiredSelections = selectableIds.length;
 
-  // ranking = thứ tự hiển thị và tính điểm
   const ranking = useMemo(() => {
     if (!activeNhot) {
       const selected = mockPlayers
@@ -130,16 +125,13 @@ export default function MatchPage() {
     }
 
     if (nhotCount === 3) {
-      // Nhốt tất cả: người nhốt đầu, victims sau, không quan trọng thứ tự
       return [nhotterId!, ...nhotVictimIds];
     }
 
     if (nhotCount === 2) {
-      // Nhốt 2: người nhốt đầu, 2 victim, bystander auto cuối (hạng 3 trong rank)
       return [nhotterId!, ...nhotVictimIds, ...nhotOthers];
     }
 
-    // Nhốt 1: [nhotterId, ...others theo chọn, victimId]
     const othersOrdered = mockPlayers
       .map((p, i) => ({ id: p.id, order: selectOrder[i] }))
       .filter((x) => nhotOthers.includes(x.id) && x.order !== null)
@@ -168,10 +160,10 @@ export default function MatchPage() {
   const rankingComplete = !activeNhot
     ? selectCounter === mockPlayers.length
     : nhotCount === 3
-      ? true // không cần chọn gì
+      ? true
       : nhotCount === 2
-        ? true // auto
-        : selectCounter >= requiredSelections; // nhốt 1: cần chọn 2 others
+        ? true
+        : selectCounter >= requiredSelections;
 
   // ── Helpers: ranking ─────────────────────────────────────
   const toggleSelect = (playerId: string) => {
@@ -227,8 +219,7 @@ export default function MatchPage() {
       return Math.min(n, mockConfig.maxKhapAccumulate);
     });
   };
-  const toggleSanhPlayer = (pid: string) =>
-    setSanhWinner((p) => (p === pid ? null : pid));
+  const toggleSanhPlayer = (pid: string) => setSanhWinner(pid);
 
   // ── Helpers: chat heo ────────────────────────────────────
   const addChatHeo = () => {
@@ -315,7 +306,6 @@ export default function MatchPage() {
       heo.den * mockConfig.heodenPoints + heo.do * mockConfig.heoDoPoints;
 
     if (!activeNhot) {
-      // ── Không nhốt: tính hạng bình thường
       ranking.forEach((pid, i) => {
         s[pid] += mockConfig.rankPoints[i] ?? 0;
       });
@@ -420,32 +410,31 @@ export default function MatchPage() {
         : "text-muted-foreground";
   const scoreFmt = (v: number) => (v > 0 ? `+${v}` : `${v}`);
 
-  // Row style / label given nhot context
   const getRowMeta = (playerId: string, rankIndex: number) => {
     if (activeNhot) {
       if (playerId === nhotterId)
         return {
-          label: "Nhot",
+          label: "Nhốt",
           labelColor: "text-primary",
           style: "border-primary/40 bg-primary/10",
           isFixed: true,
         };
       if (nhotVictimIds.includes(playerId))
         return {
-          label: "Bi nhot",
+          label: "Bị nhốt",
           labelColor: "text-destructive",
           style: "border-destructive/30 bg-destructive/5",
           isFixed: true,
         };
       if (nhotCount === 2)
         return {
-          label: "3rd",
+          label: "Ba",
           labelColor: "text-muted-foreground",
           style: "border-muted bg-muted/30",
           isFixed: true,
         };
     }
-    const rankLabels = ["1st", "2nd", "3rd", "4th"];
+    const rankLabels = ["Nhất", "Nhì", "Ba", "Tư"];
     const rankColors = [
       "text-chart-4",
       "text-chart-2",
@@ -545,7 +534,8 @@ export default function MatchPage() {
           </div>
         </div>
       </div>
-      {/* ── Nhốt bài (lên trên) ─────────────────────────── */}
+
+      {/* ── Nhốt bài ─────────────────────────── */}
       <Card className="p-2">
         <button
           onClick={() => setExpandBonus((v) => !v)}
@@ -564,7 +554,6 @@ export default function MatchPage() {
 
         {expandBonus && (
           <div className="flex flex-col gap-2 w-full">
-            {/* Chip nhốt hiện tại */}
             {confirmNhot &&
               nhotList.length > 0 &&
               nhotList.map((n) => {
@@ -594,11 +583,6 @@ export default function MatchPage() {
                     className="flex flex-col gap-2 items-center justify-between w-full px-3 py-2 rounded-lg bg-chart-3/10 border border-chart-3/30 text-xs"
                   >
                     <div className="flex flex-col gap-1.5 py-1.5 w-full">
-                      {/* <span
-                        className={`px-1.5 py-0.5 rounded text-white font-bold ${caseColor}`}
-                      >
-                        {caseLabel}
-                      </span> */}
                       <p className="text-xs text-muted-foreground mb-1">
                         Nguoi nhot:
                       </p>
@@ -615,7 +599,6 @@ export default function MatchPage() {
                         Người bị nhốt:
                       </p>
                       {n.victims.map((v) => {
-                        // ✅ Tính điểm loss cho từng victim
                         const ecPts = Math.abs(
                           mockConfig.rankPoints[mockPlayers.length - 1],
                         );
@@ -653,8 +636,7 @@ export default function MatchPage() {
                                   )}
                                 </span>
                               )}
-                            </div>{" "}
-                            {/* ✅ Điểm loss */}
+                            </div>
                             <span className="text-destructive font-bold text-xs">
                               -{victimLoss}đ
                             </span>
@@ -669,7 +651,6 @@ export default function MatchPage() {
                       )}
                     </div>
                     <Button
-                    
                       className="h-8 text-xs w-full"
                       onClick={() => setConfirmNhot(false)}
                     >
@@ -716,7 +697,6 @@ export default function MatchPage() {
                         const isVictim = nhotForm.victims.some(
                           (v) => v.victimId === p.id,
                         );
-                        // ✅ Đọc từ nhotForm thay vì nhotList
                         const victimData = nhotForm.victims.find(
                           (v) => v.victimId === p.id,
                         );
@@ -747,7 +727,6 @@ export default function MatchPage() {
                                       {t === "do" ? "Đỏ" : "Đen"}
                                     </span>
                                     <button
-                                      // ✅ Dùng p.id trực tiếp, không qua vvvv
                                       onClick={() =>
                                         updateVictimHeo(p.id, t, -1)
                                       }
@@ -759,7 +738,6 @@ export default function MatchPage() {
                                       {vicTimHeoCount?.[t] ?? 0}
                                     </span>
                                     <button
-                                      // ✅ Dùng p.id trực tiếp
                                       onClick={() =>
                                         updateVictimHeo(p.id, t, 1)
                                       }
@@ -1007,8 +985,8 @@ export default function MatchPage() {
                 : nhotCount === 3
                   ? "Nhốt tất cả · không tính hạng"
                   : nhotCount === 2
-                    ? "Nhot 2 · nguoi con lai tu dong hang 3"
-                    : "Nhot 1 · chon hang 2 va 3 cho 2 nguoi con lai"}
+                    ? "Nhốt 2 · người chơi còn lại đồng hạng 3"
+                    : "Nhốt 1 · cShọn hạng 2 và 3 cho 2 người chơi còn lại"}
             </p>
             {activeNhot && (
               <span className="text-xs text-chart-3 font-medium flex items-center gap-1">
@@ -1031,7 +1009,6 @@ export default function MatchPage() {
               rankIndex,
             );
 
-            // effective selected = selected by user OR fixed by nhot logic
             const showAsActive = isFixed || isSelected;
 
             const isKhapWinner = khapWinner === playerId;
@@ -1043,10 +1020,19 @@ export default function MatchPage() {
               isKhapWinner && khapCount > 0
                 ? mockAccumulated.khap * khapCount * mockConfig.khapPoints * 3
                 : 0;
+            // ── THÊM MỚI: điểm âm khạp/sảnh cho người không phải winner ──
+            const khapPtsLoss =
+              !isKhapWinner && khapWinner !== null && khapCount > 0
+                ? mockAccumulated.khap * khapCount * mockConfig.khapPoints
+                : 0;
             const effectiveSanh = isSanhWinner ? mockAccumulated.sanh : 0;
             const sanhPtsDisplay = isSanhWinner
               ? mockAccumulated.sanh * mockConfig.sanhPoints * 3
               : 0;
+            const sanhPtsLoss =
+              !isSanhWinner && sanhWinner !== null
+                ? mockAccumulated.sanh * mockConfig.sanhPoints
+                : 0;
 
             const nextInRanking = ranking[rankIndex + 1];
             const nextIdx = nextInRanking
@@ -1073,6 +1059,16 @@ export default function MatchPage() {
               (selectCounter >= selectableIds.length - 1 &&
                 rankIndex === ranking.length - 1 &&
                 !isFixed);
+
+            // ── THÊM MỚI: lọc danh sách chặt heo liên quan đến player này ──
+            const chatHeoAsChatter = chatHeoList.filter(
+              (c) =>
+                c.chatterId === playerId && !nhotVictimIds.includes(c.victimId),
+            );
+            const chatHeoAsVictim = chatHeoList.filter(
+              (c) =>
+                c.victimId === playerId && !nhotVictimIds.includes(c.victimId),
+            );
 
             return (
               <div
@@ -1111,7 +1107,7 @@ export default function MatchPage() {
                       {isSelected ? order : "·"}
                     </span>
                   )}
-
+                  
                   {/* Label hạng */}
                   <span
                     className={`text-xs font-bold w-12 shrink-0 ${showAsActive ? labelColor : "text-muted-foreground"}`}
@@ -1154,19 +1150,18 @@ export default function MatchPage() {
                   )}
                 </button>
 
-                {/* Khạp + Sảnh */}
+                {/* ── Khạp + Sảnh ── */}
                 {showBonus && (
-                  <div className="flex gap-2 px-3 pb-2.5 pl-[3.75rem]">
+                  <div className="flex gap-2 px-3 pb-2.5">
+                    {/* Khạp */}
                     <div
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs transition-colors ${isKhapWinner ? "bg-chart-4/20 border-chart-4/50 text-chart-4" : khapTaken ? "opacity-40 bg-muted border-muted" : "bg-muted/60 border-muted text-muted-foreground"}`}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs transition-colors ${isKhapWinner ? "bg-chart-4/20 border-chart-4/50 text-chart-4" : khapTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground"}`}
                     >
                       <button
-                        onClick={() => !khapTaken && toggleKhapPlayer(playerId)}
+                        onClick={() => toggleKhapPlayer(playerId)}
                         className="flex items-center gap-1 hover:opacity-80"
+                        disabled={nhotVictimIds.includes(playerId)}
                       >
-                        <Flame
-                          className={`size-3 ${isKhapWinner ? "text-chart-4" : "text-muted-foreground"}`}
-                        />
                         <span className="font-medium">Khap</span>
                       </button>
                       {isKhapWinner && (
@@ -1195,15 +1190,23 @@ export default function MatchPage() {
                           </span>
                         </>
                       )}
+                      {/* ── THÊM MỚI: điểm âm khạp cho người còn lại ── */}
+                      {!isKhapWinner && khapPtsLoss > 0 && (
+                        <>
+                          <span className="mx-1 opacity-30">|</span>
+                          <span className="font-bold text-destructive">
+                            -{khapPtsLoss}
+                          </span>
+                        </>
+                      )}
                     </div>
+
+                    {/* Sảnh */}
                     <button
-                      onClick={() => !sanhTaken && toggleSanhPlayer(playerId)}
-                      disabled={sanhTaken}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs transition-colors disabled:cursor-not-allowed ${isSanhWinner ? "bg-chart-1/20 border-chart-1/50 text-chart-1" : sanhTaken ? "opacity-40 bg-muted border-muted" : "bg-muted/60 border-muted text-muted-foreground hover:border-chart-1/40"}`}
+                      onClick={() => toggleSanhPlayer(playerId)}
+                      disabled={nhotVictimIds.includes(playerId)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs transition-colors disabled:cursor-not-allowed ${isSanhWinner ? "bg-chart-1/20 border-chart-1/50 text-chart-1" : sanhTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground hover:border-chart-1/40"}`}
                     >
-                      <Sparkles
-                        className={`size-3 ${isSanhWinner ? "text-chart-1" : "text-muted-foreground"}`}
-                      />
                       <span className="font-medium">Sanh</span>
                       {isSanhWinner && (
                         <>
@@ -1214,9 +1217,84 @@ export default function MatchPage() {
                           <span className="font-bold">+{sanhPtsDisplay}</span>
                         </>
                       )}
+                      {/* ── THÊM MỚI: điểm âm sảnh cho người còn lại ── */}
+                      {!isSanhWinner && sanhPtsLoss > 0 && (
+                        <>
+                          <span className="mx-1 opacity-30">|</span>
+                          <span className="font-bold text-destructive">
+                            -{sanhPtsLoss}
+                          </span>
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
+
+                {/* ── THÊM MỚI: Chặt heo trong row player ── */}
+                {showBonus &&
+                  (chatHeoAsChatter.length > 0 ||
+                    chatHeoAsVictim.length > 0) && (
+                    <div className="flex flex-col gap-1 px-3 pb-2.5">
+                      {/* Người chặt */}
+                      {chatHeoAsChatter.map((c) => {
+                        const pts =
+                          (c.heo.do ?? 0) * mockConfig.heoDoPoints +
+                          (c.heo.den ?? 0) * mockConfig.heodenPoints;
+                        return (
+                          <div
+                            key={c.id}
+                            className="flex items-center gap-1.5 py-1"
+                          >
+                            <div
+                              key={c.id}
+                              className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-md border text-xs bg-chart-2/10 border-chart-2/30 text-chart-2"
+                            >
+                              {(c.heo.do ?? 0) > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
+                                  {c.heo.do} Đỏ
+                                </span>
+                              )}
+                              {(c.heo.den ?? 0) > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
+                                  {c.heo.den} Đen
+                                </span>
+                              )}
+                              <span className="mx-0.5 opacity-30">|</span>
+                              <span className="font-bold">+{pts}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Người bị chặt */}
+                      {chatHeoAsVictim.map((c) => {
+                        const pts =
+                          (c.heo.do ?? 0) * mockConfig.heoDoPoints +
+                          (c.heo.den ?? 0) * mockConfig.heodenPoints;
+                        return (
+                          <div className="flex items-center gap-1.5 py-1">
+                            <div
+                              key={c.id}
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs bg-destructive/10 border-destructive/20 text-destructive"
+                            >
+                              {(c.heo.do ?? 0) > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
+                                  {c.heo.do} Đỏ
+                                </span>
+                              )}
+                              {(c.heo.den ?? 0) > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
+                                  {c.heo.den} Đen
+                                </span>
+                              )}
+                              <span className="mx-0.5 opacity-30">|</span>
+                              <span className="font-bold">-{pts}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
               </div>
             );
           })}
