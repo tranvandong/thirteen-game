@@ -71,16 +71,16 @@ export async function action({ request }: Route.ActionArgs) {
 
   const gameConfigValues = {
     firstPlaceScore: parseIntField(data, "firstPlaceScore", 3),
-    secondPlaceScore: parseIntField(data, "secondPlaceScore", 1),
-    thirdPlaceScore: parseIntField(data, "thirdPlaceScore", -1),
+    secondPlaceScore: parseIntField(data, "secondPlaceScore", 2),
+    thirdPlaceScore: parseIntField(data, "thirdPlaceScore", -2),
     fourthPlaceScore: parseIntField(data, "fourthPlaceScore", -3),
     redPigScore: parseIntField(data, "redPigScore", 3),
-    blackPigScore: parseIntField(data, "blackPigScore", 5),
+    blackPigScore: parseIntField(data, "blackPigScore", 2),
     tripleScore: parseIntField(data, "tripleScore", 20),
-    khapScore: parseIntField(data, "khapScore", 3),
-    khapLimit: parseIntField(data, "khapLimit", 5),
-    sanhScore: parseIntField(data, "sanhScore", 5),
-    sanhLimit: parseIntField(data, "sanhLimit", 3),
+    khapScore: parseIntField(data, "khapScore", 1),
+    khapLimit: parseIntField(data, "khapLimit", 10),
+    sanhScore: parseIntField(data, "sanhScore", 1),
+    sanhLimit: parseIntField(data, "sanhLimit", 10),
   };
 
   // ── 2. Tạo tất cả trong một transaction ─────────────────
@@ -235,16 +235,16 @@ export default function CreateSession() {
     player3: "Cuong",
     player4: "Dung",
     firstPlaceScore: 3,
-    secondPlaceScore: 1,
-    thirdPlaceScore: -1,
+    secondPlaceScore: 2,
+    thirdPlaceScore: -2,
     fourthPlaceScore: -3,
     redPigScore: 3,
-    blackPigScore: 5,
+    blackPigScore: 2,
     tripleScore: 20,
-    khapScore: 3,
-    khapLimit: 5,
-    sanhScore: 5,
-    sanhLimit: 3,
+    khapScore: 1,
+    khapLimit: 10,
+    sanhScore: 1,
+    sanhLimit: 10,
     nhotPenalty: 2,
   });
 

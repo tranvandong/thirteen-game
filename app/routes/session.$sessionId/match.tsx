@@ -453,6 +453,7 @@ export default function MatchPage() {
         });
       } else if (nhotCount === 2) {
         let gain = 0;
+ 
         activeNhot.victims.forEach(({ victimId, heo }) => {
           const loss = ecPts + heoPts(heo);
           s[victimId] -= loss;
