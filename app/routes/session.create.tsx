@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import type { Route } from "./+types/session.create";
-// import { db } from "~/db/client.server";
-// import { sessions } from "~/db/schema/sessions";
-// import { gameConfigs } from "~/db/schema/game-configs";
-// import { players as playerSchema } from "~/db/schema/players";
-// import { participants } from "~/db/schema/participants";
-// import { redirect } from "react-router";
-// import { eq } from "drizzle-orm";
+import { db } from "~/db/client.server";
+import { sessions } from "~/db/schema/sessions";
+import { gameConfigs } from "~/db/schema/game-configs";
+import { players as playersSchema } from "~/db/schema/players";
+import { participants } from "~/db/schema/participants";
+import { redirect } from "react-router";
+import { eq } from "drizzle-orm";
 import { Link, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge"; 
+import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import {
   Collapsible,
@@ -35,13 +35,135 @@ import {
   Swords,
 } from "lucide-react";
 
-// export async function action({ request }: Route.ActionArgs) { ... }
+// ── Helpers ──────────────────────────────────────────────────
+
+/** Tạo mã phòng ngẫu nhiên dạng XXXX-XXXX */
+function generateSessionCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const part = () =>
+    Array.from({ length: 4 }, () =>
+      chars.charAt(Math.floor(Math.random() * chars.length)),
+    ).join("");
+  return `${part()}-${part()}`;
+}
+
+/** Parse số nguyên từ FormData, fallback về giá trị mặc định nếu không hợp lệ */
+function parseIntField(data: FormData, key: string, fallback: number): number {
+  const val = parseInt(data.get(key) as string);
+  return isNaN(val) ? fallback : val;
+}
+
+// ── Server Action ─────────────────────────────────────────────
+
+export async function action({ request }: Route.ActionArgs) {
+  const data = await request.formData();
+
+  // ── 1. Đọc dữ liệu từ form ──────────────────────────────
+  const ownerName = (data.get("ownerName") as string)?.trim();
+  const playerNames = [1, 2, 3, 4].map((i) =>
+    (data.get(`player${i}`) as string)?.trim(),
+  );
+
+  // Validate cơ bản ở server
+  if (!ownerName || playerNames.some((n) => !n)) {
+    return { error: "Vui long dien day du thong tin" };
+  }
+
+  const gameConfigValues = {
+    firstPlaceScore: parseIntField(data, "firstPlaceScore", 3),
+    secondPlaceScore: parseIntField(data, "secondPlaceScore", 1),
+    thirdPlaceScore: parseIntField(data, "thirdPlaceScore", -1),
+    fourthPlaceScore: parseIntField(data, "fourthPlaceScore", -3),
+    redPigScore: parseIntField(data, "redPigScore", 3),
+    blackPigScore: parseIntField(data, "blackPigScore", 5),
+    tripleScore: parseIntField(data, "tripleScore", 20),
+    khapScore: parseIntField(data, "khapScore", 3),
+    khapLimit: parseIntField(data, "khapLimit", 5),
+    sanhScore: parseIntField(data, "sanhScore", 5),
+    sanhLimit: parseIntField(data, "sanhLimit", 3),
+  };
+
+  // ── 2. Tạo tất cả trong một transaction ─────────────────
+  try {
+    const result = await db.transaction(async (tx) => {
+      // 2a. Tạo session với mã phòng duy nhất
+      let sessionCode = generateSessionCode();
+      // Đảm bảo code chưa tồn tại (cực kỳ hiếm xảy ra)
+      const existing = await tx
+        .select({ id: sessions.id })
+        .from(sessions)
+        .where(eq(sessions.code, sessionCode))
+        .limit(1);
+      if (existing.length > 0) {
+        sessionCode = generateSessionCode();
+      }
+
+      const [session] = await tx
+        .insert(sessions)
+        .values({
+          code: sessionCode,
+          status: "waiting",
+        })
+        .returning();
+
+      // 2b. Tạo participant cho chủ phòng (role = "owner")
+      const [owner] = await tx
+        .insert(participants)
+        .values({
+          sessionId: session.id,
+          displayName: ownerName,
+          role: "owner",
+        })
+        .returning();
+
+      // 2c. Cập nhật ownerParticipantId vào session
+      await tx
+        .update(sessions)
+        .set({ ownerParticipantId: owner.id })
+        .where(eq(sessions.id, session.id));
+
+      // 2d. Lưu game config
+      await tx.insert(gameConfigs).values({
+        sessionId: session.id,
+        ...gameConfigValues,
+      });
+
+      // 2e. Tạo 4 players theo thứ tự
+      await tx.insert(playersSchema).values(
+        playerNames.map((name, idx) => ({
+          sessionId: session.id,
+          name,
+          orderNo: idx + 1,
+        })),
+      );
+console.log(session.id)
+      return {
+        sessionCode: session.code,
+        sessionId: session.id,
+        ownerId: owner.id,
+      };
+    });
+
+    // 3. Redirect sang trang chờ của session
+    // Truyền ownerId qua cookie/session storage tuỳ auth strategy của bạn
+    throw redirect(`/session/${result.sessionCode}`);
+  } catch (err) {
+    // re-throw redirects
+    if (err instanceof Response) throw err;
+
+    console.error("[CreateSession] Transaction failed:", err);
+    return { error: "Khong the tao phong. Vui long thu lai." };
+  }
+}
+
+// ── Meta ──────────────────────────────────────────────────────
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Tao phong choi - Thirteen Game" }];
 }
 
-// ── Score preview helper ─────────────────────────────────
+// ── Score preview helper ──────────────────────────────────────
+
 const RANK_LABELS = ["Hang 1", "Hang 2", "Hang 3", "Hang 4"];
 const RANK_COLORS = [
   "text-chart-4 bg-chart-4/10 border-chart-4/30",
@@ -50,7 +172,8 @@ const RANK_COLORS = [
   "text-destructive bg-destructive/10 border-destructive/30",
 ];
 
-// ── Number stepper component ─────────────────────────────
+// ── Number stepper component ──────────────────────────────────
+
 function ScoreInput({
   id,
   label,
@@ -102,8 +225,9 @@ function ScoreInput({
   );
 }
 
+// ── Page Component ────────────────────────────────────────────
+
 export default function CreateSession() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ownerName: "Chu Phong",
     player1: "An",
@@ -130,6 +254,7 @@ export default function CreateSession() {
   const set = (key: keyof typeof formData, val: string | number) =>
     setFormData((prev) => ({ ...prev, [key]: val }));
 
+  // Client-side validation chạy trước khi submit
   const validateForm = () => {
     const errs: Record<string, string> = {};
     if (!formData.ownerName.trim())
@@ -142,9 +267,12 @@ export default function CreateSession() {
     return Object.keys(errs).length === 0;
   };
 
+  // Chỉ validate phía client; submit thật sự qua React Router action
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (validateForm()) navigate("/session/demo-session");
+    if (!validateForm()) {
+      e.preventDefault();
+    }
+    // Nếu valid → để form submit bình thường → action() chạy trên server
   };
 
   const rankScores = [
@@ -172,11 +300,20 @@ export default function CreateSession() {
       </header>
 
       <main className="pb-28">
+        {/*
+          method="post" → React Router tự dispatch tới action() của route này
+          Không cần action URL rõ ràng vì đây là cùng route file
+        */}
         <form
           id="create-form"
+          method="post"
           onSubmit={handleSubmit}
           className="flex flex-col gap-4 p-4"
         >
+          {/* ── Hidden fields cho các giá trị number từ state ── */}
+          {/* Các ScoreInput dùng name= nên tự submit, nhưng thêm hidden
+              fields phòng trường hợp input bị uncontrolled */}
+
           {/* ── Chủ phòng ─────────────────────────────────── */}
           <Card>
             <CardHeader className="pb-3">
@@ -246,7 +383,10 @@ export default function CreateSession() {
                       onChange={(e) => {
                         set(key, e.target.value);
                         if (err)
-                          setErrors((p) => ({ ...p, [`player${i + 1}`]: "" }));
+                          setErrors((p) => ({
+                            ...p,
+                            [`player${i + 1}`]: "",
+                          }));
                       }}
                       placeholder={`Ten nguoi choi ${i + 1}`}
                       className={`border-0 shadow-none bg-transparent focus-visible:ring-0 px-0 font-medium ${err ? "placeholder:text-destructive" : ""}`}
@@ -403,7 +543,6 @@ export default function CreateSession() {
                         onChange={(v) => set("khapLimit", v)}
                       />
                     </div>
-                    {/* Preview */}
                     <div className="flex gap-1.5 p-2.5 rounded-lg bg-chart-4/5 border border-chart-4/20 text-xs text-muted-foreground">
                       <Flame className="size-3.5 text-chart-4 shrink-0 mt-0.5" />
                       <span>

@@ -36,16 +36,6 @@ export function usePWA() {
     if (isIOS() && isSafari() && !isInStandaloneMode()) {
       setIsIOSSafari(true);
     }
-    // Đăng ký Service Worker
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js", { scope: "/" })
-        .then((reg) => {
-          setSwRegistration(reg);
-          console.log("[SW] Registered:", reg.scope);
-        })
-        .catch((err) => console.error("[SW] Registration failed:", err));
-    }
     const existing = getInstallPrompt();
     if (existing) {
       setInstallPrompt(existing as BeforeInstallPromptEvent);

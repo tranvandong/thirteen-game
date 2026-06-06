@@ -1,8 +1,6 @@
-"use client";
-
-import { useState, useMemo } from "react";
-import { useParams } from "react-router";
-// import type { Route } from "./+types/match";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useFetcher, useLoaderData, useParams } from "react-router";
+import type { Route } from "./+types/match";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -21,29 +19,72 @@ import {
   ChevronDown as CollapseIcon,
   Crown,
 } from "lucide-react";
+import { eq } from "drizzle-orm";
+import { redirect } from "react-router";
+import { db } from "~/db/client.server";
+import { sessions } from "~/db/schema/sessions";
+import {
+  getRoundMeta,
+  saveRound,
+  type RoundResultInput,
+} from "~/lib/round.server";
+import {
+  useCurrentParticipant,
+  useGameConfig,
+  usePlayers,
+} from "~/stores/useSessionStore";
 
-// ── Config ───────────────────────────────────────────────────
-const mockConfig = {
-  rankPoints: [3, 1, -1, -3],
-  khapPoints: 3,
-  sanhPoints: 5,
-  maxKhapAccumulate: 10,
-  maxSanhAccumulate: 10,
-  heoDoPoints: 3,
-  heodenPoints: 5,
-  nhotBystanderPenalty: 2,
-};
-const mockAccumulated = { khap: 5, sanh: 10 };
-const mockPlayers = [
-  { id: "p1", name: "Nguoi1" },
-  { id: "p2", name: "Nguoi2" },
-  { id: "p3", name: "Nguoi3" },
-  { id: "p4", name: "Nguoi4" },
-];
-const mockCurrentRound = 6;
+export interface MatchLoaderData {
+  currentRoundNo: number;
+  accumulated: { khap: number; sanh: number };
+}
 
-export async function loader() {
-  return {};
+export async function loader({
+  params,
+}: Route.LoaderArgs): Promise<MatchLoaderData> {
+  const { sessionId } = params;
+
+  const [session] = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.code, sessionId))
+    .limit(1);
+
+  if (!session) {
+    throw redirect("/");
+  }
+
+  return getRoundMeta(session.id);
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const formData = await request.formData();
+  if (formData.get("intent") !== "save-round") {
+    return { error: "Yeu cau khong hop le" };
+  }
+
+  const createdBy = formData.get("createdBy") as string;
+  const payloadRaw = formData.get("payload") as string;
+
+  if (!createdBy || !payloadRaw) {
+    return { error: "Thieu du lieu van dau" };
+  }
+
+  let results: RoundResultInput[];
+  try {
+    results = JSON.parse(payloadRaw) as RoundResultInput[];
+  } catch {
+    return { error: "Du lieu van dau khong hop le" };
+  }
+
+  try {
+    const saved = await saveRound(params.sessionId!, createdBy, results);
+    return { success: true, roundNo: saved.roundNo };
+  } catch (err) {
+    if (err instanceof Response) throw err;
+    console.error("save round failed:", err);
+    return { error: "Khong the luu van dau" };
+  }
 }
 
 // ── Types ────────────────────────────────────────────────────
@@ -64,14 +105,62 @@ interface NhotBai {
   victims: VictimHeo[];
 }
 
+function buildPigCounts(
+  playerIds: string[],
+  chatHeoList: ChatHeo[],
+  activeNhot: NhotBai | null,
+) {
+  const counts = Object.fromEntries(
+    playerIds.map((id) => [id, { red: 0, black: 0 }]),
+  );
+
+  chatHeoList.forEach((c) => {
+    counts[c.victimId].red += c.heo.do ?? 0;
+    counts[c.victimId].black += c.heo.den ?? 0;
+  });
+
+  activeNhot?.victims.forEach((v) => {
+    counts[v.victimId].red += v.heo?.do ?? 0;
+    counts[v.victimId].black += v.heo?.den ?? 0;
+  });
+
+  return counts;
+}
+
 // ── Component ────────────────────────────────────────────────
 export default function MatchPage() {
   const { sessionId } = useParams();
+  const { currentRoundNo, accumulated } = useLoaderData<MatchLoaderData>();
+  const players = usePlayers();
+  const config = useGameConfig();
+  const currentParticipant = useCurrentParticipant();
+  const fetcher = useFetcher<typeof action>();
+  const matchLoaderFetcher = useFetcher<typeof loader>();
+  const handledSaveRoundRef = useRef<number | null>(null);
+
+  const gameConfig = useMemo(
+    () => ({
+      rankPoints: [
+        config?.firstPlaceScore ?? 3,
+        config?.secondPlaceScore ?? 1,
+        config?.thirdPlaceScore ?? -1,
+        config?.fourthPlaceScore ?? -3,
+      ],
+      khapPoints: config?.khapScore ?? 3,
+      sanhPoints: config?.sanhScore ?? 5,
+      maxKhapAccumulate: config?.khapLimit ?? 5,
+      maxSanhAccumulate: config?.sanhLimit ?? 3,
+      heoDoPoints: config?.redPigScore ?? 3,
+      heodenPoints: config?.blackPigScore ?? 5,
+      nhotBystanderPenalty: 2,
+    }),
+    [config],
+  );
+
+  const isReady = Boolean(config && players.length > 0);
 
   // ── State ─────────────────────────────────────────────────
-  const [selectOrder, setSelectOrder] = useState<(number | null)[]>(
-    mockPlayers.map(() => null),
-  );
+  const [selectOrder, setSelectOrder] = useState<(number | null)[]>([]);
   const [khapWinner, setKhapWinner] = useState<string | null>(null);
   const [khapCount, setKhapCount] = useState(0);
   const [sanhWinner, setSanhWinner] = useState<string | null>(null);
@@ -92,18 +181,54 @@ export default function MatchPage() {
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
 
+  const playerIdsKey = useMemo(
+    () => players.map((p) => p.id).join(","),
+    [players],
+  );
+
+  useEffect(() => {
+    setSelectOrder((prev) =>
+      prev.length === players.length ? prev : players.map(() => null),
+    );
+  }, [playerIdsKey, players.length]);
+
+  useEffect(() => {
+    if (fetcher.state !== "idle") return;
+
+    const data = fetcher.data;
+    if (!data?.success || data.roundNo == null) return;
+    if (handledSaveRoundRef.current === data.roundNo) return;
+    handledSaveRoundRef.current = data.roundNo;
+
+    setSelectOrder(players.map(() => null));
+    setKhapWinner(null);
+    setKhapCount(0);
+    setSanhWinner(null);
+    setChatHeoList([]);
+    setNhotList([]);
+    setSubmitted(false);
+    setConfirmNhot(false);
+
+    if (sessionId) {
+      matchLoaderFetcher.load(`/session/${sessionId}/match`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi lưu ván thành công
+  }, [fetcher.state, fetcher.data, sessionId]);
+
+  const isSaving = fetcher.state !== "idle";
+
   // ── Derived nhot state ────────────────────────────────────
   const activeNhot = nhotList[0] ?? null;
   const nhotCount = activeNhot ? activeNhot.victims.length : 0;
   const nhotterId = activeNhot?.nhotterId ?? null;
   const nhotVictimIds = activeNhot?.victims.map((v) => v.victimId) ?? [];
-  const nhotOthers = mockPlayers
+  const nhotOthers = players
     .map((p) => p.id)
     .filter((id) => id !== nhotterId && !nhotVictimIds.includes(id));
 
   // ── Ranking logic phụ thuộc vào nhốt ─────────────────────
   const selectableIds = useMemo(() => {
-    if (!activeNhot) return mockPlayers.map((p) => p.id);
+    if (!activeNhot) return players.map((p) => p.id);
     if (nhotCount === 3) return [];
     if (nhotCount === 2) return [];
     return nhotOthers;
@@ -113,12 +238,12 @@ export default function MatchPage() {
 
   const ranking = useMemo(() => {
     if (!activeNhot) {
-      const selected = mockPlayers
+      const selected = players
         .map((p, i) => ({ p, order: selectOrder[i] }))
         .filter((x) => x.order !== null)
         .sort((a, b) => a.order! - b.order!)
         .map((x) => x.p.id);
-      const unselected = mockPlayers
+      const unselected = players
         .filter((_, i) => selectOrder[i] === null)
         .map((p) => p.id);
       return [...selected, ...unselected];
@@ -132,13 +257,13 @@ export default function MatchPage() {
       return [nhotterId!, ...nhotVictimIds, ...nhotOthers];
     }
 
-    const othersOrdered = mockPlayers
+    const othersOrdered = players
       .map((p, i) => ({ id: p.id, order: selectOrder[i] }))
       .filter((x) => nhotOthers.includes(x.id) && x.order !== null)
       .sort((a, b) => a.order! - b.order!)
       .map((x) => x.id);
     const othersUnselected = nhotOthers.filter((id) => {
-      const i = mockPlayers.findIndex((p) => p.id === id);
+      const i = players.findIndex((p) => p.id === id);
       return selectOrder[i] === null;
     });
     return [
@@ -158,7 +283,7 @@ export default function MatchPage() {
 
   const selectCounter = selectOrder.filter((o) => o !== null).length;
   const rankingComplete = !activeNhot
-    ? selectCounter === mockPlayers.length
+    ? selectCounter === players.length
     : nhotCount === 3
       ? true
       : nhotCount === 2
@@ -168,7 +293,7 @@ export default function MatchPage() {
   // ── Helpers: ranking ─────────────────────────────────────
   const toggleSelect = (playerId: string) => {
     if (!selectableIds.includes(playerId)) return;
-    const idx = mockPlayers.findIndex((p) => p.id === playerId);
+    const idx = players.findIndex((p) => p.id === playerId);
     setSelectOrder((prev) => {
       const next = [...prev];
       if (next[idx] !== null) {
@@ -189,8 +314,8 @@ export default function MatchPage() {
     const swapId = ranking[swapPos];
     if (!selectableIds.includes(playerId) || !selectableIds.includes(swapId))
       return;
-    const idxA = mockPlayers.findIndex((p) => p.id === playerId);
-    const idxB = mockPlayers.findIndex((p) => p.id === swapId);
+    const idxA = players.findIndex((p) => p.id === playerId);
+    const idxB = players.findIndex((p) => p.id === swapId);
     if (selectOrder[idxA] === null || selectOrder[idxB] === null) return;
     setSelectOrder((prev) => {
       const next = [...prev];
@@ -216,7 +341,7 @@ export default function MatchPage() {
         setKhapWinner(null);
         return 0;
       }
-      return Math.min(n, mockConfig.maxKhapAccumulate);
+      return Math.min(n, gameConfig.maxKhapAccumulate);
     });
   };
   const toggleSanhPlayer = (pid: string) => setSanhWinner(pid);
@@ -254,7 +379,7 @@ export default function MatchPage() {
   // ── Helpers: nhot bai ────────────────────────────────────
   const addNhot = () => {
     if (!nhotForm.nhotterId || nhotForm.victims.length === 0) return;
-    setSelectOrder(mockPlayers.map(() => null));
+    setSelectOrder(players.map(() => null));
     setNhotList([
       {
         id: `nh-${Date.now()}`,
@@ -267,7 +392,7 @@ export default function MatchPage() {
   };
   const removeNhot = () => {
     setNhotList([]);
-    setSelectOrder(mockPlayers.map(() => null));
+    setSelectOrder(players.map(() => null));
   };
   const toggleNhotVictim = (pid: string) => {
     setNhotForm((prev) => {
@@ -300,17 +425,17 @@ export default function MatchPage() {
   // ── Score computation ─────────────────────────────────────
   const computedScores = useMemo(() => {
     const s: Record<string, number> = Object.fromEntries(
-      mockPlayers.map((p) => [p.id, 0]),
+      players.map((p) => [p.id, 0]),
     );
     const heoPts = (heo: { do: number; den: number }) =>
-      heo.den * mockConfig.heodenPoints + heo.do * mockConfig.heoDoPoints;
+      heo.den * gameConfig.heodenPoints + heo.do * gameConfig.heoDoPoints;
 
     if (!activeNhot) {
       ranking.forEach((pid, i) => {
-        s[pid] += mockConfig.rankPoints[i] ?? 0;
+        s[pid] += gameConfig.rankPoints[i] ?? 0;
       });
     } else {
-      const ecPts = Math.abs(mockConfig.rankPoints[mockPlayers.length - 1]);
+      const ecPts = Math.abs(gameConfig.rankPoints[players.length - 1]);
       const victimHeoMap = Object.fromEntries(
         activeNhot.victims.map((v) => [v.victimId, v.heo]),
       );
@@ -320,11 +445,11 @@ export default function MatchPage() {
           | { do: number; den: number }
           | undefined) ?? { do: 0, den: 0 };
         const hp = heoPts(vh);
-        s[nhotterId!] += mockConfig.rankPoints[0] + hp;
-        s[nhotVictimIds[0]] -= mockConfig.rankPoints[0] + hp;
+        s[nhotterId!] += gameConfig.rankPoints[0] + hp;
+        s[nhotVictimIds[0]] -= gameConfig.rankPoints[0] + hp;
         const othersInRanking = ranking.filter((id) => nhotOthers.includes(id));
         othersInRanking.forEach((oid, i) => {
-          s[oid] += mockConfig.rankPoints[i + 1] ?? 0;
+          s[oid] += gameConfig.rankPoints[i + 1] ?? 0;
         });
       } else if (nhotCount === 2) {
         let gain = 0;
@@ -335,7 +460,7 @@ export default function MatchPage() {
         });
         s[nhotterId!] += gain;
         nhotOthers.forEach((oid) => {
-          s[oid] -= mockConfig.nhotBystanderPenalty;
+          s[oid] -= gameConfig.nhotBystanderPenalty;
         });
       } else {
         let gain = 0;
@@ -350,27 +475,27 @@ export default function MatchPage() {
 
     // Khạp
     if (khapWinner && khapCount > 0) {
-      const gain = mockAccumulated.khap * khapCount * mockConfig.khapPoints * 3;
-      const loss = mockAccumulated.khap * khapCount * mockConfig.khapPoints;
+      const gain = accumulated.khap * khapCount * gameConfig.khapPoints * 3;
+      const loss = accumulated.khap * khapCount * gameConfig.khapPoints;
       s[khapWinner] += gain;
-      mockPlayers.forEach((p) => {
+      players.forEach((p) => {
         if (p.id !== khapWinner) s[p.id] -= loss;
       });
     }
     // Sảnh
     if (sanhWinner) {
-      const gain = mockAccumulated.sanh * mockConfig.sanhPoints * 3;
-      const loss = mockAccumulated.sanh * mockConfig.sanhPoints;
+      const gain = accumulated.sanh * gameConfig.sanhPoints * 3;
+      const loss = accumulated.sanh * gameConfig.sanhPoints;
       s[sanhWinner] += gain;
-      mockPlayers.forEach((p) => {
+      players.forEach((p) => {
         if (p.id !== sanhWinner) s[p.id] -= loss;
       });
     }
     // Chặt heo
     chatHeoList.forEach(({ chatterId, victimId, heo }) => {
       const pts =
-        (heo.do ?? 0) * mockConfig.heoDoPoints +
-        (heo.den ?? 0) * mockConfig.heodenPoints;
+        (heo.do ?? 0) * gameConfig.heoDoPoints +
+        (heo.den ?? 0) * gameConfig.heodenPoints;
       s[chatterId] += pts;
       s[victimId] -= pts;
     });
@@ -391,17 +516,48 @@ export default function MatchPage() {
 
   // ── UI helpers ────────────────────────────────────────────
   const handleReset = () => {
-    setSelectOrder(mockPlayers.map(() => null));
+    setSelectOrder(players.map(() => null));
     setKhapWinner(null);
     setKhapCount(0);
     setSanhWinner(null);
     setChatHeoList([]);
     setNhotList([]);
     setSubmitted(false);
+    setConfirmNhot(false);
+  };
+
+  const handleSave = () => {
+    if (!currentParticipant || !rankingComplete || isSaving) return;
+
+    const pigCounts = buildPigCounts(
+      players.map((p) => p.id),
+      chatHeoList,
+      activeNhot,
+    );
+
+    const results: RoundResultInput[] = players.map((player) => ({
+      playerId: player.id,
+      rank: ranking.indexOf(player.id) + 1,
+      score: computedScores[player.id],
+      khapno: khapWinner === player.id ? khapCount : 0,
+      sanhno: sanhWinner === player.id ? 1 : 0,
+      blackPigNo: pigCounts[player.id].black,
+      redPigNo: pigCounts[player.id].red,
+    }));
+
+    fetcher.submit(
+      {
+        intent: "save-round",
+        createdBy: currentParticipant.id,
+        payload: JSON.stringify(results),
+      },
+      { method: "post" },
+    );
+    setSubmitted(true);
   };
 
   const pShort = (id: string) =>
-    (mockPlayers.find((p) => p.id === id)?.name ?? id).split(" ").pop()!;
+    (players.find((p) => p.id === id)?.name ?? id).split(" ").pop()!;
   const scoreColor = (v: number) =>
     v > 0
       ? "text-chart-2"
@@ -456,6 +612,14 @@ export default function MatchPage() {
   };
 
   // ── Render ────────────────────────────────────────────────
+  if (!isReady) {
+    return (
+      <main className="p-4 flex items-center justify-center min-h-[50vh]">
+        <p className="text-muted-foreground text-sm">Dang tai du lieu phong...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="p-4 flex flex-col gap-4 pb-6">
       {/* Header */}
@@ -464,7 +628,7 @@ export default function MatchPage() {
           <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
             <Swords className="size-4" />
           </div>
-          <span>Ván {mockCurrentRound}</span>
+          <span>Ván {currentRoundNo}</span>
         </div>
         <Button
           variant="ghost"
@@ -484,21 +648,21 @@ export default function MatchPage() {
                 <span className="text-xs text-muted-foreground">Khạp</span>
                 <div className="flex items-end gap-1">
                   <span className="text-lg font-bold text-chart-1 leading-none">
-                    {mockAccumulated.khap}
+                    {accumulated.khap}
                   </span>
                   <span className="text-xs text-muted-foreground mb-0.5">
-                    / {mockConfig.maxKhapAccumulate}
+                    / {gameConfig.maxKhapAccumulate}
                   </span>
                 </div>
               </div>
               <Flame className="size-3.5 text-chart-1 shrink-0" />
             </div>
             <div className="flex gap-1 mt-1">
-              {Array.from({ length: mockConfig.maxKhapAccumulate }).map(
+              {Array.from({ length: gameConfig.maxKhapAccumulate }).map(
                 (_, i) => (
                   <div
                     key={i}
-                    className={`size-2 rounded-full ${i < mockAccumulated.khap ? "bg-chart-1" : "bg-chart-4/20"}`}
+                    className={`size-2 rounded-full ${i < accumulated.khap ? "bg-chart-1" : "bg-chart-4/20"}`}
                   />
                 ),
               )}
@@ -512,21 +676,21 @@ export default function MatchPage() {
                 <span className="text-xs text-muted-foreground">Sảnh</span>
                 <div className="flex items-end gap-1">
                   <span className="text-lg font-bold text-chart-1 leading-none">
-                    {mockAccumulated.sanh}
+                    {accumulated.sanh}
                   </span>
                   <span className="text-xs text-muted-foreground mb-0.5">
-                    / {mockConfig.maxKhapAccumulate}
+                    / {gameConfig.maxSanhAccumulate}
                   </span>
                 </div>
               </div>
               <Flame className="size-3.5 text-chart-1 shrink-0" />
             </div>
             <div className="flex gap-1 mt-1">
-              {Array.from({ length: mockConfig.maxKhapAccumulate }).map(
+              {Array.from({ length: gameConfig.maxSanhAccumulate }).map(
                 (_, i) => (
                   <div
                     key={i}
-                    className={`size-2 rounded-full ${i < mockAccumulated.sanh ? "bg-chart-1" : "bg-chart-4/20"}`}
+                    className={`size-2 rounded-full ${i < accumulated.sanh ? "bg-chart-1" : "bg-chart-4/20"}`}
                   />
                 ),
               )}
@@ -559,15 +723,15 @@ export default function MatchPage() {
               nhotList.map((n) => {
                 const nv = n.victims.length;
                 const ecPts = Math.abs(
-                  mockConfig.rankPoints[mockPlayers.length - 1],
+                  gameConfig.rankPoints[players.length - 1],
                 );
                 const heoPtsOf = (heo: { do: number; den: number }) =>
-                  heo.den * mockConfig.heodenPoints +
-                  heo.do * mockConfig.heoDoPoints;
+                  heo.den * gameConfig.heodenPoints +
+                  heo.do * gameConfig.heoDoPoints;
                 let gain = 0;
                 if (nv === 1) {
                   gain =
-                    mockConfig.rankPoints[0] +
+                    gameConfig.rankPoints[0] +
                     heoPtsOf(n.victims[0]?.heo ?? { do: 0, den: 0 });
                 } else {
                   n.victims.forEach((v) => {
@@ -600,15 +764,15 @@ export default function MatchPage() {
                       </p>
                       {n.victims.map((v) => {
                         const ecPts = Math.abs(
-                          mockConfig.rankPoints[mockPlayers.length - 1],
+                          gameConfig.rankPoints[players.length - 1],
                         );
                         const heoPtsOf = (heo: { do: number; den: number }) =>
-                          heo.den * mockConfig.heodenPoints +
-                          heo.do * mockConfig.heoDoPoints;
+                          heo.den * gameConfig.heodenPoints +
+                          heo.do * gameConfig.heoDoPoints;
 
                         const victimLoss =
                           nv === 1
-                            ? mockConfig.rankPoints[0] +
+                            ? gameConfig.rankPoints[0] +
                               heoPtsOf(v.heo ?? { do: 0, den: 0 })
                             : ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
 
@@ -646,7 +810,7 @@ export default function MatchPage() {
 
                       {nv === 2 && (
                         <span className="text-muted-foreground">
-                          (ngoai -{mockConfig.nhotBystanderPenalty}đ)
+                          (ngoai -{gameConfig.nhotBystanderPenalty}đ)
                         </span>
                       )}
                     </div>
@@ -667,7 +831,7 @@ export default function MatchPage() {
                     Nguoi nhot:
                   </p>
                   <div className="flex gap-1.5 flex-wrap">
-                    {mockPlayers.map((p) => (
+                    {players.map((p) => (
                       <button
                         key={p.id}
                         onClick={() =>
@@ -691,7 +855,7 @@ export default function MatchPage() {
                     Người bị nhốt:
                   </p>
                   <div className="flex gap-1.5 flex-wrap mb-2">
-                    {mockPlayers
+                    {players
                       .filter((p) => p.id !== nhotForm.nhotterId)
                       .map((p) => {
                         const isVictim = nhotForm.victims.some(
@@ -817,8 +981,8 @@ export default function MatchPage() {
                 .filter((c) => !nhotVictimIds.includes(c.victimId))
                 .map((c) => {
                   const pts =
-                    (c.heo.do ?? 0) * mockConfig.heoDoPoints +
-                    (c.heo.den ?? 0) * mockConfig.heodenPoints;
+                    (c.heo.do ?? 0) * gameConfig.heoDoPoints +
+                    (c.heo.den ?? 0) * gameConfig.heodenPoints;
                   return (
                     <div
                       key={c.id}
@@ -865,7 +1029,7 @@ export default function MatchPage() {
                       Người chặt:
                     </p>
                     <div className="flex gap-1.5 flex-wrap">
-                      {mockPlayers
+                      {players
                         .filter((p) => !nhotVictimIds.includes(p.id))
                         .map((p) => (
                           <button
@@ -893,7 +1057,7 @@ export default function MatchPage() {
                       Người bị chặt:
                     </p>
                     <div className="flex gap-1.5 flex-wrap">
-                      {mockPlayers
+                      {players
                         .filter(
                           (p) =>
                             p.id !== chatForm.chatterId &&
@@ -998,8 +1162,8 @@ export default function MatchPage() {
         </CardHeader>
         <CardContent className="pt-0 flex flex-col gap-2">
           {ranking.map((playerId, rankIndex) => {
-            const player = mockPlayers.find((p) => p.id === playerId)!;
-            const pIdx = mockPlayers.findIndex((p) => p.id === playerId);
+            const player = players.find((p) => p.id === playerId)!;
+            const pIdx = players.findIndex((p) => p.id === playerId);
             const order = selectOrder[pIdx];
             const isSelectable = selectableIds.includes(playerId);
             const isSelected = order !== null;
@@ -1018,25 +1182,25 @@ export default function MatchPage() {
             const khapCountDisplay = isKhapWinner ? khapCount : 0;
             const khapPtsDisplay =
               isKhapWinner && khapCount > 0
-                ? mockAccumulated.khap * khapCount * mockConfig.khapPoints * 3
+                ? accumulated.khap * khapCount * gameConfig.khapPoints * 3
                 : 0;
             // ── THÊM MỚI: điểm âm khạp/sảnh cho người không phải winner ──
             const khapPtsLoss =
               !isKhapWinner && khapWinner !== null && khapCount > 0
-                ? mockAccumulated.khap * khapCount * mockConfig.khapPoints
+                ? accumulated.khap * khapCount * gameConfig.khapPoints
                 : 0;
-            const effectiveSanh = isSanhWinner ? mockAccumulated.sanh : 0;
+            const effectiveSanh = isSanhWinner ? accumulated.sanh : 0;
             const sanhPtsDisplay = isSanhWinner
-              ? mockAccumulated.sanh * mockConfig.sanhPoints * 3
+              ? accumulated.sanh * gameConfig.sanhPoints * 3
               : 0;
             const sanhPtsLoss =
               !isSanhWinner && sanhWinner !== null
-                ? mockAccumulated.sanh * mockConfig.sanhPoints
+                ? accumulated.sanh * gameConfig.sanhPoints
                 : 0;
 
             const nextInRanking = ranking[rankIndex + 1];
             const nextIdx = nextInRanking
-              ? mockPlayers.findIndex((p) => p.id === nextInRanking)
+              ? players.findIndex((p) => p.id === nextInRanking)
               : -1;
             const canMoveDown =
               !isFixed &&
@@ -1051,7 +1215,7 @@ export default function MatchPage() {
               rankIndex > 0 &&
               selectableIds.includes(ranking[rankIndex - 1]) &&
               selectOrder[
-                mockPlayers.findIndex((p) => p.id === ranking[rankIndex - 1])
+                players.findIndex((p) => p.id === ranking[rankIndex - 1])
               ] !== null;
 
             const showBonus =
@@ -1179,7 +1343,7 @@ export default function MatchPage() {
                           </span>
                           <button
                             onClick={() => updateKhapCount(1)}
-                            disabled={khapCount >= mockConfig.maxKhapAccumulate}
+                            disabled={khapCount >= gameConfig.maxKhapAccumulate}
                             className="size-4 flex items-center justify-center rounded hover:bg-background/50 disabled:opacity-30 font-bold"
                           >
                             +
@@ -1238,8 +1402,8 @@ export default function MatchPage() {
                       {/* Người chặt */}
                       {chatHeoAsChatter.map((c) => {
                         const pts =
-                          (c.heo.do ?? 0) * mockConfig.heoDoPoints +
-                          (c.heo.den ?? 0) * mockConfig.heodenPoints;
+                          (c.heo.do ?? 0) * gameConfig.heoDoPoints +
+                          (c.heo.den ?? 0) * gameConfig.heodenPoints;
                         return (
                           <div
                             key={c.id}
@@ -1269,8 +1433,8 @@ export default function MatchPage() {
                       {/* Người bị chặt */}
                       {chatHeoAsVictim.map((c) => {
                         const pts =
-                          (c.heo.do ?? 0) * mockConfig.heoDoPoints +
-                          (c.heo.den ?? 0) * mockConfig.heodenPoints;
+                          (c.heo.do ?? 0) * gameConfig.heoDoPoints +
+                          (c.heo.den ?? 0) * gameConfig.heodenPoints;
                         return (
                           <div className="flex items-center gap-1.5 py-1">
                             <div
@@ -1305,10 +1469,10 @@ export default function MatchPage() {
       <Card>
         <CardContent className="pt-4 pb-3">
           <p className="text-xs text-muted-foreground mb-2 font-medium">
-            Ket qua van {mockCurrentRound}
+            Ket qua van {currentRoundNo}
           </p>
           <div className="grid grid-cols-4 gap-1">
-            {mockPlayers.map((player) => {
+            {players.map((player) => {
               const sc = computedScores[player.id];
               return (
                 <div
@@ -1328,14 +1492,28 @@ export default function MatchPage() {
         </CardContent>
       </Card>
 
+      {fetcher.data?.error && (
+        <p className="text-sm text-destructive text-center">{fetcher.data.error}</p>
+      )}
+
       {/* Submit */}
       <Button
         size="lg"
         className="w-full gap-2"
-        disabled={submitted || !rankingComplete}
-        onClick={() => setSubmitted(true)}
+        disabled={
+          isSaving ||
+          (submitted && fetcher.data?.success) ||
+          !rankingComplete ||
+          !currentParticipant
+        }
+        onClick={handleSave}
       >
-        {submitted ? (
+        {isSaving ? (
+          <>
+            <Swords className="size-4 animate-pulse" />
+            Dang luu van dau...
+          </>
+        ) : submitted && fetcher.data?.success ? (
           <>
             <CheckCircle2 className="size-4" />
             Da luu van dau
@@ -1345,12 +1523,12 @@ export default function MatchPage() {
             <Swords className="size-4" />
             {activeNhot
               ? `Chon hang 2 va 3 (${selectCounter}/${requiredSelections})`
-              : `Chon du nguoi (${selectCounter}/${mockPlayers.length})`}
+              : `Chon du nguoi (${selectCounter}/${players.length})`}
           </>
         ) : (
           <>
             <CheckCircle2 className="size-4" />
-            Luu Van {mockCurrentRound}
+            Luu Van {currentRoundNo}
           </>
         )}
       </Button>

@@ -1,5 +1,5 @@
 import { Outlet, Link, useParams, useLocation } from "react-router";
-// import type { Route } from "./+types/layout";
+import type { Route } from "./+types/layout";
 // import { db } from "~/db/client.server";
 // import { sessions } from "~/db/schema/sessions";
 // import { eq } from "drizzle-orm";
@@ -7,16 +7,142 @@ import { ModeToggle } from "~/components/mode-toggle";
 import { ThemeProvider } from "~/components/theme-provider";
 import { Home, Clock, Settings, Spade, BarChart2, Swords } from "lucide-react";
 
-// export async function loader({ params }: Route.LoaderArgs) {
-//   const { sessionId } = params;
-//   const session = await db.query.sessions.findFirst({
-//     where: eq(sessions.id, sessionId as any),
-//   });
-//   if (!session) {
-//     throw new Response("Session not found", { status: 404 });
-//   }
-//   return { session };
-// }
+import { db } from "~/db/client.server";
+import { sessions } from "~/db/schema/sessions";
+import { gameConfigs } from "~/db/schema/game-configs";
+import { players as playersSchema } from "~/db/schema/players";
+import { participants } from "~/db/schema/participants";
+import { eq, asc } from "drizzle-orm";
+import { redirect, useLoaderData } from "react-router";
+import {
+  useSessionStore,
+  type ActiveSession,
+  type GameConfig,
+  type Player,
+  type SessionParticipant,
+} from "~/stores/useSessionStore";
+
+// ── Types trả về từ loader ────────────────────────────────────
+
+export interface SessionLoaderData {
+  session: ActiveSession;
+  config: GameConfig;
+  players: Player[];
+  /**
+   * currentParticipant được resolve từ cookie/session auth.
+   * Ở đây dùng owner làm mặc định cho flow "vừa tạo phòng".
+   * Sau này thay bằng logic auth thực.
+   */
+  currentParticipant: SessionParticipant;
+}
+
+// ── Server Loader ─────────────────────────────────────────────
+
+export async function loader({
+  params,
+}: Route.LoaderArgs): Promise<SessionLoaderData> {
+  const { sessionId } = params;
+
+  // 1. Tìm session theo code
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.code, sessionId))
+    .limit(1);
+
+  if (!session) {
+    throw redirect("/");
+  }
+
+  // 2. Lấy game config
+  const [config] = await db
+    .select()
+    .from(gameConfigs)
+    .where(eq(gameConfigs.sessionId, session.id))
+    .limit(1);
+
+  if (!config) {
+    throw redirect("/");
+  }
+
+  // 3. Lấy danh sách players (đã sắp xếp theo orderNo)
+  const players = await db
+    .select()
+    .from(playersSchema)
+    .where(eq(playersSchema.sessionId, session.id))
+    .orderBy(asc(playersSchema.orderNo));
+
+  // 4. Lấy owner participant
+  const [owner] = await db
+    .select()
+    .from(participants)
+    .where(eq(participants.id, session.ownerParticipantId!))
+    .limit(1);
+
+  return {
+    session: {
+      id: session.id,
+      code: session.code,
+      status: session.status as ActiveSession["status"],
+      ownerParticipantId: session.ownerParticipantId!,
+      createdAt: session.createdAt.toISOString(),
+    },
+    config: {
+      id: config.id,
+      firstPlaceScore: config.firstPlaceScore,
+      secondPlaceScore: config.secondPlaceScore,
+      thirdPlaceScore: config.thirdPlaceScore,
+      fourthPlaceScore: config.fourthPlaceScore,
+      redPigScore: config.redPigScore,
+      blackPigScore: config.blackPigScore,
+      tripleScore: config.tripleScore,
+      khapScore: config.khapScore,
+      khapLimit: config.khapLimit,
+      sanhScore: config.sanhScore,
+      sanhLimit: config.sanhLimit,
+    },
+    players: players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      orderNo: p.orderNo,
+    })),
+    currentParticipant: {
+      id: owner.id,
+      displayName: owner.displayName,
+      role: owner.role as SessionParticipant["role"],
+    },
+  };
+}
+
+// ── Client Loader ─────────────────────────────────────────────
+
+/**
+ * clientLoader chạy trên browser sau server loader.
+ * Nhận data từ server và hydrate Zustand store ngay lập tức —
+ * trước khi component render, tránh flash trạng thái rỗng.
+ *
+ * `clientLoader.hydrate = true` bắt React Router v7 chạy
+ * clientLoader ngay cả khi đây là lần đầu load (SSR hydration).
+ */
+export async function clientLoader({
+  serverLoader,
+}: Route.ClientLoaderArgs): Promise<SessionLoaderData> {
+  const data = await serverLoader();
+
+  // Hydrate store ngay tại đây — đồng bộ với navigation
+  useSessionStore.getState().hydrate(data);
+
+  return data;
+}
+
+clientLoader.hydrate = true as const;
+
+// ── Meta ──────────────────────────────────────────────────────
+
+export function meta({ data }: Route.MetaArgs) {
+  const loaderData = data as SessionLoaderData | undefined;
+  return [{ title: `Phong ${loaderData?.session.code ?? ""} - Thirteen Game` }];
+}
 
 export default function SessionLayout() {
   const { sessionId } = useParams();
