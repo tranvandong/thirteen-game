@@ -1,8 +1,5 @@
 /**
  * stores/useSessionStore.ts
- *
- * Global state cho session đang active.
- * Được hydrate từ loader data của React Router v7 sau khi tạo/join session.
  */
 
 import { create } from "zustand";
@@ -45,44 +42,72 @@ export interface ActiveSession {
   createdAt: string;
 }
 
+export interface RoundResult {
+  playerId: string;
+  rank: number;
+  score: number;
+  khapNo: number;
+  sanhNo: number;
+  blackPigNo: number;
+  redPigNo: number;
+}
+
+export interface Round {
+  id: string;
+  roundNo: number;
+  createdAt: string;
+  results: RoundResult[];
+}
+
+export interface SessionTotal {
+  playerId: string;
+  totalScore: number;
+}
+
 // ── State & Actions ───────────────────────────────────────────
 
 interface SessionState {
-  /** Session đang active, null nếu chưa vào phòng nào */
   session: ActiveSession | null;
-
-  /** Game config của session hiện tại */
   config: GameConfig | null;
-
-  /** Danh sách 4 người chơi (theo orderNo) */
   players: Player[];
-
-  /** Participant hiện tại (người đang dùng app) */
   currentParticipant: SessionParticipant | null;
+
+  /** Danh sách ván đã chơi, mới nhất ở đầu */
+  rounds: Round[];
+
+  /** Bảng điểm tổng */
+  totals: SessionTotal[];
+
+  /** Ván hiện tại đang hiển thị (để navigate realtime) */
+  currentRoundNo: number;
 
   // ── Actions ────────────────────────────────────────────────
 
-  /**
-   * Hydrate toàn bộ state sau khi tạo hoặc join session.
-   * Gọi từ clientLoader hoặc useEffect sau khi nhận loader data.
-   */
   hydrate: (payload: {
     session: ActiveSession;
     config: GameConfig;
     players: Player[];
     currentParticipant: SessionParticipant;
+    rounds?: Round[];
+    totals?: SessionTotal[];
   }) => void;
 
-  /** Cập nhật status session (waiting → playing → finished) */
   setSessionStatus: (status: ActiveSession["status"]) => void;
-
-  /** Cập nhật game config (ví dụ host chỉnh lại giữa chừng) */
   updateConfig: (patch: Partial<GameConfig>) => void;
-
-  /** Thêm / cập nhật một player */
   upsertPlayer: (player: Player) => void;
 
-  /** Xoá toàn bộ state khi rời / kết thúc session */
+  /**
+   * Thêm round mới vào đầu danh sách + cập nhật totals.
+   * Gọi khi nhận event `round-finished` từ socket.
+   */
+  addRound: (round: Round) => void;
+
+  /** Cập nhật toàn bộ bảng điểm tổng */
+  setTotals: (totals: SessionTotal[]) => void;
+
+  /** Advance round counter (dùng cho UI navigate) */
+  setCurrentRoundNo: (no: number) => void;
+
   clearSession: () => void;
 }
 
@@ -92,45 +117,58 @@ export const useSessionStore = create<SessionState>()(
   devtools(
     persist(
       (set) => ({
-        // ── Initial state ──────────────────────────────────
         session: null,
         config: null,
         players: [],
         currentParticipant: null,
+        rounds: [],
+        totals: [],
+        currentRoundNo: 0,
 
-        // ── Actions ────────────────────────────────────────
-
-        hydrate: ({ session, config, players, currentParticipant }) =>
+        hydrate: ({
+          session,
+          config,
+          players,
+          currentParticipant,
+          rounds = [],
+          totals = [],
+        }) =>
           set(
-            { session, config, players, currentParticipant },
+            {
+              session,
+              config,
+              players,
+              currentParticipant,
+              rounds,
+              totals,
+              currentRoundNo: rounds.length > 0 ? rounds[0].roundNo : 0,
+            },
             false,
             "session/hydrate",
           ),
 
         setSessionStatus: (status) =>
           set(
-            (state) =>
-              state.session ? { session: { ...state.session, status } } : state,
+            (s) => (s.session ? { session: { ...s.session, status } } : s),
             false,
             "session/setStatus",
           ),
 
         updateConfig: (patch) =>
           set(
-            (state) =>
-              state.config ? { config: { ...state.config, ...patch } } : state,
+            (s) => (s.config ? { config: { ...s.config, ...patch } } : s),
             false,
             "session/updateConfig",
           ),
 
         upsertPlayer: (player) =>
           set(
-            (state) => {
-              const exists = state.players.find((p) => p.id === player.id);
+            (s) => {
+              const exists = s.players.find((p) => p.id === player.id);
               return {
                 players: exists
-                  ? state.players.map((p) => (p.id === player.id ? player : p))
-                  : [...state.players, player].sort(
+                  ? s.players.map((p) => (p.id === player.id ? player : p))
+                  : [...s.players, player].sort(
                       (a, b) => a.orderNo - b.orderNo,
                     ),
               };
@@ -139,6 +177,22 @@ export const useSessionStore = create<SessionState>()(
             "session/upsertPlayer",
           ),
 
+        addRound: (round) =>
+          set(
+            (s) => ({
+              // Prepend, đảm bảo không trùng lặp
+              rounds: [round, ...s.rounds.filter((r) => r.id !== round.id)],
+              currentRoundNo: round.roundNo,
+            }),
+            false,
+            "session/addRound",
+          ),
+
+        setTotals: (totals) => set({ totals }, false, "session/setTotals"),
+
+        setCurrentRoundNo: (no) =>
+          set({ currentRoundNo: no }, false, "session/setCurrentRoundNo"),
+
         clearSession: () =>
           set(
             {
@@ -146,19 +200,24 @@ export const useSessionStore = create<SessionState>()(
               config: null,
               players: [],
               currentParticipant: null,
+              rounds: [],
+              totals: [],
+              currentRoundNo: 0,
             },
             false,
             "session/clear",
           ),
       }),
       {
-        name: "thirteen-session", // key trong localStorage
-        // Chỉ persist những field cần thiết để recover sau reload
-        partialize: (state) => ({
-          session: state.session,
-          config: state.config,
-          players: state.players,
-          currentParticipant: state.currentParticipant,
+        name: "thirteen-session",
+        partialize: (s) => ({
+          session: s.session,
+          config: s.config,
+          players: s.players,
+          currentParticipant: s.currentParticipant,
+          rounds: s.rounds,
+          totals: s.totals,
+          currentRoundNo: s.currentRoundNo,
         }),
       },
     ),
@@ -166,10 +225,13 @@ export const useSessionStore = create<SessionState>()(
   ),
 );
 
-// ── Selector hooks (tránh re-render không cần thiết) ──────────
+// ── Selectors ─────────────────────────────────────────────────
 
 export const useSession = () => useSessionStore((s) => s.session);
 export const useGameConfig = () => useSessionStore((s) => s.config);
 export const usePlayers = () => useSessionStore((s) => s.players);
 export const useCurrentParticipant = () =>
   useSessionStore((s) => s.currentParticipant);
+export const useRounds = () => useSessionStore((s) => s.rounds);
+export const useTotals = () => useSessionStore((s) => s.totals);
+export const useCurrentRoundNo = () => useSessionStore((s) => s.currentRoundNo);

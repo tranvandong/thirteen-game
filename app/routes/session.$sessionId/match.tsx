@@ -33,6 +33,7 @@ import {
   useGameConfig,
   usePlayers,
 } from "~/stores/useSessionStore";
+import { useSessionStore } from "~/stores/useSessionStore";
 
 export interface MatchLoaderData {
   currentRoundNo: number;
@@ -786,7 +787,7 @@ export default function MatchPage() {
                           nv === 1
                             ? gameConfig.rankPoints[0] * 2 +
                               heoPtsOf(v.heo ?? { do: 0, den: 0 })
-                            : ecPts  + heoPtsOf(v.heo ?? { do: 0, den: 0 });
+                            : ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
 
                         return (
                           <div

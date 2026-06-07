@@ -6,7 +6,7 @@ import { rounds } from "~/db/schema/rounds";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
 import { sessions } from "~/db/schema/sessions";
-import { getIO } from "~/lib/socket.server";
+import { getIO } from "~/lib/socket-old.server";
 
 export interface KhapSanhLimits {
   khapLimit: number;

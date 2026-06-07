@@ -12,6 +12,7 @@ import { useParams } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Copy, Check, Users, UserPlus, Settings } from "lucide-react";
+import { SessionQRCode } from "~/components/session-qr-code";
 
 // Mock data for UI development
 const mockData = {
@@ -52,14 +53,18 @@ export default function SettingsPage() {
   const handleApprove = (joinRequestId: string) => {
     setState((prev) => ({
       ...prev,
-      pendingRequests: prev.pendingRequests.filter((r) => r.id !== joinRequestId),
+      pendingRequests: prev.pendingRequests.filter(
+        (r) => r.id !== joinRequestId,
+      ),
     }));
   };
 
   const handleReject = (joinRequestId: string) => {
     setState((prev) => ({
       ...prev,
-      pendingRequests: prev.pendingRequests.filter((r) => r.id !== joinRequestId),
+      pendingRequests: prev.pendingRequests.filter(
+        (r) => r.id !== joinRequestId,
+      ),
     }));
   };
 
@@ -79,45 +84,9 @@ export default function SettingsPage() {
         <h1 className="text-lg font-semibold">Cau Hinh</h1>
       </div>
 
-      {/* Room Code Card */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Ma Phong & Chia Se
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Ma:</span>
-              <span className="text-2xl font-bold text-primary tracking-widest">
-                {mockData.session.code}
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyLink}
-              className="gap-2 h-8"
-            >
-              {copied ? (
-                <>
-                  <Check className="size-3.5 text-chart-2" />
-                  <span className="text-xs">Da sao chep</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="size-3.5" />
-                  <span className="text-xs">Sao chep link</span>
-                </>
-              )}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground break-all px-1">
-            {sessionLink || `https://example.com/session/${sessionId}`}
-          </p>
-        </CardContent>
-      </Card>
+     
+          <SessionQRCode />
+       
 
       {/* Join Requests */}
       {isOwner && state.pendingRequests.length > 0 && (
@@ -145,7 +114,9 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-center size-8 rounded-full bg-background">
                     <Users className="size-4 text-muted-foreground" />
                   </div>
-                  <span className="font-medium text-sm">{request.displayName}</span>
+                  <span className="font-medium text-sm">
+                    {request.displayName}
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -195,7 +166,9 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-center size-10 rounded-full bg-background">
                   <Users className="size-5 text-muted-foreground" />
                 </div>
-                <p className="font-medium text-sm text-center">{participant.displayName}</p>
+                <p className="font-medium text-sm text-center">
+                  {participant.displayName}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {participant.role === "owner" ? "Chu phong" : "Nguoi choi"}
                 </p>
