@@ -151,13 +151,13 @@ export default function SessionLayout() {
   const leftTabs = [
     {
       to: `/session/${sessionId}`,
-      label: "Phong",
+      label: "Phòng",
       icon: Home,
       exact: true,
     },
     {
       to: `/session/${sessionId}/history`,
-      label: "Lich Su",
+      label: "Lịch Sử",
       icon: Clock,
       exact: false,
     },
@@ -166,13 +166,13 @@ export default function SessionLayout() {
   const rightTabs = [
     {
       to: `/session/${sessionId}/chart`,
-      label: "Bieu Do",
+      label: "Thống Kê",
       icon: BarChart2,
       exact: false,
     },
     {
       to: `/session/${sessionId}/settings`,
-      label: "Cau Hinh",
+      label: "Cấu Hình",
       icon: Settings,
       exact: false,
     },
@@ -180,7 +180,7 @@ export default function SessionLayout() {
 
   const centerTab = {
     to: `/session/${sessionId}/match`,
-    label: "Van Dau",
+    label: "Ván Đấu",
     icon: Swords,
     exact: false,
   };

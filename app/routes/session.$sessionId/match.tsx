@@ -344,7 +344,8 @@ export default function MatchPage() {
       return Math.min(n, gameConfig.maxKhapAccumulate);
     });
   };
-  const toggleSanhPlayer = (pid: string) => setSanhWinner(pid);
+  const toggleSanhPlayer = (pid: string) =>
+    setSanhWinner((pidPrev) => (pidPrev === pid ? null : pid));
 
   // ── Helpers: chat heo ────────────────────────────────────
   const addChatHeo = () => {
@@ -392,7 +393,16 @@ export default function MatchPage() {
   };
   const removeNhot = () => {
     setNhotList([]);
+    setNhotForm({ nhotterId: "", victims: [] });
     setSelectOrder(players.map(() => null));
+    setConfirmNhot(false);
+    setExpandBonus(false);
+  };
+  const resetNhot = () => {
+    setNhotForm({ nhotterId: "", victims: [] });
+    setSelectOrder(players.map(() => null));
+    setConfirmNhot(false);
+    setExpandBonus(true);
   };
   const toggleNhotVictim = (pid: string) => {
     setNhotForm((prev) => {
@@ -435,7 +445,7 @@ export default function MatchPage() {
         s[pid] += gameConfig.rankPoints[i] ?? 0;
       });
     } else {
-      const ecPts = Math.abs(gameConfig.rankPoints[players.length - 1]);
+      const ecPts = Math.abs(gameConfig.rankPoints[players.length - 1]) * 2;
       const victimHeoMap = Object.fromEntries(
         activeNhot.victims.map((v) => [v.victimId, v.heo]),
       );
@@ -445,15 +455,15 @@ export default function MatchPage() {
           | { do: number; den: number }
           | undefined) ?? { do: 0, den: 0 };
         const hp = heoPts(vh);
-        s[nhotterId!] += gameConfig.rankPoints[0] + hp;
-        s[nhotVictimIds[0]] -= gameConfig.rankPoints[0] + hp;
+        s[nhotterId!] += gameConfig.rankPoints[0] * 2 + hp;
+        s[nhotVictimIds[0]] -= gameConfig.rankPoints[0] * 2 + hp;
         const othersInRanking = ranking.filter((id) => nhotOthers.includes(id));
         othersInRanking.forEach((oid, i) => {
           s[oid] += gameConfig.rankPoints[i + 1] ?? 0;
         });
       } else if (nhotCount === 2) {
         let gain = 0;
- 
+
         activeNhot.victims.forEach(({ victimId, heo }) => {
           const loss = ecPts + heoPts(heo);
           s[victimId] -= loss;
@@ -616,7 +626,9 @@ export default function MatchPage() {
   if (!isReady) {
     return (
       <main className="p-4 flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground text-sm">Dang tai du lieu phong...</p>
+        <p className="text-muted-foreground text-sm">
+          Dang tai du lieu phong...
+        </p>
       </main>
     );
   }
@@ -723,16 +735,15 @@ export default function MatchPage() {
               nhotList.length > 0 &&
               nhotList.map((n) => {
                 const nv = n.victims.length;
-                const ecPts = Math.abs(
-                  gameConfig.rankPoints[players.length - 1],
-                );
+                const ecPts =
+                  Math.abs(gameConfig.rankPoints[players.length - 1]) * 2;
                 const heoPtsOf = (heo: { do: number; den: number }) =>
                   heo.den * gameConfig.heodenPoints +
                   heo.do * gameConfig.heoDoPoints;
                 let gain = 0;
                 if (nv === 1) {
                   gain =
-                    gameConfig.rankPoints[0] +
+                    gameConfig.rankPoints[0] * 2 +
                     heoPtsOf(n.victims[0]?.heo ?? { do: 0, den: 0 });
                 } else {
                   n.victims.forEach((v) => {
@@ -749,7 +760,7 @@ export default function MatchPage() {
                   >
                     <div className="flex flex-col gap-1.5 py-1.5 w-full">
                       <p className="text-xs text-muted-foreground mb-1">
-                        Nguoi nhot:
+                        Người nhốt:
                       </p>
                       <div className="flex justify-between gap-2 flex-wrap w-full">
                         <div
@@ -764,18 +775,18 @@ export default function MatchPage() {
                         Người bị nhốt:
                       </p>
                       {n.victims.map((v) => {
-                        const ecPts = Math.abs(
-                          gameConfig.rankPoints[players.length - 1],
-                        );
+                        const ecPts =
+                          Math.abs(gameConfig.rankPoints[players.length - 1]) *
+                          2;
                         const heoPtsOf = (heo: { do: number; den: number }) =>
                           heo.den * gameConfig.heodenPoints +
                           heo.do * gameConfig.heoDoPoints;
 
                         const victimLoss =
                           nv === 1
-                            ? gameConfig.rankPoints[0] +
+                            ? gameConfig.rankPoints[0] * 2 +
                               heoPtsOf(v.heo ?? { do: 0, den: 0 })
-                            : ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
+                            : ecPts  + heoPtsOf(v.heo ?? { do: 0, den: 0 });
 
                         return (
                           <div
@@ -811,13 +822,14 @@ export default function MatchPage() {
 
                       {nv === 2 && (
                         <span className="text-muted-foreground">
-                          (ngoai -{gameConfig.nhotBystanderPenalty}đ)
+                          (Người chơi còn lại -{gameConfig.nhotBystanderPenalty}
+                          đ)
                         </span>
                       )}
                     </div>
                     <Button
                       className="h-8 text-xs w-full"
-                      onClick={() => setConfirmNhot(false)}
+                      onClick={() => resetNhot()}
                     >
                       Reset
                     </Button>
@@ -829,7 +841,7 @@ export default function MatchPage() {
               <div className="flex flex-col gap-2 p-3">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">
-                    Nguoi nhot:
+                    Người nhốt:
                   </p>
                   <div className="flex gap-1.5 flex-wrap">
                     {players.map((p) => (
@@ -921,22 +933,32 @@ export default function MatchPage() {
                 </div>
                 <div className="flex gap-2 pt-1">
                   {!confirmNhot ? (
-                    <Button
-                      size="sm"
-                      className="flex-1 h-8 text-xs"
-                      onClick={addNhot}
-                      disabled={
-                        !nhotForm.nhotterId || nhotForm.victims.length === 0
-                      }
-                    >
-                      Thêm
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 text-xs"
+                        onClick={addNhot}
+                        disabled={
+                          !nhotForm.nhotterId || nhotForm.victims.length === 0
+                        }
+                      >
+                        Xác nhận
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs"
+                        onClick={() => removeNhot()}
+                      >
+                        Hủy
+                      </Button>
+                    </>
                   ) : (
                     <Button
                       size="sm"
                       variant="ghost"
                       className="flex-1 h-8 text-xs"
-                      onClick={() => setConfirmNhot(false)}
+                      onClick={() => resetNhot()}
                     >
                       Reset
                     </Button>
@@ -1130,7 +1152,7 @@ export default function MatchPage() {
                       className="h-8 text-xs"
                       onClick={() => setShowChatHeoForm(false)}
                     >
-                      Huy
+                      Hủy
                     </Button>
                   </div>
                 </div>
@@ -1272,7 +1294,7 @@ export default function MatchPage() {
                       {isSelected ? order : "·"}
                     </span>
                   )}
-                  
+
                   {/* Label hạng */}
                   <span
                     className={`text-xs font-bold w-12 shrink-0 ${showAsActive ? labelColor : "text-muted-foreground"}`}
@@ -1327,7 +1349,7 @@ export default function MatchPage() {
                         className="flex items-center gap-1 hover:opacity-80"
                         disabled={nhotVictimIds.includes(playerId)}
                       >
-                        <span className="font-medium">Khap</span>
+                        <span className="font-medium">Khạp</span>
                       </button>
                       {isKhapWinner && (
                         <>
@@ -1372,7 +1394,7 @@ export default function MatchPage() {
                       disabled={nhotVictimIds.includes(playerId)}
                       className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs transition-colors disabled:cursor-not-allowed ${isSanhWinner ? "bg-chart-1/20 border-chart-1/50 text-chart-1" : sanhTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground hover:border-chart-1/40"}`}
                     >
-                      <span className="font-medium">Sanh</span>
+                      <span className="font-medium">Sảnh</span>
                       {isSanhWinner && (
                         <>
                           <span className="font-bold ml-0.5">
@@ -1470,7 +1492,7 @@ export default function MatchPage() {
       <Card>
         <CardContent className="pt-4 pb-3">
           <p className="text-xs text-muted-foreground mb-2 font-medium">
-            Ket qua van {currentRoundNo}
+            Kết quả ván {currentRoundNo}
           </p>
           <div className="grid grid-cols-4 gap-1">
             {players.map((player) => {
@@ -1494,7 +1516,9 @@ export default function MatchPage() {
       </Card>
 
       {fetcher.data?.error && (
-        <p className="text-sm text-destructive text-center">{fetcher.data.error}</p>
+        <p className="text-sm text-destructive text-center">
+          {fetcher.data.error}
+        </p>
       )}
 
       {/* Submit */}
@@ -1512,24 +1536,24 @@ export default function MatchPage() {
         {isSaving ? (
           <>
             <Swords className="size-4 animate-pulse" />
-            Dang luu van dau...
+            Đang lưu ván đấu...
           </>
         ) : submitted && fetcher.data?.success ? (
           <>
             <CheckCircle2 className="size-4" />
-            Da luu van dau
+            Đã lưu ván đấu
           </>
         ) : !rankingComplete ? (
           <>
             <Swords className="size-4" />
             {activeNhot
-              ? `Chon hang 2 va 3 (${selectCounter}/${requiredSelections})`
-              : `Chon du nguoi (${selectCounter}/${players.length})`}
+              ? `Chọn hạng 2 và 3 (${selectCounter}/${requiredSelections})`
+              : `Chon đủ người chơi (${selectCounter}/${players.length})`}
           </>
         ) : (
           <>
             <CheckCircle2 className="size-4" />
-            Luu Van {currentRoundNo}
+            Lưu ván {currentRoundNo}
           </>
         )}
       </Button>
