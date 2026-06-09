@@ -57,6 +57,10 @@ export interface Round {
   roundNo: number;
   createdAt: string;
   results: RoundResult[];
+  accumulatedKhap: number;
+  accumulatedSanh: number;
+  hadKhap: boolean;
+  hadSanh: boolean;
 }
 
 export interface SessionTotal {

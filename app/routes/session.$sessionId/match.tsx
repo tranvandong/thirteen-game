@@ -210,8 +210,6 @@ export default function MatchPage() {
     [players],
   );
 
-  const lastestRound = rounds.length > 0 ? rounds[rounds.length - 1] : null;
-
   useEffect(() => {
     setSelectOrder((prev) =>
       prev.length === players.length ? prev : players.map(() => null),
@@ -225,13 +223,7 @@ export default function MatchPage() {
   }, [fetcher.data, sessionCode]);
 
   useEffect(() => {
-    console.log("matchLoaderFetcher.data changed");
-    console.log(matchLoaderFetcher.data);
-  }, [matchLoaderFetcher.data]);
-
-  useEffect(() => {
     if (fetcher.state !== "idle") return;
-
     const data = fetcher.data;
     if (!data?.success || data.roundNo == null) return;
     if (handledSaveRoundRef.current === data.roundNo) return;
@@ -258,6 +250,11 @@ export default function MatchPage() {
 
   const isSaving = fetcher.state !== "idle";
 
+  const fetcherDataRef = useRef(fetcher.data);
+  useEffect(() => {
+    console.log("useEffect", fetcher.data);
+    fetcherDataRef.current = fetcher.data;
+  }, [fetcher.data]);
   // ── Socket: nhận round-finished từ người khác ────────────────
   useEffect(() => {
     console.log("useEffect", session?.code);
@@ -265,9 +262,9 @@ export default function MatchPage() {
 
     const handleRoundFinished = (payload: { round: Round }) => {
       // Bỏ qua nếu chính mình vừa lưu (đã xử lý ở fetcher effect)
-      // console.log(handledSaveRoundRef.current,payload.round.roundNo)
+      console.log(handledSaveRoundRef.current,payload.round.roundNo)
       // if (handledSaveRoundRef.current === payload.round.roundNo) return;
-      console.log("handleRoundFinished", payload);
+      console.log("handleRoundFinished", fetcherDataRef.current);
       addRound(payload.round);
 
       // Reset form để chuẩn bị ván mới
@@ -714,7 +711,7 @@ export default function MatchPage() {
     return (
       <main className="p-4 flex items-center justify-center min-h-[50vh]">
         <p className="text-muted-foreground text-sm">
-          Dang tai du lieu phong...
+          Đang tải dữ liệu phòng...
         </p>
       </main>
     );
@@ -960,7 +957,7 @@ export default function MatchPage() {
                             ),
                           }))
                         }
-                        className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${nhotForm.nhotterId === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-muted"}`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${nhotForm.nhotterId === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-muted"}`}
                       >
                         {pShort(p.id)}
                       </button>
@@ -986,11 +983,10 @@ export default function MatchPage() {
                         return (
                           <div
                             key={p.id}
-                            className={`flex justify-between items-center w-full gap-2 px-2 py-1.5 rounded-md 
-          ${isVictim ? "bg-destructive/10 border border-destructive/20" : "bg-muted border-muted py-[0.56rem]"}`}
+                            className={`flex justify-between items-center w-full gap-2 px-2 py-1.5 rounded-md ${isVictim ? "bg-destructive/10 border border-destructive/20" : "bg-muted border-muted"}`}
                           >
                             <div
-                              className={`text-xs font-medium w-10 flex-1 ${isVictim ? "text-destructive" : ""}`}
+                              className={`text-xs font-medium w-10 flex-1 py-1 ${isVictim ? "text-destructive" : ""}`}
                               onClick={() => toggleNhotVictim(p.id)}
                             >
                               {pShort(p.id)}
@@ -1064,7 +1060,7 @@ export default function MatchPage() {
                       className="flex-1 h-8 text-xs"
                       onClick={() => resetNhot()}
                     >
-                      Reset
+                      Chọn lại
                     </Button>
                   )}
                 </div>
@@ -1172,7 +1168,7 @@ export default function MatchPage() {
                                     : f.victimId,
                               }))
                             }
-                            className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${chatForm.chatterId === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-muted"}`}
+                            className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${chatForm.chatterId === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-muted"}`}
                           >
                             {pShort(p.id)}
                           </button>
@@ -1196,7 +1192,7 @@ export default function MatchPage() {
                             onClick={() =>
                               setChatForm((f) => ({ ...f, victimId: p.id }))
                             }
-                            className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${chatForm.victimId === p.id ? "bg-destructive text-destructive-foreground border-destructive" : "bg-muted border-muted"}`}
+                            className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${chatForm.victimId === p.id ? "bg-destructive text-destructive-foreground border-destructive" : "bg-muted border-muted"}`}
                           >
                             {pShort(p.id)}
                           </button>
@@ -1220,7 +1216,7 @@ export default function MatchPage() {
                           </span>
                           <button
                             onClick={() => updateChatFormHeo(t, -1)}
-                            className="size-5 flex items-center justify-center rounded bg-muted font-bold"
+                            className="size-6 flex items-center justify-center rounded bg-muted font-bold"
                           >
                             −
                           </button>
@@ -1229,7 +1225,7 @@ export default function MatchPage() {
                           </span>
                           <button
                             onClick={() => updateChatFormHeo(t, 1)}
-                            className="size-5 flex items-center justify-center rounded bg-muted font-bold"
+                            className="size-6 flex items-center justify-center rounded bg-muted font-bold"
                           >
                             +
                           </button>
@@ -1268,7 +1264,7 @@ export default function MatchPage() {
 
       {/* ── Xếp hạng ─────────────────────────────────────── */}
       <Card>
-        <CardHeader className="pb-2 pt-4">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               {!activeNhot
@@ -1426,14 +1422,14 @@ export default function MatchPage() {
                       <button
                         onClick={() => moveRank(playerId, "up")}
                         disabled={!canMoveUp}
-                        className="flex items-center justify-center size-5 rounded hover:bg-background/60 disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="flex items-center justify-center size-6 rounded hover:bg-background/60 disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         <ChevronUp className="size-3.5" />
                       </button>
                       <button
                         onClick={() => moveRank(playerId, "down")}
                         disabled={!canMoveDown}
-                        className="flex items-center justify-center size-5 rounded hover:bg-background/60 disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="flex items-center justify-center size-6 rounded hover:bg-background/60 disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         <ChevronDown className="size-3.5" />
                       </button>
@@ -1443,10 +1439,10 @@ export default function MatchPage() {
 
                 {/* ── Khạp + Sảnh ── */}
                 {showBonus && (
-                  <div className="flex gap-2 px-3 pb-2.5">
+                  <div className="flex flex-wrap gap-2 px-3 pb-2.5">
                     {/* Khạp */}
                     <div
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs transition-colors ${isKhapWinner ? "bg-chart-4/20 border-chart-4/50 text-chart-4" : khapTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground"}`}
+                      className={`flex items-center gap-0 px-2 py-1.5 rounded-md border text-xs transition-colors ${isKhapWinner ? "bg-chart-4/20 border-chart-4/50 text-chart-4" : khapTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground"}`}
                     >
                       <button
                         onClick={() => toggleKhapPlayer(playerId)}
@@ -1461,7 +1457,7 @@ export default function MatchPage() {
                           <button
                             onClick={() => updateKhapCount(-1)}
                             disabled={khapCount <= 1}
-                            className="size-4 flex items-center justify-center rounded hover:bg-background/50 disabled:opacity-30 font-bold"
+                            className="size-6 flex items-center justify-center rounded hover:bg-background/50 disabled:opacity-30 font-bold"
                           >
                             −
                           </button>
@@ -1471,7 +1467,7 @@ export default function MatchPage() {
                           <button
                             onClick={() => updateKhapCount(1)}
                             disabled={khapCount >= gameConfig.maxKhapAccumulate}
-                            className="size-4 flex items-center justify-center rounded hover:bg-background/50 disabled:opacity-30 font-bold"
+                            className="size-6 flex items-center justify-center rounded hover:bg-background/50 disabled:opacity-30 font-bold"
                           >
                             +
                           </button>
@@ -1496,7 +1492,7 @@ export default function MatchPage() {
                     <button
                       onClick={() => toggleSanhPlayer(playerId)}
                       disabled={nhotVictimIds.includes(playerId)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs transition-colors disabled:cursor-not-allowed ${isSanhWinner ? "bg-chart-1/20 border-chart-1/50 text-chart-1" : sanhTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground hover:border-chart-1/40"}`}
+                      className={`flex items-center gap-0.5 px-2 py-1 rounded-md border text-xs transition-colors disabled:cursor-not-allowed ${isSanhWinner ? "bg-chart-1/20 border-chart-1/50 text-chart-1" : sanhTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground hover:border-chart-1/40"}`}
                     >
                       <span className="font-medium">Sảnh</span>
                       {isSanhWinner && (
@@ -1518,74 +1514,73 @@ export default function MatchPage() {
                         </>
                       )}
                     </button>
+
+                    {/* ── THÊM MỚI: Chặt heo trong row player ── */}
+                    {showBonus &&
+                      (chatHeoAsChatter.length > 0 ||
+                        chatHeoAsVictim.length > 0) && (
+                        <div className="flex flex-col gap-1">
+                          {/* Người chặt */}
+                          {chatHeoAsChatter.map((c) => {
+                            const pts =
+                              (c.heo.do ?? 0) * gameConfig.heoDoPoints +
+                              (c.heo.den ?? 0) * gameConfig.heodenPoints;
+                            return (
+                              <div
+                                key={c.id}
+                                className="flex items-center gap-1.5 py-1"
+                              >
+                                <div
+                                  key={c.id}
+                                  className="flex items-center justify-center gap-1 py-0.5 pr-2 rounded-md border text-xs bg-chart-2/10 border-chart-2/30 text-chart-2"
+                                >
+                                  {(c.heo.do ?? 0) > 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
+                                      {c.heo.do} Đỏ
+                                    </span>
+                                  )}
+                                  {(c.heo.den ?? 0) > 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
+                                      {c.heo.den} Đen
+                                    </span>
+                                  )}
+
+                                  <span className="font-bold">+{pts}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {/* Người bị chặt */}
+                          {chatHeoAsVictim.map((c) => {
+                            const pts =
+                              (c.heo.do ?? 0) * gameConfig.heoDoPoints +
+                              (c.heo.den ?? 0) * gameConfig.heodenPoints;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <div
+                                  key={c.id}
+                                  className="flex items-center gap-1 py-0.5 pr-2 rounded-md border text-xs bg-destructive/10 border-destructive/20 text-destructive"
+                                >
+                                  {(c.heo.do ?? 0) > 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
+                                      {c.heo.do} Đỏ
+                                    </span>
+                                  )}
+                                  {(c.heo.den ?? 0) > 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
+                                      {c.heo.den} Đen
+                                    </span>
+                                  )}
+                                  <span className="font-bold">-{pts}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                   </div>
                 )}
-
-                {/* ── THÊM MỚI: Chặt heo trong row player ── */}
-                {showBonus &&
-                  (chatHeoAsChatter.length > 0 ||
-                    chatHeoAsVictim.length > 0) && (
-                    <div className="flex flex-col gap-1 px-3 pb-2.5">
-                      {/* Người chặt */}
-                      {chatHeoAsChatter.map((c) => {
-                        const pts =
-                          (c.heo.do ?? 0) * gameConfig.heoDoPoints +
-                          (c.heo.den ?? 0) * gameConfig.heodenPoints;
-                        return (
-                          <div
-                            key={c.id}
-                            className="flex items-center gap-1.5 py-1"
-                          >
-                            <div
-                              key={c.id}
-                              className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-md border text-xs bg-chart-2/10 border-chart-2/30 text-chart-2"
-                            >
-                              {(c.heo.do ?? 0) > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
-                                  {c.heo.do} Đỏ
-                                </span>
-                              )}
-                              {(c.heo.den ?? 0) > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
-                                  {c.heo.den} Đen
-                                </span>
-                              )}
-                              <span className="mx-0.5 opacity-30">|</span>
-                              <span className="font-bold">+{pts}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Người bị chặt */}
-                      {chatHeoAsVictim.map((c) => {
-                        const pts =
-                          (c.heo.do ?? 0) * gameConfig.heoDoPoints +
-                          (c.heo.den ?? 0) * gameConfig.heodenPoints;
-                        return (
-                          <div className="flex items-center gap-1.5 py-1">
-                            <div
-                              key={c.id}
-                              className="flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs bg-destructive/10 border-destructive/20 text-destructive"
-                            >
-                              {(c.heo.do ?? 0) > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
-                                  {c.heo.do} Đỏ
-                                </span>
-                              )}
-                              {(c.heo.den ?? 0) > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
-                                  {c.heo.den} Đen
-                                </span>
-                              )}
-                              <span className="mx-0.5 opacity-30">|</span>
-                              <span className="font-bold">-{pts}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
               </div>
             );
           })}
@@ -1655,10 +1650,7 @@ export default function MatchPage() {
               : `Chon đủ người chơi (${selectCounter}/${players.length})`}
           </>
         ) : (
-          <>
-            <CheckCircle2 className="size-4" />
-            Lưu ván {currentRoundNo}
-          </>
+          <>Lưu ván {currentRoundNo}</>
         )}
       </Button>
     </main>

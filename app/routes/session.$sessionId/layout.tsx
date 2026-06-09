@@ -1,11 +1,11 @@
-import { Outlet, Link, useParams, useLocation } from "react-router";
+import { Outlet, Link, useParams, useLocation, useNavigate } from "react-router";
 import type { Route } from "./+types/layout";
 // import { db } from "~/db/client.server";
 // import { sessions } from "~/db/schema/sessions";
 // import { eq } from "drizzle-orm";
 import { ModeToggle } from "~/components/mode-toggle";
 import { ThemeProvider } from "~/components/theme-provider";
-import { Home, Clock, Settings, Spade, BarChart2, Swords } from "lucide-react";
+import { Home, Clock, Settings, Spade, BarChart2, Swords, LucideLogOut } from "lucide-react";
 
 import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
@@ -158,6 +158,7 @@ export function meta({ data }: Route.MetaArgs) {
 export default function SessionLayout() {
   const { sessionId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const session = useSession();
   const currentParticipant = useCurrentParticipant();
@@ -166,7 +167,7 @@ export default function SessionLayout() {
 
   useEffect(() => {
     console.log(sessionId, currentParticipant?.id);
-    if (! sessionId || !currentParticipant?.id) return;
+    if (!sessionId || !currentParticipant?.id) return;
 
     // Join room
     joinSession(
@@ -198,7 +199,7 @@ export default function SessionLayout() {
   const leftTabs = [
     {
       to: `/session/${sessionId}`,
-      label: "Phòng",
+      label: "Xếp hạng",
       icon: Home,
       exact: true,
     },
@@ -277,7 +278,10 @@ export default function SessionLayout() {
               <Spade className="size-5" />
               Thirteen Game
             </Link>
-            <ModeToggle />
+            <div className="flex items-center gap-4">
+              <ModeToggle />
+              <LucideLogOut onClick={() => navigate("/")} className="size-6" />
+            </div>
           </div>
         </header>
 

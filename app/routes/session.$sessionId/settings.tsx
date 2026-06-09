@@ -81,7 +81,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
           <Settings className="size-4" />
         </div>
-        <h1 className="text-lg font-semibold">Cau Hinh</h1>
+        <h1 className="text-lg font-semibold">Cấu hình</h1>
       </div>
 
      

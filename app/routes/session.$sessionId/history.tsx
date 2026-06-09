@@ -144,17 +144,17 @@ export default function HistoryPage() {
             <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
               <History className="size-4" />
             </div>
-            Lich Su Van Dau
+            Lịch sử ván đấu
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 min-h-0 p-0 overflow-hidden">
           {rounds.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-12 px-4">
-              Chua co van dau nao duoc luu.
+              Chưa có ván đấu nào.
             </p>
           ) : (
-            <div className="h-full overflow-auto">
-              <Table>
+            <div className="relative h-full overflow-auto">
+              <Table className="[&>div]:overflow-visible">
                 <TableHeader className="sticky top-0 z-20">
                   <TableRow className="bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
                     <TableHead className="text-center w-12 sticky left-0 bg-muted/95 backdrop-blur z-30">
@@ -188,7 +188,7 @@ export default function HistoryPage() {
                 <TableFooter className="sticky bottom-0 z-20">
                   <TableRow className="bg-muted/95 backdrop-blur font-bold">
                     <TableCell className="text-center sticky left-0 bg-muted/95 backdrop-blur z-30">
-                      Tong
+                      Tổng
                     </TableCell>
                     {playerTotals.map((total, index) => (
                       <TableCell key={index} className="text-center">
