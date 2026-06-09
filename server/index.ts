@@ -3,6 +3,11 @@ import { createRequestHandler } from "@react-router/express";
 import express from "express";
 import { initSocketServer } from "../app/lib/socket.server";
 
+console.log("=== STARTING SERVER ===");
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("PORT:", process.env.PORT);
+console.log("DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "MISSING ❌");
+
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
   process.exit(1);
@@ -31,8 +36,9 @@ try {
   console.error("initSocketServer failed:", err);
   process.exit(1);
 }
-const hostname = process.env.PROD ? "0.0.0.0" : "localhost";
+
+const hostname = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
 const PORT = Number(process.env.PORT) || 3000;
-httpServer.listen(PORT, "0.0.0.0", () => {
+httpServer.listen(PORT, hostname, () => {
   console.log(`Server running on port ${PORT}`);
 });
