@@ -15,12 +15,23 @@ import { participants } from "~/db/schema/participants";
 import { eq, asc } from "drizzle-orm";
 import { redirect, useLoaderData } from "react-router";
 import {
+  useCurrentParticipant,
+  useSession,
   useSessionStore,
   type ActiveSession,
   type GameConfig,
   type Player,
   type SessionParticipant,
 } from "~/stores/useSessionStore";
+import { useEffect } from "react";
+import {
+  joinSession,
+  leaveSession,
+  onRoundFinished,
+  onScoreUpdated,
+  offRoundFinished,
+  offScoreUpdated,
+} from "~/lib/socket.client";
 
 // ── Types trả về từ loader ────────────────────────────────────
 
@@ -147,6 +158,42 @@ export function meta({ data }: Route.MetaArgs) {
 export default function SessionLayout() {
   const { sessionId } = useParams();
   const location = useLocation();
+
+  const session = useSession();
+  const currentParticipant = useCurrentParticipant();
+  const addRound = useSessionStore((s) => s.addRound);
+  const setTotals = useSessionStore((s) => s.setTotals);
+
+  useEffect(() => {
+    console.log(sessionId, currentParticipant?.id);
+    if (! sessionId || !currentParticipant?.id) return;
+
+    // Join room
+    joinSession(
+      sessionId,
+      currentParticipant.id,
+      currentParticipant.displayName,
+    );
+
+    // const handleRoundFinished = (payload: any) => {
+    //   console.log('handleRoundFinished',payload);
+    //   addRound(payload.round);
+    // };
+
+    // const handleScoreUpdated = (payload: any) => {
+    //   console.log('handleScoreUpdated',payload);
+    //   setTotals(payload.totals);
+    // };
+
+    // onRoundFinished(handleRoundFinished);
+    // onScoreUpdated(handleScoreUpdated);
+
+    return () => {
+      // offRoundFinished(handleRoundFinished);
+      // offScoreUpdated(handleScoreUpdated);
+      leaveSession(sessionId);
+    };
+  }, [sessionId, currentParticipant?.id]);
 
   const leftTabs = [
     {

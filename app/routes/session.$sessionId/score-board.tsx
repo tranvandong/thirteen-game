@@ -7,7 +7,7 @@ import { db } from "~/db/client.server";
 import { players } from "~/db/schema/players";
 import { sessionTotals } from "~/db/schema/session-totals";
 import { eq } from "drizzle-orm";
-import { onScoreUpdated } from "~/services/socket.client";
+import { onScoreUpdated } from "~/lib/socket.client";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const { sessionId } = params;

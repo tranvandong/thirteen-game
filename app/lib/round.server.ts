@@ -6,7 +6,7 @@ import { rounds } from "~/db/schema/rounds";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
 import { sessions } from "~/db/schema/sessions";
-import { getIO } from "~/lib/socket-old.server";
+import { getIO } from "./socket.server";
 
 export interface KhapSanhLimits {
   khapLimit: number;
@@ -53,6 +53,17 @@ export interface SaveRoundResult {
   roundId: string;
   roundNo: number;
   totals: Array<{ playerId: string; totalScore: number }>;
+  round: {
+    id: string;
+    roundNo: number;
+    sessionId: string;
+    createdBy: string;
+    createdAt: Date;
+    accumulatedKhap: number;
+    accumulatedSanh: number;
+    hadKhap: boolean;
+    hadSanh: boolean;
+  };
 }
 
 async function getKhapSanhLimits(sessionDbId: string) {
@@ -88,7 +99,12 @@ export async function getRoundMeta(sessionDbId: string) {
     .limit(1);
 
   const accumulated = nextKhapSanhAccumulated(lastRound, limits);
-
+  console.log("Calculated next round meta", {
+    sessionDbId,
+    limits,
+    lastRound,
+    accumulated,
+  });
   return {
     currentRoundNo: (lastRound?.roundNo ?? 0) + 1,
     accumulated,
@@ -211,27 +227,28 @@ export async function saveRound(
       totals.push({ playerId: r.playerId, totalScore: newTotal });
     }
 
-    return { roundId: round.id, roundNo: round.roundNo, totals };
+    return { roundId: round.id, roundNo: round.roundNo, round, totals };
   });
 
-  const io = getIO();
-  if (io) {
-    const room = `session:${session.id}`;
-    io.to(room).emit("round-finished", {
-      sessionId: session.id,
-      roundNo: saved.roundNo,
-      results: results.map((r) => ({
-        playerId: r.playerId,
-        rank: r.rank,
-        score: r.score,
-      })),
-      timestamp: new Date(),
-    });
-    io.to(room).emit("score-updated", {
-      totalScores: saved.totals,
-      timestamp: new Date(),
-    });
-  }
+  // const io = getIO();
+  // if (io) {
+  //   const room = `session:${sessionCode}`;
+  //   io.to(room).emit("round-finished", {
+  //     sessionId: session.id,
+  //     sessionCode,
+  //     roundNo: saved.roundNo,
+  //     results: results.map((r) => ({
+  //       playerId: r.playerId,
+  //       rank: r.rank,
+  //       score: r.score,
+  //     })),
+  //     timestamp: new Date(),
+  //   });
+  //   io.to(room).emit("score-updated", {
+  //     totalScores: saved.totals,
+  //     timestamp: new Date(),
+  //   });
+  // }
 
   return saved;
 }

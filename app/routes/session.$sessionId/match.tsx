@@ -32,8 +32,16 @@ import {
   useCurrentParticipant,
   useGameConfig,
   usePlayers,
+  useRounds,
+  type Round,
 } from "~/stores/useSessionStore";
 import { useSessionStore } from "~/stores/useSessionStore";
+import {
+  getSocket,
+  onRoundFinished,
+  onScoreUpdated,
+} from "~/lib/socket.client";
+import { finishRound } from "~/lib/socket.client";
 
 export interface MatchLoaderData {
   currentRoundNo: number;
@@ -43,12 +51,12 @@ export interface MatchLoaderData {
 export async function loader({
   params,
 }: Route.LoaderArgs): Promise<MatchLoaderData> {
-  const { sessionId } = params;
+  const { sessionId: sessionCode } = params;
 
   const [session] = await db
     .select({ id: sessions.id })
     .from(sessions)
-    .where(eq(sessions.code, sessionId))
+    .where(eq(sessions.code, sessionCode))
     .limit(1);
 
   if (!session) {
@@ -80,7 +88,12 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   try {
     const saved = await saveRound(params.sessionId!, createdBy, results);
-    return { success: true, roundNo: saved.roundNo };
+    return {
+      success: true,
+      roundNo: saved.roundNo,
+      round: saved.round,
+      totals: saved.totals,
+    };
   } catch (err) {
     if (err instanceof Response) throw err;
     console.error("save round failed:", err);
@@ -130,14 +143,24 @@ function buildPigCounts(
 
 // ── Component ────────────────────────────────────────────────
 export default function MatchPage() {
-  const { sessionId } = useParams();
-  const { currentRoundNo, accumulated } = useLoaderData<MatchLoaderData>();
+  const { sessionId: sessionCode } = useParams();
+  const loaderData = useLoaderData<MatchLoaderData>();
   const players = usePlayers();
   const config = useGameConfig();
   const currentParticipant = useCurrentParticipant();
+  const addRound = useSessionStore((s) => s.addRound);
+  const rounds = useRounds();
+  const setTotals = useSessionStore((s) => s.setTotals);
+  const session = useSessionStore((s) => s.session);
   const fetcher = useFetcher<typeof action>();
   const matchLoaderFetcher = useFetcher<typeof loader>();
   const handledSaveRoundRef = useRef<number | null>(null);
+
+  const accumulated =
+    matchLoaderFetcher.data?.accumulated ?? loaderData.accumulated;
+
+  const currentRoundNo =
+    matchLoaderFetcher.data?.currentRoundNo ?? loaderData.currentRoundNo;
 
   const gameConfig = useMemo(
     () => ({
@@ -187,11 +210,24 @@ export default function MatchPage() {
     [players],
   );
 
+  const lastestRound = rounds.length > 0 ? rounds[rounds.length - 1] : null;
+
   useEffect(() => {
     setSelectOrder((prev) =>
       prev.length === players.length ? prev : players.map(() => null),
     );
   }, [playerIdsKey, players.length]);
+
+  useEffect(() => {
+    console.log(fetcher.data?.success, sessionCode);
+    if (!fetcher.data?.success || sessionCode == null) return;
+    finishRound(sessionCode, fetcher.data.roundNo, fetcher.data.round);
+  }, [fetcher.data, sessionCode]);
+
+  useEffect(() => {
+    console.log("matchLoaderFetcher.data changed");
+    console.log(matchLoaderFetcher.data);
+  }, [matchLoaderFetcher.data]);
 
   useEffect(() => {
     if (fetcher.state !== "idle") return;
@@ -200,6 +236,10 @@ export default function MatchPage() {
     if (!data?.success || data.roundNo == null) return;
     if (handledSaveRoundRef.current === data.roundNo) return;
     handledSaveRoundRef.current = data.roundNo;
+
+    // Cập nhật store cho chính người vừa lưu
+    if (data.round) addRound(data.round as any);
+    if (data.totals) setTotals(data.totals);
 
     setSelectOrder(players.map(() => null));
     setKhapWinner(null);
@@ -210,13 +250,59 @@ export default function MatchPage() {
     setSubmitted(false);
     setConfirmNhot(false);
 
-    if (sessionId) {
-      matchLoaderFetcher.load(`/session/${sessionId}/match`);
+    if (sessionCode) {
+      matchLoaderFetcher.load(`/session/${sessionCode}/match`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi lưu ván thành công
-  }, [fetcher.state, fetcher.data, sessionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.state, fetcher.data, sessionCode]);
 
   const isSaving = fetcher.state !== "idle";
+
+  // ── Socket: nhận round-finished từ người khác ────────────────
+  useEffect(() => {
+    console.log("useEffect", session?.code);
+    if (!session?.code) return;
+
+    const handleRoundFinished = (payload: { round: Round }) => {
+      // Bỏ qua nếu chính mình vừa lưu (đã xử lý ở fetcher effect)
+      // console.log(handledSaveRoundRef.current,payload.round.roundNo)
+      // if (handledSaveRoundRef.current === payload.round.roundNo) return;
+      console.log("handleRoundFinished", payload);
+      addRound(payload.round);
+
+      // Reset form để chuẩn bị ván mới
+      setSelectOrder(players.map(() => null));
+      setKhapWinner(null);
+      setKhapCount(0);
+      setSanhWinner(null);
+      setChatHeoList([]);
+      setNhotList([]);
+      setSubmitted(false);
+      setConfirmNhot(false);
+      setNhotForm({ nhotterId: "", victims: [] });
+      setExpandBonus(false);
+
+      // Reload accumulated (khạp/sảnh tích lũy) từ server
+      if (sessionCode) {
+        matchLoaderFetcher.load(`/session/${sessionCode}/match`);
+      }
+    };
+
+    const handleScoreUpdated = (payload: {
+      totals: Array<{ playerId: string; totalScore: number }>;
+    }) => {
+      setTotals(payload.totals);
+    };
+
+    onRoundFinished(handleRoundFinished);
+    onScoreUpdated(handleScoreUpdated);
+
+    return () => {
+      const s = getSocket();
+      s.off("round-finished", handleRoundFinished);
+      s.off("score-updated", handleScoreUpdated);
+    };
+  }, [session?.code]);
 
   // ── Derived nhot state ────────────────────────────────────
   const activeNhot = nhotList[0] ?? null;
@@ -470,7 +556,7 @@ export default function MatchPage() {
           s[victimId] -= loss;
           gain += loss;
         });
-        s[nhotterId!] += gain;
+        s[nhotterId!] += gain + gameConfig.nhotBystanderPenalty;
         nhotOthers.forEach((oid) => {
           s[oid] -= gameConfig.nhotBystanderPenalty;
         });
@@ -750,6 +836,7 @@ export default function MatchPage() {
                   n.victims.forEach((v) => {
                     gain += ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
                   });
+                  gain += gameConfig.nhotBystanderPenalty;
                 }
                 const caseLabel =
                   nv === 1 ? "Nhốt 1" : nv === 2 ? "Nhốt 2" : "Nhốt 3";
@@ -821,12 +908,28 @@ export default function MatchPage() {
                         );
                       })}
 
-                      {nv === 2 && (
-                        <span className="text-muted-foreground">
-                          (Người chơi còn lại -{gameConfig.nhotBystanderPenalty}
-                          đ)
-                        </span>
-                      )}
+                      {nv === 2 &&
+                        (() => {
+                          const victimLoss = players.find(
+                            (p) =>
+                              !n.victims
+                                .map((v) => v.victimId)
+                                .includes(p.id) && p.id !== n.nhotterId,
+                          );
+
+                          if (!victimLoss) return null;
+
+                          return (
+                            <div className="flex justify-between items-center w-full gap-2 px-2 py-1.5 rounded-md bg-destructive/10 border border-destructive/20">
+                              <div className="text-xs font-medium flex-1 text-destructive">
+                                {pShort(victimLoss.id)}
+                              </div>
+                              <span className="text-destructive font-bold text-xs">
+                                -{gameConfig.nhotBystanderPenalty}
+                              </span>
+                            </div>
+                          );
+                        })()}
                     </div>
                     <Button
                       className="h-8 text-xs w-full"

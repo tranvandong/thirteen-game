@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
+    "dev": "concurrently \"react-router dev --host\" \"tsx watch server/index.ts\"",
+    "start": "node dist/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -48,8 +48,10 @@
     "@types/node": "^22",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "concurrently": "^10.0.3",
     "drizzle-orm": "^0.45.2",
     "tailwindcss": "^4.3.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "vite": "^8.0.3"
   }

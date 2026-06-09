@@ -9,5 +9,12 @@ export default defineConfig({
   },
   server: {
     allowedHosts: ["dumpiest-raymon-prenarial.ngrok-free.dev"],
+    proxy: {
+      "/socket.io": {
+        target: "http://localhost:3000", // port backend của bạn
+        ws: true, // bắt buộc cho WebSocket
+        changeOrigin: true,
+      },
+    },
   },
 });
