@@ -39,6 +39,6 @@ try {
 
 const hostname = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
 const PORT = Number(process.env.PORT) || 3000;
-httpServer.listen(PORT, hostname, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
