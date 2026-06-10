@@ -3,11 +3,6 @@ import { createRequestHandler } from "@react-router/express";
 import express from "express";
 import { initSocketServer } from "../app/lib/socket.server";
 
-console.log("=== STARTING SERVER ===");
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("PORT:", process.env.PORT);
-console.log("DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "MISSING ❌");
-
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
   process.exit(1);

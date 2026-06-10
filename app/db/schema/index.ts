@@ -6,3 +6,5 @@ export * from "./players";
 export * from "./rounds";
 export * from "./round-results";
 export * from "./session-totals";
+export * from "./player-devices";
+export * from "./participant-players";

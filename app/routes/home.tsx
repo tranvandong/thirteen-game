@@ -131,7 +131,7 @@ export default function Home() {
       setCodeError("Mã phòng không hợp lệ (dạng XXXX-XXXX)");
       return;
     }
-    navigate(`/session/${code}`);
+    navigate(`/session/${code}/join`);
   };
 
   const handleQRDetected = (code: string) => {

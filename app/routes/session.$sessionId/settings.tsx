@@ -1,77 +1,201 @@
-"use client";
-
-import { useState } from "react";
-import { useParams } from "react-router";
-// import type { Route } from "./+types/settings";
-// import { db } from "~/db/client.server";
-// import { sessions } from "~/db/schema/sessions";
-// import { participants } from "~/db/schema/participants";
-// import { players } from "~/db/schema/players";
-// import { joinRequests } from "~/db/schema/join-requests";
-// import { eq } from "drizzle-orm";
+import { useFetcher, useLoaderData } from "react-router";
+import type { Route } from "./+types/settings";
+import { db } from "~/db/client.server";
+import { participants } from "~/db/schema/participants";
+import { joinRequests } from "~/db/schema/join-requests";
+import { participantPlayers } from "~/db/schema/participant-players";
+import { and, eq } from "drizzle-orm";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Copy, Check, Users, UserPlus, Settings } from "lucide-react";
+import {
+  Users,
+  UserPlus,
+  Settings,
+  Gamepad2,
+  RotateCcw,
+  CheckCircle2,
+} from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
+import {
+  useSession,
+  usePlayers,
+  useCurrentParticipant,
+} from "~/stores/useSessionStore";
+import { sessions } from "~/db/schema";
 
-// Mock data for UI development
-const mockData = {
-  session: {
-    id: "demo-session",
-    code: "ABC123",
-    status: "waiting",
-    ownerParticipantId: "owner-1",
-  },
-  participantList: [
-    { id: "owner-1", displayName: "Chu Phong", role: "owner" },
-    { id: "part-2", displayName: "Khach 1", role: "player" },
-    { id: "part-3", displayName: "Khach 2", role: "player" },
-  ],
-  pendingRequests: [
-    { id: "req-1", displayName: "Nguoi Moi", status: "pending" },
-    { id: "req-2", displayName: "Nguoi Moi 2", status: "pending" },
-  ],
-};
+// ---------------------------------------------------------------------------
+// Loader — chỉ fetch những gì store không có
+// ---------------------------------------------------------------------------
+export async function loader({ params }: Route.LoaderArgs) {
+  const sessionCode = params.sessionId;
+  // 1. Lấy thông tin session
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.code, sessionCode))
+    .limit(1);
 
-// export async function loader({ params }: Route.LoaderArgs) { ... }
+  if (!session) throw new Response("Session not found", { status: 404 });
 
+  const [participantList, selections, pendingRequests] = await Promise.all([
+    db.query.participants.findMany({
+      where: eq(participants.sessionId, session.id),
+    }),
+
+    db.query.participantPlayers.findMany({
+      where: eq(participantPlayers.sessionId, session.id),
+    }),
+
+    db.query.joinRequests.findMany({
+      where: and(
+        eq(joinRequests.sessionId, session.id),
+        eq(joinRequests.status, "pending"),
+      ),
+    }),
+  ]);
+
+  // Map selectedPlayerId vào từng participant
+  const participantsWithPlayer = participantList.map((p) => ({
+    ...p,
+    selectedPlayerId:
+      selections.find((s) => s.participantId === p.id)?.playerId ?? null,
+  }));
+
+  return { participantsWithPlayer, pendingRequests };
+}
+
+// ---------------------------------------------------------------------------
+// Action
+// ---------------------------------------------------------------------------
+export async function action({ request, params }: Route.ActionArgs) {
+  const sessionCode = params.sessionId;
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.code, sessionCode))
+    .limit(1);
+  const form = await request.formData();
+  const intent = form.get("intent") as string;
+
+  if (intent === "select-player") {
+    const participantId = form.get("participantId") as string;
+    const playerId = form.get("playerId") as string;
+
+    await db
+      .insert(participantPlayers)
+      .values({ sessionId: session.id, participantId, playerId })
+      .onConflictDoNothing();
+
+    return { ok: true };
+  }
+
+  if (intent === "reset-player") {
+    const participantId = form.get("participantId") as string;
+
+    await db
+      .delete(participantPlayers)
+      .where(
+        and(
+          eq(participantPlayers.sessionId, session.id),
+          eq(participantPlayers.participantId, participantId),
+        ),
+      );
+
+    return { ok: true };
+  }
+
+  if (intent === "approve-request") {
+    const joinRequestId = form.get("joinRequestId") as string;
+    const approvedBy = form.get("approvedBy") as string;
+
+    await db
+      .update(joinRequests)
+      .set({ status: "approved", approvedBy, approvedAt: new Date() })
+      .where(eq(joinRequests.id, joinRequestId));
+
+    return { ok: true };
+  }
+
+  if (intent === "reject-request") {
+    const joinRequestId = form.get("joinRequestId") as string;
+
+    await db
+      .update(joinRequests)
+      .set({ status: "rejected" })
+      .where(eq(joinRequests.id, joinRequestId));
+
+    return { ok: true };
+  }
+
+  return { ok: false };
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 export default function SettingsPage() {
-  const { sessionId } = useParams();
-  const [copied, setCopied] = useState(false);
-  const [state, setState] = useState({
-    participantList: mockData.participantList,
-    pendingRequests: mockData.pendingRequests,
-  });
+  const { participantsWithPlayer, pendingRequests } =
+    useLoaderData<typeof loader>();
 
-  const sessionLink =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/session/${sessionId}`
-      : "";
+  const session = useSession();
+  const players = usePlayers();
+  const currentParticipant = useCurrentParticipant();
 
-  const isOwner = true;
+  const fetcher = useFetcher();
+
+  const isOwner =
+    !!session &&
+    !!currentParticipant &&
+    currentParticipant.id === session.ownerParticipantId;
+
+  const mySelectedPlayerId =
+    participantsWithPlayer.find((p) => p.id === currentParticipant?.id)
+      ?.selectedPlayerId ?? null;
+
+  // Player đã bị người khác chọn
+  const takenPlayerIds = new Set(
+    participantsWithPlayer
+      .filter((p) => p.id !== currentParticipant?.id && p.selectedPlayerId)
+      .map((p) => p.selectedPlayerId as string),
+  );
+
+  const isBusy = fetcher.state !== "idle";
+
+  const handleSelectPlayer = (playerId: string) => {
+    if (mySelectedPlayerId || !currentParticipant) return;
+    fetcher.submit(
+      {
+        intent: "select-player",
+        participantId: currentParticipant.id,
+        playerId,
+      },
+      { method: "POST" },
+    );
+  };
+
+  const handleResetPlayer = (participantId: string) => {
+    fetcher.submit(
+      { intent: "reset-player", participantId },
+      { method: "POST" },
+    );
+  };
 
   const handleApprove = (joinRequestId: string) => {
-    setState((prev) => ({
-      ...prev,
-      pendingRequests: prev.pendingRequests.filter(
-        (r) => r.id !== joinRequestId,
-      ),
-    }));
+    fetcher.submit(
+      {
+        intent: "approve-request",
+        joinRequestId,
+        approvedBy: currentParticipant?.id ?? "",
+      },
+      { method: "POST" },
+    );
   };
 
   const handleReject = (joinRequestId: string) => {
-    setState((prev) => ({
-      ...prev,
-      pendingRequests: prev.pendingRequests.filter(
-        (r) => r.id !== joinRequestId,
-      ),
-    }));
-  };
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(sessionLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    fetcher.submit(
+      { intent: "reject-request", joinRequestId },
+      { method: "POST" },
+    );
   };
 
   return (
@@ -84,12 +208,171 @@ export default function SettingsPage() {
         <h1 className="text-lg font-semibold">Cấu hình</h1>
       </div>
 
-     
-          <SessionQRCode />
-       
+      <SessionQRCode />
 
-      {/* Join Requests */}
-      {isOwner && state.pendingRequests.length > 0 && (
+      {/* ------------------------------------------------------------------ */}
+      {/* Chọn nhân vật                                                       */}
+      {/* ------------------------------------------------------------------ */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
+              <Gamepad2 className="size-4" />
+            </div>
+            Chọn nhân vật
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            {players.map((player) => {
+              const isSelectedByMe = mySelectedPlayerId === player.id;
+              const isTaken = takenPlayerIds.has(player.id);
+              const takenBy = isTaken
+                ? participantsWithPlayer.find(
+                    (p) => p.selectedPlayerId === player.id,
+                  )
+                : null;
+
+              return (
+                <button
+                  key={player.id}
+                  disabled={!!mySelectedPlayerId || isTaken || isBusy}
+                  onClick={() => handleSelectPlayer(player.id)}
+                  className={[
+                    "relative flex flex-col items-center gap-1 p-3 rounded-lg border text-sm font-medium transition-colors",
+                    isSelectedByMe
+                      ? "bg-primary/10 border-primary text-primary"
+                      : isTaken
+                        ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed opacity-60"
+                        : mySelectedPlayerId
+                          ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed"
+                          : "bg-muted border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
+                  ].join(" ")}
+                >
+                  {isSelectedByMe && (
+                    <CheckCircle2 className="absolute top-2 right-2 size-4 text-primary" />
+                  )}
+
+                  <div
+                    className={[
+                      "flex items-center justify-center size-10 rounded-full text-base font-bold",
+                      isSelectedByMe
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-foreground",
+                    ].join(" ")}
+                  >
+                    {player.name.charAt(0).toUpperCase()}
+                  </div>
+
+                  <span>{player.name}</span>
+
+                  {isTaken && takenBy && (
+                    <span className="text-xs text-muted-foreground">
+                      ← {takenBy.displayName}
+                    </span>
+                  )}
+                  {isSelectedByMe && (
+                    <span className="text-xs text-primary font-normal">
+                      Bạn đang chọn
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {!mySelectedPlayerId && (
+            <p className="text-xs text-muted-foreground text-center">
+              Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
+            </p>
+          )}
+          {mySelectedPlayerId && !isOwner && (
+            <p className="text-xs text-muted-foreground text-center">
+              Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Người tham gia                                                      */}
+      {/* ------------------------------------------------------------------ */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
+              <Users className="size-4" />
+            </div>
+            Người tham gia ({participantsWithPlayer.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-2">
+            {participantsWithPlayer.map((participant) => {
+              const selectedPlayer = participant.selectedPlayerId
+                ? players.find((p) => p.id === participant.selectedPlayerId)
+                : null;
+
+              return (
+                <div
+                  key={participant.id}
+                  className={[
+                    "flex items-center justify-between p-3 rounded-lg",
+                    participant.role === "owner"
+                      ? "bg-primary/10 border border-primary/20"
+                      : "bg-muted",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center justify-center size-9 rounded-full bg-background shrink-0">
+                      <Users className="size-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {participant.displayName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {participant.role === "owner"
+                          ? "Chủ phòng"
+                          : "Người chơi"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {selectedPlayer ? (
+                      <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+                        <CheckCircle2 className="size-3" />
+                        {selectedPlayer.name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        Chưa chọn
+                      </span>
+                    )}
+
+                    {isOwner && selectedPlayer && (
+                      <button
+                        onClick={() => handleResetPlayer(participant.id)}
+                        disabled={isBusy}
+                        title="Đặt lại lựa chọn"
+                        className="flex items-center justify-center size-7 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                      >
+                        <RotateCcw className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Yêu cầu tham gia (chỉ chủ phòng)                                   */}
+      {/* ------------------------------------------------------------------ */}
+      {isOwner && pendingRequests.length > 0 && (
         <Card className="border-chart-4/40 bg-chart-4/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -97,15 +380,15 @@ export default function SettingsPage() {
                 <UserPlus className="size-4" />
               </div>
               <span>
-                Yeu Cau Tham Gia{" "}
+                Yêu cầu tham gia{" "}
                 <span className="inline-flex items-center justify-center size-5 rounded-full bg-chart-4 text-background text-xs font-bold ml-1">
-                  {state.pendingRequests.length}
+                  {pendingRequests.length}
                 </span>
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {state.pendingRequests.map((request) => (
+            {pendingRequests.map((request) => (
               <div
                 key={request.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-chart-4/10 border border-chart-4/20"
@@ -121,19 +404,20 @@ export default function SettingsPage() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    variant="default"
+                    disabled={isBusy}
                     onClick={() => handleApprove(request.id)}
                     className="bg-chart-2 hover:bg-chart-2/90 h-7 text-xs px-3"
                   >
-                    Duyet
+                    Duyệt
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
+                    disabled={isBusy}
                     onClick={() => handleReject(request.id)}
                     className="h-7 text-xs px-3"
                   >
-                    Tu choi
+                    Từ chối
                   </Button>
                 </div>
               </div>
@@ -141,42 +425,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
-
-      {/* Participants */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
-              <Users className="size-4" />
-            </div>
-            Nguoi Tham Gia ({state.participantList.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2">
-            {state.participantList.map((participant) => (
-              <div
-                key={participant.id}
-                className={`flex flex-col items-center gap-1 p-3 rounded-lg ${
-                  participant.role === "owner"
-                    ? "bg-primary/10 border border-primary/20"
-                    : "bg-muted"
-                }`}
-              >
-                <div className="flex items-center justify-center size-10 rounded-full bg-background">
-                  <Users className="size-5 text-muted-foreground" />
-                </div>
-                <p className="font-medium text-sm text-center">
-                  {participant.displayName}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {participant.role === "owner" ? "Chu phong" : "Nguoi choi"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </main>
   );
 }

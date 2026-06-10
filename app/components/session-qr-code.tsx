@@ -26,7 +26,7 @@ export function SessionQRCode() {
 
   // Build URL join session
   const joinUrl = session
-    ? `${window.location.origin}/session/${session.code}`
+    ? `${window.location.origin}/session/${session.code}/join`
     : "";
 
   // Render QR lên canvas
