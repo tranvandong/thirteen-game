@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "react-router build",
     "dev": "concurrently \"react-router dev --host\" \"tsx watch server/index.ts\"",
-    "start": "node server/index.ts",
+    "build": "react-router build && tsup server/index.ts --format esm --out-dir dist",
+    "start": "node dist/index.js",
     "typecheck": "react-router typegen && tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
