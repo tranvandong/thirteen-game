@@ -5,7 +5,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "concurrently \"react-router dev --host\" \"tsx watch server/index.ts\"",
-    "start": "node server/index.js",
+    "start": "node server/index.ts",
     "typecheck": "react-router typegen && tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
