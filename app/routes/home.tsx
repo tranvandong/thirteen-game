@@ -131,12 +131,12 @@ export default function Home() {
       setCodeError("Mã phòng không hợp lệ (dạng XXXX-XXXX)");
       return;
     }
-    navigate(`/session/${code}/join`);
+    navigate(`/join/${code}`);
   };
 
   const handleQRDetected = (code: string) => {
     setShowScanner(false);
-    navigate(`/session/${code}`);
+    navigate(`/join/${code}`);
   };
 
   return (
