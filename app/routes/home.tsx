@@ -31,8 +31,8 @@ function QRScannerModal({
   const handleScan = (results: Array<{ rawValue: string }>) => {
     if (!results.length) return;
     const raw = results[0].rawValue;
-    // Parse URL dạng /session/ABCD-EFGH hoặc raw code
-    const match = raw.match(/\/session\/([A-Z0-9]{4}-[A-Z0-9]{4})/i);
+    // Parse URL dạng /join/ABCD-EFGH hoặc raw code
+    const match = raw.match(/\/join\/([A-Z0-9]{4}-[A-Z0-9]{4})/i);
     const code = match ? match[1].toUpperCase() : raw.trim().toUpperCase();
     onDetected(code);
   };
