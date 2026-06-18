@@ -92,6 +92,7 @@ export async function getRoundMeta(sessionDbId: string) {
       accumulatedSanh: rounds.accumulatedSanh,
       hadKhap: rounds.hadKhap,
       hadSanh: rounds.hadSanh,
+      id: rounds.id,
     })
     .from(rounds)
     .where(eq(rounds.sessionId, sessionDbId))
@@ -108,6 +109,7 @@ export async function getRoundMeta(sessionDbId: string) {
   return {
     currentRoundNo: (lastRound?.roundNo ?? 0) + 1,
     accumulated,
+    roundId: lastRound?.id,
   };
 }
 
@@ -251,4 +253,66 @@ export async function saveRound(
   // }
 
   return saved;
+}
+
+export async function deleteRound(
+  sessionCode: string,
+  roundId: string,
+): Promise<void> {
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.code, sessionCode))
+    .limit(1);
+
+  if (!session) {
+    throw new Response("Session not found", { status: 404 });
+  }
+
+  await db.transaction(async (tx) => {
+    // Kiểm tra ván thuộc session hiện tại
+    const [round] = await tx
+      .select()
+      .from(rounds)
+      .where(and(eq(rounds.id, roundId), eq(rounds.sessionId, session.id)))
+      .limit(1);
+
+    if (!round) {
+      throw new Response("Round not found in this session", { status: 404 });
+    }
+
+    // Lấy kết quả của ván để hoàn trả điểm
+    const results = await tx
+      .select()
+      .from(roundResults)
+      .where(eq(roundResults.roundId, roundId));
+
+    // Hoàn trả điểm cho từng người chơi
+    for (const r of results) {
+      const [existing] = await tx
+        .select()
+        .from(sessionTotals)
+        .where(
+          and(
+            eq(sessionTotals.sessionId, session.id),
+            eq(sessionTotals.playerId, r.playerId),
+          ),
+        )
+        .limit(1);
+
+      if (existing) {
+        await tx
+          .update(sessionTotals)
+          .set({
+            totalScore: existing.totalScore - r.score,
+            updatedAt: new Date(),
+          })
+          .where(eq(sessionTotals.id, existing.id));
+      }
+    }
+
+    // Xóa theo thứ tự: roundResults trước, sau đó rounds (tránh FK violation)
+    await tx.delete(roundResults).where(eq(roundResults.roundId, roundId));
+    await tx.delete(rounds).where(eq(rounds.id, roundId));
+  });
 }

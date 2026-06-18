@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useFetcher, useLoaderData, useParams } from "react-router";
 import type { Route } from "./+types/match";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import {
   Swords,
   CheckCircle2,
@@ -10,7 +10,6 @@ import {
   ChevronUp,
   ChevronDown,
   Flame,
-  Sparkles,
   Scissors,
   Lock,
   Plus,
@@ -18,12 +17,14 @@ import {
   ChevronRight,
   ChevronDown as CollapseIcon,
   Crown,
+  Trash,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { redirect } from "react-router";
 import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import {
+  deleteRound,
   getRoundMeta,
   saveRound,
   type RoundResultInput,
@@ -46,6 +47,7 @@ import { finishRound } from "~/lib/socket.client";
 export interface MatchLoaderData {
   currentRoundNo: number;
   accumulated: { khap: number; sanh: number };
+  roundId: string;
 }
 
 export async function loader({
@@ -68,6 +70,22 @@ export async function loader({
 
 export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData();
+
+  if (formData.get("intent") === "delete-round") {
+    const roundId = formData.get("roundId") as string;
+    if (!roundId) {
+      return { error: "Thiếu roundId" };
+    }
+    try {
+      await deleteRound(params.sessionId!, roundId);
+      return { success: true };
+    } catch (err) {
+      if (err instanceof Response) throw err;
+      console.error("delete round failed:", err);
+      return { error: "Không thể xóa ván đấu" };
+    }
+  }
+
   if (formData.get("intent") !== "save-round") {
     return { error: "Yeu cau khong hop le" };
   }
@@ -117,6 +135,13 @@ interface NhotBai {
   id: string;
   nhotterId: string;
   victims: VictimHeo[];
+  dennerId?: string;
+  denForIds: string[];
+}
+
+interface DenBai {
+  dennerId: string;
+  denForIds: string[];
 }
 
 function buildPigCounts(
@@ -162,6 +187,8 @@ export default function MatchPage() {
   const currentRoundNo =
     matchLoaderFetcher.data?.currentRoundNo ?? loaderData.currentRoundNo;
 
+  const currentRoundId = matchLoaderFetcher.data?.roundId ?? loaderData.roundId;
+
   const gameConfig = useMemo(
     () => ({
       rankPoints: [
@@ -201,6 +228,9 @@ export default function MatchPage() {
     nhotterId: string;
     victims: VictimHeo[];
   }>({ nhotterId: "", victims: [] });
+  const [dennerId, setDennerId] = useState<string | null>(null);
+  const [denForIds, setDenForIds] = useState<string[]>([]);
+  const [showDenBai, setShowDenBai] = useState(false);
   const [expandBonus, setExpandBonus] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
@@ -241,6 +271,11 @@ export default function MatchPage() {
     setNhotList([]);
     setSubmitted(false);
     setConfirmNhot(false);
+    setNhotForm({ nhotterId: "", victims: [] });
+    setDennerId(null);
+    setDenForIds([]);
+    setShowDenBai(false);
+    setExpandBonus(false);
 
     if (sessionCode) {
       matchLoaderFetcher.load(`/session/${sessionCode}/match`);
@@ -262,7 +297,7 @@ export default function MatchPage() {
 
     const handleRoundFinished = (payload: { round: Round }) => {
       // Bỏ qua nếu chính mình vừa lưu (đã xử lý ở fetcher effect)
-      console.log(handledSaveRoundRef.current,payload.round.roundNo)
+      console.log(handledSaveRoundRef.current, payload.round.roundNo);
       // if (handledSaveRoundRef.current === payload.round.roundNo) return;
       console.log("handleRoundFinished", fetcherDataRef.current);
       addRound(payload.round);
@@ -309,6 +344,76 @@ export default function MatchPage() {
   const nhotOthers = players
     .map((p) => p.id)
     .filter((id) => id !== nhotterId && !nhotVictimIds.includes(id));
+
+  const nhotFormVictimIds = useMemo(
+    () => nhotForm.victims.map((v) => v.victimId),
+    [nhotForm.victims],
+  );
+
+  // ... existing code ...
+  const dennerCandidates = useMemo(
+    () =>
+      players
+        .map((p) => p.id)
+        .filter(
+          (id) => id !== nhotForm.nhotterId && nhotFormVictimIds.includes(id),
+        ),
+    [playerIdsKey, nhotForm.nhotterId, nhotFormVictimIds],
+  );
+
+  const denForCandidates = useMemo(() => {
+    if (!dennerId) return nhotFormVictimIds;
+    return nhotFormVictimIds.filter((id) => id !== dennerId);
+  }, [dennerId, nhotFormVictimIds]);
+
+  useEffect(() => {
+    if (!showDenBai) {
+      if (dennerId) setDennerId(null);
+      if (denForIds.length > 0) setDenForIds([]);
+      return;
+    }
+
+    if (dennerCandidates.length === 0) {
+      if (dennerId) setDennerId(null);
+      if (denForIds.length > 0) setDenForIds([]);
+      return;
+    }
+
+    if (!dennerCandidates.includes(dennerId ?? "")) {
+      const nextDennerId = dennerCandidates[0];
+      setDennerId(nextDennerId);
+      setDenForIds(denForCandidates.filter((id) => id !== nextDennerId));
+      return;
+    }
+
+    if (denForIds.length === 0 && denForCandidates.length > 0) {
+      setDenForIds(denForCandidates);
+    }
+  }, [
+    dennerCandidates,
+    dennerId,
+    denForCandidates,
+    denForIds.length,
+    showDenBai,
+  ]);
+
+  const denBaiLosses = useMemo(() => {
+    if (!activeNhot || !activeNhot.dennerId) return {};
+
+    const ecPts = Math.abs(gameConfig.rankPoints[players.length - 1]) * 2;
+    const heoPts = (heo: { do: number; den: number }) =>
+      heo.den * gameConfig.heodenPoints + heo.do * gameConfig.heoDoPoints;
+
+    return Object.fromEntries(
+      activeNhot.victims.map((v) => {
+        const loss = ecPts + heoPts(v.heo ?? { do: 0, den: 0 });
+        return [v.victimId, loss];
+      }),
+    );
+  }, [activeNhot, gameConfig, players.length]);
+
+  // ── Ranking logic phụ thuộc vào nhốt ─────────────────────
+  // ... existing code ...
 
   // ── Ranking logic phụ thuộc vào nhốt ─────────────────────
   const selectableIds = useMemo(() => {
@@ -464,12 +569,19 @@ export default function MatchPage() {
   // ── Helpers: nhot bai ────────────────────────────────────
   const addNhot = () => {
     if (!nhotForm.nhotterId || nhotForm.victims.length === 0) return;
+
+    const nextDennerId = showDenBai ? dennerId : null;
+    const nextDenForIds =
+      showDenBai && dennerId ? denForIds.filter((id) => id !== dennerId) : [];
+
     setSelectOrder(players.map(() => null));
     setNhotList([
       {
         id: `nh-${Date.now()}`,
         nhotterId: nhotForm.nhotterId,
         victims: nhotForm.victims,
+        dennerId: nextDennerId ?? undefined,
+        denForIds: nextDenForIds,
       },
     ]);
     setShowNhotForm(false);
@@ -478,12 +590,18 @@ export default function MatchPage() {
   const removeNhot = () => {
     setNhotList([]);
     setNhotForm({ nhotterId: "", victims: [] });
+    setDennerId(null);
+    setDenForIds([]);
+    setShowDenBai(false);
     setSelectOrder(players.map(() => null));
     setConfirmNhot(false);
     setExpandBonus(false);
   };
   const resetNhot = () => {
     setNhotForm({ nhotterId: "", victims: [] });
+    setDennerId(null);
+    setDenForIds([]);
+    setShowDenBai(false);
     setSelectOrder(players.map(() => null));
     setConfirmNhot(false);
     setExpandBonus(true);
@@ -491,13 +609,23 @@ export default function MatchPage() {
   const toggleNhotVictim = (pid: string) => {
     setNhotForm((prev) => {
       const exists = prev.victims.find((v) => v.victimId === pid);
+      const nextVictims = exists
+        ? prev.victims.filter((v) => v.victimId !== pid)
+        : [...prev.victims, { victimId: pid, heo: { do: 0, den: 0 } }];
+
+      const nextDennerId =
+        dennerId && !nextVictims.some((v) => v.victimId === pid)
+          ? null
+          : dennerId;
+
       return {
         ...prev,
-        victims: exists
-          ? prev.victims.filter((v) => v.victimId !== pid)
-          : [...prev.victims, { victimId: pid, heo: { do: 0, den: 0 } }],
+        victims: nextVictims,
       };
     });
+
+    if (dennerId === pid) setDennerId(null);
+    setDenForIds((prev) => prev.filter((id) => id !== pid));
   };
   const updateVictimHeo = (victimId: string, type: HeoType, delta: number) => {
     setNhotForm((prev) => ({
@@ -553,6 +681,21 @@ export default function MatchPage() {
           s[victimId] -= loss;
           gain += loss;
         });
+
+        if (activeNhot.dennerId && activeNhot.denForIds.length > 0) {
+          const denBaiLoss = activeNhot.denForIds.reduce(
+            (sum, victimId) => sum + (denBaiLosses[victimId] ?? 0),
+            0,
+          );
+
+          activeNhot.denForIds.forEach((victimId) => {
+            const loss = denBaiLosses[victimId] ?? 0;
+            s[victimId] += loss;
+          });
+
+          s[activeNhot.dennerId] -= denBaiLoss;
+        }
+
         s[nhotterId!] += gain + gameConfig.nhotBystanderPenalty;
         nhotOthers.forEach((oid) => {
           s[oid] -= gameConfig.nhotBystanderPenalty;
@@ -564,6 +707,21 @@ export default function MatchPage() {
           s[victimId] -= loss;
           gain += loss;
         });
+
+        if (activeNhot.dennerId && activeNhot.denForIds.length > 0) {
+          const denBaiLoss = activeNhot.denForIds.reduce(
+            (sum, victimId) => sum + (denBaiLosses[victimId] ?? 0),
+            0,
+          );
+
+          activeNhot.denForIds.forEach((victimId) => {
+            const loss = denBaiLosses[victimId] ?? 0;
+            s[victimId] += loss;
+          });
+
+          s[activeNhot.dennerId] -= denBaiLoss;
+        }
+
         s[nhotterId!] += gain;
       }
     }
@@ -617,6 +775,10 @@ export default function MatchPage() {
     setSanhWinner(null);
     setChatHeoList([]);
     setNhotList([]);
+    setNhotForm({ nhotterId: "", victims: [] });
+    setDennerId(null);
+    setDenForIds([]);
+    setShowDenBai(false);
     setSubmitted(false);
     setConfirmNhot(false);
   };
@@ -670,6 +832,26 @@ export default function MatchPage() {
           style: "border-primary/40 bg-primary/10",
           isFixed: true,
         };
+
+      const denForIds = activeNhot.denForIds ?? [];
+      if (activeNhot.dennerId === playerId && denForIds.length > 0) {
+        return {
+          label: "Đền",
+          labelColor: "text-destructive",
+          style: "border-destructive/30 bg-destructive/5",
+          isFixed: true,
+        };
+      }
+
+      if (denForIds.includes(playerId)) {
+        return {
+          label: "Được đền",
+          labelColor:  "text-muted-foreground",
+          style: "border-muted bg-muted/30",
+          isFixed: true,
+        };
+      }
+
       if (nhotVictimIds.includes(playerId))
         return {
           label: "Bị nhốt",
@@ -677,6 +859,7 @@ export default function MatchPage() {
           style: "border-destructive/30 bg-destructive/5",
           isFixed: true,
         };
+
       if (nhotCount === 2)
         return {
           label: "Ba",
@@ -727,15 +910,33 @@ export default function MatchPage() {
           </div>
           <span>Ván {currentRoundNo}</span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleReset}
-          className="gap-1.5 text-muted-foreground h-8"
-        >
-          <RotateCcw className="size-3.5" />
-          Reset
-        </Button>
+        <div className="flex gap-2">
+          {currentRoundId !== undefined && currentRoundNo > 1 && (
+            <form method="post">
+              <input type="hidden" name="intent" value="delete-round" />
+              <input type="hidden" name="roundId" value={currentRoundId} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                className="gap-1.5 text-muted-foreground h-8 text-sm"
+                type="submit"
+              >
+                <Trash className="size-3.5" />
+                Hủy ván trước
+              </Button>
+            </form>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReset}
+            className="gap-1.5 text-muted-foreground h-8"
+          >
+            <RotateCcw className="size-3.5" />
+            Reset
+          </Button>
+        </div>
       </div>
       <div className="flex gap-2">
         <div className="flex items-center gap-2 flex-1 rounded-lg bg-chart-4/10 border border-chart-4/20 px-3 py-2">
@@ -824,17 +1025,40 @@ export default function MatchPage() {
                 const heoPtsOf = (heo: { do: number; den: number }) =>
                   heo.den * gameConfig.heodenPoints +
                   heo.do * gameConfig.heoDoPoints;
+                const denForIds = n.denForIds ?? [];
+                const dennerLoss = denForIds.reduce(
+                  (sum, victimId) => sum + (denBaiLosses[victimId] ?? 0),
+                  0,
+                );
                 let gain = 0;
+
                 if (nv === 1) {
                   gain =
                     gameConfig.rankPoints[0] * 2 +
                     heoPtsOf(n.victims[0]?.heo ?? { do: 0, den: 0 });
                 } else {
-                  n.victims.forEach((v) => {
-                    gain += ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
-                  });
-                  gain += gameConfig.nhotBystanderPenalty;
+                  if (n.dennerId && denForIds.length > 0) {
+                    const ecPts =
+                      Math.abs(gameConfig.rankPoints[players.length - 1]) * 2;
+                    const heoPtsOf = (heo: { do: number; den: number }) =>
+                      heo.den * gameConfig.heodenPoints +
+                      heo.do * gameConfig.heoDoPoints;
+                    const denForIds = n.denForIds ?? [];
+                    const victimLosses = n.victims.map((v) => {
+                      return nv === 1
+                        ? gameConfig.rankPoints[0] * 2 +
+                            heoPtsOf(v.heo ?? { do: 0, den: 0 })
+                        : ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
+                    });
+                    gain = victimLosses.reduce((sum, loss) => sum + loss, 0);
+                  } else {
+                    n.victims.forEach((v) => {
+                      gain += ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
+                    });
+                  }
+                  if (nv === 2) gain += gameConfig.nhotBystanderPenalty;
                 }
+
                 const caseLabel =
                   nv === 1 ? "Nhốt 1" : nv === 2 ? "Nhốt 2" : "Nhốt 3";
                 const caseColor = nv === 3 ? "bg-primary" : "bg-chart-3";
@@ -844,17 +1068,43 @@ export default function MatchPage() {
                     className="flex flex-col gap-2 items-center justify-between w-full px-3 py-2 rounded-lg bg-chart-3/10 border border-chart-3/30 text-xs"
                   >
                     <div className="flex flex-col gap-1.5 py-1.5 w-full">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Người nhốt:
-                      </p>
+                      <div
+                        className={`ml-auto text-[11px] ${caseColor} px-1.5 py-1 rounded-md`}
+                      >
+                        {caseLabel}
+                      </div>
+                      <div className="flex justify-between gap-2 flex-wrap w-full">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Người nhốt:
+                        </p>
+                      </div>
                       <div className="flex justify-between gap-2 flex-wrap w-full">
                         <div
                           className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors bg-primary text-primary-foreground border-primary"`}
                         >
                           {pShort(n.nhotterId)}
                         </div>
-                        <span className="text-chart-2 font-bold">+{gain}đ</span>
+                        <span className="text-chart-2 font-bold">+{gain}</span>
                       </div>
+
+                      {n.dennerId && denForIds.length > 0 && (
+                        <>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Người đền bài:
+                          </p>
+                          <div className="flex justify-between gap-2 flex-wrap w-full">
+                            <div
+                              className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors bg-chart-3 text-chart-3-foreground border-chart-3`}
+                            >
+                              {pShort(n.dennerId)}
+                            </div>
+                            <span className="text-chart-3 font-bold text-xs">
+                              đền cho{" "}
+                              {denForIds.map((id) => pShort(id)).join(", ")}
+                            </span>
+                          </div>
+                        </>
+                      )}
 
                       <p className="text-xs text-muted-foreground mb-1">
                         Người bị nhốt:
@@ -867,11 +1117,23 @@ export default function MatchPage() {
                           heo.den * gameConfig.heodenPoints +
                           heo.do * gameConfig.heoDoPoints;
 
-                        const victimLoss =
+                        const baseLoss =
                           nv === 1
                             ? gameConfig.rankPoints[0] * 2 +
                               heoPtsOf(v.heo ?? { do: 0, den: 0 })
                             : ecPts + heoPtsOf(v.heo ?? { do: 0, den: 0 });
+
+                        const isDenFor = denForIds.includes(v.victimId);
+                        const finalLoss = isDenFor
+                          ? 0
+                          : n.dennerId === v.victimId
+                            ? baseLoss +
+                              (denForIds.reduce(
+                                (sum, victimId) =>
+                                  sum + (denBaiLosses[victimId] ?? 0),
+                                0,
+                              ) ?? 0)
+                            : baseLoss;
 
                         return (
                           <div
@@ -898,8 +1160,8 @@ export default function MatchPage() {
                                 </span>
                               )}
                             </div>
-                            <span className="text-destructive font-bold text-xs">
-                              -{victimLoss}đ
+                            <span className="text-destructive font-bold text-xs w-6 text-right">
+                              {isDenFor ? "0" : `-${finalLoss}`}
                             </span>
                           </div>
                         );
@@ -932,7 +1194,7 @@ export default function MatchPage() {
                       className="h-8 text-xs w-full"
                       onClick={() => resetNhot()}
                     >
-                      Reset
+                      Chọn lại
                     </Button>
                   </div>
                 );
@@ -1031,6 +1293,91 @@ export default function MatchPage() {
                       })}
                   </div>
                 </div>
+                {showDenBai && (
+                  <div className="flex flex-col gap-3 p-3 rounded-lg bg-chart-3/10 border border-chart-3/30">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground">
+                          Người đền bài:
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          Chọn 1 trong {dennerCandidates.length}
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {dennerCandidates.map((pid) => {
+                          const selected = dennerId === pid;
+                          return (
+                            <button
+                              key={pid}
+                              onClick={() => {
+                                setDennerId(pid);
+                                setDenForIds(
+                                  denForCandidates.filter((id) => id !== pid),
+                                );
+                              }}
+                              className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                selected
+                                  ? "bg-destructive/10 border text-destructive border-destructive"
+                                  : "bg-muted border-muted"
+                              }`}
+                            >
+                              {pShort(pid)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {dennerId && denForCandidates.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <p className="text-xs text-muted-foreground">
+                            Người được đền:
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            Chọn 1 hoặc nhiều
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {denForCandidates.map((pid) => {
+                            const selected = denForIds.includes(pid);
+                            return (
+                              <button
+                                key={pid}
+                                onClick={() =>
+                                  setDenForIds((prev) =>
+                                    prev.includes(pid)
+                                      ? prev.filter((id) => id !== pid)
+                                      : [...prev, pid],
+                                  )
+                                }
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                  selected
+                                    ? "bg-chart-1/20 text-chart-1 border-chart-1"
+                                    : "bg-muted border-muted"
+                                }`}
+                              >
+                                {pShort(pid)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {nhotFormVictimIds.length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setShowDenBai((v) => !v)}
+                  >
+                    {showDenBai ? "Hủy đền bài" : "Đền bài"}
+                  </Button>
+                )}
                 <div className="flex gap-2 pt-1">
                   {!confirmNhot ? (
                     <>
@@ -1042,7 +1389,7 @@ export default function MatchPage() {
                           !nhotForm.nhotterId || nhotForm.victims.length === 0
                         }
                       >
-                        Xác nhận
+                        Chốt nhốt {dennerId ? "và đền bài" : ""}
                       </Button>
                       <Button
                         size="sm"
@@ -1133,8 +1480,8 @@ export default function MatchPage() {
                         )}
                       </div>
                       <div>
-                        <span className="text-chart-2 font-bold">+{pts}đ</span>
-                        <span className="text-muted-foreground">/ -{pts}đ</span>
+                        <span className="text-chart-2 font-bold">+{pts}</span>
+                        <span className="text-muted-foreground">/ -{pts}</span>
                         <button
                           onClick={() => removeChatHeo(c.id)}
                           className="text-muted-foreground hover:text-destructive ml-1"
@@ -1233,6 +1580,7 @@ export default function MatchPage() {
                       ))}
                     </div>
                   </div>
+
                   <div className="flex gap-2 pt-1">
                     <Button
                       size="sm"
@@ -1244,7 +1592,7 @@ export default function MatchPage() {
                         (chatForm.heo.do === 0 && chatForm.heo.den === 0)
                       }
                     >
-                      Thêm
+                      Chốt chặt heo
                     </Button>
                     <Button
                       size="sm"
@@ -1381,7 +1729,7 @@ export default function MatchPage() {
                     >
                       {playerId === nhotterId ? (
                         <Crown className="size-3" />
-                      ) : nhotVictimIds.includes(playerId) ? (
+                      ) : denForIds.includes(playerId) ? '—' : nhotVictimIds.includes(playerId) ? (
                         "✕"
                       ) : (
                         "3"
@@ -1397,7 +1745,7 @@ export default function MatchPage() {
 
                   {/* Label hạng */}
                   <span
-                    className={`text-xs font-bold w-12 shrink-0 ${showAsActive ? labelColor : "text-muted-foreground"}`}
+                    className={`text-xs font-bold w-14 shrink-0 ${showAsActive ? labelColor : "text-muted-foreground"}`}
                   >
                     {showAsActive ? label : ""}
                   </span>
