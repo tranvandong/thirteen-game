@@ -17,7 +17,7 @@ import {
   TableRow,
   TableFooter,
 } from "~/components/ui/table";
-import { History, TrendingUp, TrendingDown } from "lucide-react";
+import { History, Trophy, TrendingUp, TrendingDown } from "lucide-react";
 
 export interface HistoryLoaderData {
   players: Array<{ id: string; name: string; shortName: string }>;
@@ -120,7 +120,7 @@ export async function loader({
 function ScoreCell({ score }: { score: number }) {
   return (
     <span
-      className={`font-medium ${
+      className={`font-black tabular-nums ${
         score > 0
           ? "text-chart-2"
           : score < 0
@@ -133,37 +133,83 @@ function ScoreCell({ score }: { score: number }) {
   );
 }
 
+function PlayerScoreCell({ score }: { score: number }) {
+  return (
+    <div
+      className={`inline-flex min-w-16 items-center justify-center rounded-2xl px-2 py-1.5 text-sm font-black tabular-nums ${
+        score > 0
+          ? "bg-chart-2/10 text-chart-2"
+          : score < 0
+            ? "bg-destructive/10 text-destructive"
+            : "bg-muted text-muted-foreground"
+      }`}
+    >
+      {score > 0 ? `+${score}` : score}
+    </div>
+  );
+}
+
 export default function HistoryPage() {
   const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
 
   return (
     <main className="p-4 flex flex-col h-[calc(100dvh-3.5rem-5rem)] min-h-0 box-border">
-      <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <CardHeader className="shrink-0 pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
-              <History className="size-4" />
+      <Card className="flex flex-col flex-1 min-h-0 overflow-hidden border-border/70 shadow-sm">
+        <CardHeader className="shrink-0 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <History className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Lịch sử ván đấu</CardTitle>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                  Xem lại kết quả từng ván và tổng điểm hiện tại.
+                </p>
+              </div>
             </div>
-            Lịch sử ván đấu
-          </CardTitle>
+
+            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-border bg-background/80 px-3 py-2 shadow-sm">
+              <Trophy className="size-4 text-chart-4" />
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Tổng ván
+                </p>
+                <p className="text-sm font-black text-foreground">
+                  {rounds.length}
+                </p>
+              </div>
+            </div>
+          </div>
         </CardHeader>
+
         <CardContent className="flex-1 min-h-0 p-0 overflow-hidden">
           {rounds.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-12 px-4">
-              Chưa có ván đấu nào.
-            </p>
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+                <History className="size-7" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">
+                  Chưa có ván đấu nào
+                </p>
+                <p className="mt-1 max-w-xs text-sm leading-6 text-muted-foreground">
+                  Sau khi lưu ván đầu tiên, lịch sử và tổng điểm sẽ hiển thị tại đây.
+                </p>
+              </div>
+            </div>
           ) : (
-            <div className="relative h-full overflow-auto">
-              <Table className="[&>div]:overflow-visible">
-                <TableHeader className="sticky top-0 z-20">
-                  <TableRow className="bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
-                    <TableHead className="text-center w-12 sticky left-0 bg-muted/95 backdrop-blur z-30">
-                      Van
+            <div className="relative h-full overflow-auto overscroll-contain">
+              <Table className="min-w-[640px] border-separate border-spacing-0">
+                <TableHeader className="sticky top-0 z-30">
+                  <TableRow className="bg-background/95 backdrop-blur shadow-[inset_0_1px_0_0_rgba(148,163,184,0.18)] [&>th]:py-3 [&>th]:text-[11px] [&>th]:uppercase [&>th]:tracking-wider">
+                    <TableHead className="sticky left-0 z-40 w-16 bg-background/95 text-center text-chart-4">
+                      Ván
                     </TableHead>
                     {players.map((player) => (
                       <TableHead
                         key={player.id}
-                        className="text-center min-w-[60px]"
+                        className="min-w-[150px] text-center"
                       >
                         <span className="hidden sm:inline">{player.name}</span>
                         <span className="sm:hidden">{player.shortName}</span>
@@ -171,32 +217,43 @@ export default function HistoryPage() {
                     ))}
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
-                  {rounds.map((round) => (
-                    <TableRow key={round.id} className="hover:bg-muted/30">
-                      <TableCell className="text-center font-bold sticky left-0 bg-background z-10">
-                        {round.roundNo}
+                  {rounds.map((round, roundIndex) => (
+                    <TableRow
+                      key={round.id}
+                      className={`transition-colors hover:bg-primary/5 [&>td]:py-3 ${
+                        roundIndex % 2 === 0
+                          ? "bg-background/70"
+                          : "bg-muted/20"
+                      }`}
+                    >
+                      <TableCell className="sticky left-0 z-20 w-16 bg-background/95 text-center">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-black shadow-sm">
+                          {round.roundNo}
+                        </span>
                       </TableCell>
                       {round.scores.map((score, index) => (
                         <TableCell key={index} className="text-center">
-                          <ScoreCell score={score} />
+                          <PlayerScoreCell score={score} />
                         </TableCell>
                       ))}
                     </TableRow>
                   ))}
                 </TableBody>
-                <TableFooter className="sticky bottom-0 z-20">
-                  <TableRow className="bg-muted/95 backdrop-blur font-bold">
-                    <TableCell className="text-center sticky left-0 bg-muted/95 backdrop-blur z-30">
+
+                <TableFooter className="sticky bottom-0 z-30">
+                  <TableRow className="bg-card/95 backdrop-blur shadow-[0_-1px_0_0_rgba(148,163,184,0.18)] [&>td]:py-3">
+                    <TableCell className="sticky left-0 z-50 w-16 bg-card/95 text-center font-black text-foreground">
                       Tổng
                     </TableCell>
                     {playerTotals.map((total, index) => (
                       <TableCell key={index} className="text-center">
                         <div className="flex items-center justify-center gap-1">
                           {total > 0 ? (
-                            <TrendingUp className="size-3 text-chart-2" />
+                            <TrendingUp className="size-3.5 text-chart-2" />
                           ) : total < 0 ? (
-                            <TrendingDown className="size-3 text-destructive" />
+                            <TrendingDown className="size-3.5 text-destructive" />
                           ) : null}
                           <ScoreCell score={total} />
                         </div>
