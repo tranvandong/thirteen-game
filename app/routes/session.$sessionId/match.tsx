@@ -797,8 +797,8 @@ export default function MatchPage() {
       playerId: player.id,
       rank: ranking.indexOf(player.id) + 1,
       score: computedScores[player.id],
-      khapno: khapWinner === player.id ? khapCount : 0,
-      sanhno: sanhWinner === player.id ? 1 : 0,
+      khapno: khapWinner === player.id ? accumulated.khap : 0,
+      sanhno: sanhWinner === player.id ? accumulated.sanh : 0,
       blackPigNo: pigCounts[player.id].black,
       redPigNo: pigCounts[player.id].red,
     }));

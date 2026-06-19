@@ -1,11 +1,14 @@
 "use client";
 
 import { useParams } from "react-router";
-// import type { Route } from "./+types/chart";
-// import { db } from "~/db/client.server";
-// import { rounds } from "~/db/schema/rounds";
-// import { players } from "~/db/schema/players";
-// import { eq } from "drizzle-orm";
+import type { Route } from "./+types/chart";
+import { db } from "~/db/client.server";
+import { sessions } from "~/db/schema/sessions";
+import { rounds } from "~/db/schema/rounds";
+import { players } from "~/db/schema/players";
+import { roundResults } from "~/db/schema/round-results";
+import { sessionTotals } from "~/db/schema/session-totals";
+import { eq } from "drizzle-orm";
 import { TrendingUp, BarChart2 } from "lucide-react";
 import {
   CartesianGrid,
@@ -35,78 +38,173 @@ import {
   type ChartConfig,
 } from "~/components/ui/chart";
 
-// Mock data
-const mockPlayers = [
-  { id: "p1", name: "Nguoi Choi 1", shortName: "NC1" },
-  { id: "p2", name: "Nguoi Choi 2", shortName: "NC2" },
-  { id: "p3", name: "Nguoi Choi 3", shortName: "NC3" },
-  { id: "p4", name: "Nguoi Choi 4", shortName: "NC4" },
-];
-
-// Điểm tích lũy qua từng ván (cộng dồn)
-const mockRoundScores = [
-  { van: "Van 1", p1: 3, p2: -3, p3: 1, p4: -1 },
-  { van: "Van 2", p1: 6, p2: -4, p3: 0, p4: -2 },
-  { van: "Van 3", p1: 7, p2: -5, p3: 3, p4: -5 },
-  { van: "Van 4", p1: 10, p2: -2, p3: 2, p4: -10 },
-  { van: "Van 5", p1: 9, p2: 1, p3: 3, p4: -13 },
-  { van: "Van 6", p1: 12, p2: 4, p3: 0, p4: -16 },
-];
-
-// Số lần về nhất / về tư
-const mockRankData = [
-  { name: "NC1", nhat: 4, tu: 0 },
-  { name: "NC2", nhat: 1, tu: 1 },
-  { name: "NC3", nhat: 1, tu: 2 },
-  { name: "NC4", nhat: 0, tu: 3 },
-];
-
-// Số lượng sảnh / khạp
-const mockBonusData = [
-  { name: "NC1", sanh: 2, khap: 3 },
-  { name: "NC2", sanh: 1, khap: 1 },
-  { name: "NC3", sanh: 0, khap: 2 },
-  { name: "NC4", sanh: 1, khap: 0 },
-];
-
-// ── Chart configs ────────────────────────────────────────────
-const lineChartConfig = {
-  p1: { label: mockPlayers[0].name, color: "var(--chart-1)" },
-  p2: { label: mockPlayers[1].name, color: "var(--chart-2)" },
-  p3: { label: mockPlayers[2].name, color: "var(--chart-3)" },
-  p4: { label: mockPlayers[3].name, color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
-const rankChartConfig = {
-  nhat: { label: "Ve nhat", color: "var(--chart-4)" },
-  tu: { label: "Ve tu", color: "var(--destructive)" },
-} satisfies ChartConfig;
-
-const bonusChartConfig = {
-  sanh: { label: "Sanh", color: "var(--chart-1)" },
-  khap: { label: "Khap", color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
-// Tổng điểm mỗi người chơi
-const mockTotalScores = [
-  { name: "NC1", diem: 20 },
-  { name: "NC2", diem: 4 },
-  { name: "NC3", diem: -8 },
-  { name: "NC4", diem: -16 },
-];
-
-const totalScoreConfig = {
-  diem: { label: "Tong diem" },
-} satisfies ChartConfig;
-
 // ── Loader ───────────────────────────────────────────────────
-export async function loader() {
-  return {};
+export async function loader({ params }: Route.LoaderArgs) {
+  const { sessionId: sessionCode } = params;
+
+  // 0. Resolve sessionId từ sessionCode
+  const session = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.code, sessionCode))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!session) throw new Response("Session not found", { status: 404 });
+
+  const sessionId = session.id;
+
+  // 1. Lấy danh sách players trong session, sắp xếp theo orderNo
+  const sessionPlayers = await db
+    .select()
+    .from(players)
+    .where(eq(players.sessionId, sessionId))
+    .orderBy(players.orderNo);
+
+  // 2. Lấy tất cả rounds trong session, sắp xếp theo roundNo
+  const sessionRounds = await db
+    .select()
+    .from(rounds)
+    .where(eq(rounds.sessionId, sessionId))
+    .orderBy(rounds.roundNo);
+
+  // 3. Lấy tất cả round_results cho session này
+  //    Join round_results → rounds để lọc theo sessionId
+  const allResults = await db
+    .select({
+      roundId: roundResults.roundId,
+      roundNo: rounds.roundNo,
+      playerId: roundResults.playerId,
+      rank: roundResults.rank,
+      score: roundResults.score,
+      khapno: roundResults.khapno,
+      sanhno: roundResults.sanhno,
+      blackPigNo: roundResults.blackPigNo,
+      redPigNo: roundResults.redPigNo,
+    })
+    .from(roundResults)
+    .innerJoin(rounds, eq(roundResults.roundId, rounds.id))
+    .where(eq(rounds.sessionId, sessionId))
+    .orderBy(rounds.roundNo);
+
+  // 4. Tổng điểm từ session_totals
+  const totals = await db
+    .select()
+    .from(sessionTotals)
+    .where(eq(sessionTotals.sessionId, sessionId));
+
+  // ── Xây dựng dữ liệu cho Chart 1: Điểm tích lũy qua từng ván ──
+  // Tính cumulative score theo từng ván cho từng player
+  const playerIdToKey = (id: string) => {
+    const idx = sessionPlayers.findIndex((p) => p.id === id);
+    return idx >= 0 ? `p${idx + 1}` : null;
+  };
+
+  // Map: roundNo → { van, p1, p2, p3, p4, ... }
+  const cumulativeMap: Record<number, Record<string, string | number>> = {};
+
+  // Khởi tạo accumulator
+  const accScore: Record<string, number> = {};
+  sessionPlayers.forEach((p, i) => {
+    accScore[`p${i + 1}`] = 0;
+  });
+
+  for (const round of sessionRounds) {
+    const resultsForRound = allResults.filter(
+      (r) => r.roundNo === round.roundNo,
+    );
+    for (const res of resultsForRound) {
+      const key = playerIdToKey(res.playerId);
+      if (key) accScore[key] = (accScore[key] ?? 0) + res.score;
+    }
+    cumulativeMap[round.roundNo] = {
+      van: `Ván ${round.roundNo}`,
+      ...accScore,
+    };
+  }
+
+  const roundScores = Object.values(cumulativeMap);
+
+  // ── Chart 2: Số lần về nhất / về tư ──
+  const rankData = sessionPlayers.map((p, i) => {
+    const key = `p${i + 1}`;
+    const playerResults = allResults.filter((r) => r.playerId === p.id);
+    return {
+      name: p.name,
+      key,
+      nhat: playerResults.filter((r) => r.rank === 1).length,
+      tu: playerResults.filter((r) => r.rank === 4).length,
+    };
+  });
+
+  // ── Chart 3: Số lượng sảnh / khạp ──
+  const bonusData = sessionPlayers.map((p) => {
+    const playerResults = allResults.filter((r) => r.playerId === p.id);
+    return {
+      name: p.name,
+      sanh: playerResults.reduce((sum, r) => sum + r.sanhno, 0),
+      khap: playerResults.reduce((sum, r) => sum + r.khapno, 0),
+    };
+  });
+
+  // ── Chart 4: Tổng điểm ──
+  const totalScores = sessionPlayers.map((p) => {
+    const total = totals.find((t) => t.playerId === p.id);
+    return {
+      name: p.name,
+      diem: total?.totalScore ?? 0,
+    };
+  });
+
+  return {
+    players: sessionPlayers,
+    roundCount: sessionRounds.length,
+    roundScores,
+    rankData,
+    bonusData,
+    totalScores,
+  };
 }
 
 // ── Component ────────────────────────────────────────────────
-export default function ChartPage() {
-  const { sessionId } = useParams();
+export default function ChartPage({ loaderData }: Route.ComponentProps) {
+  const { players, roundCount, roundScores, rankData, bonusData, totalScores } =
+    loaderData;
+
+  // Tạo chart config động từ danh sách players
+  const CHART_COLORS = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+  ];
+
+  const lineChartConfig = Object.fromEntries(
+    players.map((p, i) => [
+      `p${i + 1}`,
+      { label: p.name, color: CHART_COLORS[i % CHART_COLORS.length] },
+    ]),
+  ) satisfies ChartConfig;
+
+  const rankChartConfig = {
+    nhat: { label: "Về nhất", color: "var(--chart-4)" },
+    tu: { label: "Về tư", color: "var(--destructive)" },
+  } satisfies ChartConfig;
+
+  const bonusChartConfig = {
+    sanh: { label: "Sảnh", color: "var(--chart-1)" },
+    khap: { label: "Khạp", color: "var(--chart-4)" },
+  } satisfies ChartConfig;
+
+  const totalScoreConfig = {
+    diem: { label: "Tổng điểm" },
+  } satisfies ChartConfig;
+
+  // Tìm người dẫn đầu số lần về nhất
+  const topRank = rankData.reduce(
+    (best, cur) => (cur.nhat > (best?.nhat ?? -1) ? cur : best),
+    rankData[0],
+  );
 
   return (
     <main className="p-4 flex flex-col gap-4 pb-6">
@@ -115,25 +213,25 @@ export default function ChartPage() {
         <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
           <BarChart2 className="size-4" />
         </div>
-        <h1 className="text-lg font-semibold">Bieu Do</h1>
+        <h1 className="text-lg font-semibold">Biểu Đồ</h1>
       </div>
 
       {/* ── 1. Điểm tích lũy qua các ván ─────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Diem tich luy</CardTitle>
-          <CardDescription>Diem cong don qua tung van dau</CardDescription>
+          <CardTitle>Điểm tích lũy</CardTitle>
+          <CardDescription>Điểm cộng dồn qua từng ván đấu</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={lineChartConfig}>
-            <LineChart data={mockRoundScores} margin={{ left: 4, right: 4 }}>
+            <LineChart data={roundScores} margin={{ left: 4, right: 4 }}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="van"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(v) => v.replace("Van ", "V")}
+                tickFormatter={(v: string) => ""}
               />
               <YAxis
                 tickLine={false}
@@ -143,14 +241,14 @@ export default function ChartPage() {
               />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
               <ChartLegend content={<ChartLegendContent />} />
-              {mockPlayers.map((p) => (
+              {players.map((p, i) => (
                 <Line
                   key={p.id}
-                  dataKey={p.id}
+                  dataKey={`p${i + 1}`}
                   type="monotone"
-                  stroke={`var(--color-${p.id})`}
+                  stroke={`var(--color-p${i + 1})`}
                   strokeWidth={2}
-                  dot={{ r: 3 }}
+                  dot={{ r: 0 }}
                   activeDot={{ r: 5 }}
                 />
               ))}
@@ -158,19 +256,19 @@ export default function ChartPage() {
           </ChartContainer>
         </CardContent>
         <CardFooter className="text-sm text-muted-foreground">
-          Tong {mockRoundScores.length} van dau da hoan thanh
+          Tổng {roundCount} ván đấu đã hoàn thành
         </CardFooter>
       </Card>
 
       {/* ── 2. Số lần về nhất / về tư ─────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Ve nhat & Ve tu</CardTitle>
-          <CardDescription>So lan dat hang 1 va hang 4</CardDescription>
+          <CardTitle>Về nhất &amp; Về tư</CardTitle>
+          <CardDescription>Số lần đạt hạng 1 và hạng 4</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={rankChartConfig}>
-            <BarChart data={mockRankData}>
+            <BarChart data={rankData}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="name"
@@ -188,25 +286,27 @@ export default function ChartPage() {
             </BarChart>
           </ChartContainer>
         </CardContent>
-        <CardFooter className="flex gap-2 text-sm">
-          <div className="flex items-center gap-1 text-chart-4 font-medium">
-            <TrendingUp className="size-4" />
-            NC1 dan dau so lan ve nhat
-          </div>
-        </CardFooter>
+        {topRank && (
+          <CardFooter className="flex gap-2 text-sm">
+            <div className="flex items-center gap-1 text-chart-4 font-medium">
+              <TrendingUp className="size-4" />
+              {topRank.name} dẫn đầu số lần về nhất ({topRank.nhat} lần)
+            </div>
+          </CardFooter>
+        )}
       </Card>
 
       {/* ── 3. Số lượng sảnh / khạp ───────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Sanh & Khap</CardTitle>
+          <CardTitle>Sảnh &amp; Khạp</CardTitle>
           <CardDescription>
-            So luong sanh va khap cua tung nguoi choi
+            Số lượng sảnh và khạp của từng người chơi
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={bonusChartConfig}>
-            <BarChart data={mockBonusData}>
+            <BarChart data={bonusData}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="name"
@@ -225,21 +325,21 @@ export default function ChartPage() {
           </ChartContainer>
         </CardContent>
         <CardFooter className="text-sm text-muted-foreground">
-          Tong hop sanh va khap trong toan bo phien
+          Tổng hợp sảnh và khạp trong toàn bộ phiên
         </CardFooter>
       </Card>
 
       {/* ── 4. Tổng điểm mỗi người chơi ─────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Tong diem</CardTitle>
+          <CardTitle>Tổng điểm</CardTitle>
           <CardDescription>
-            Tong diem tich luy cua tung nguoi choi
+            Tổng điểm tích lũy của từng người chơi
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={totalScoreConfig}>
-            <BarChart accessibilityLayer data={mockTotalScores}>
+            <BarChart accessibilityLayer data={totalScores}>
               <CartesianGrid vertical={false} />
               <ChartTooltip
                 cursor={false}
@@ -247,7 +347,7 @@ export default function ChartPage() {
               />
               <Bar dataKey="diem">
                 <LabelList position="top" dataKey="name" fillOpacity={1} />
-                {mockTotalScores.map((item) => (
+                {totalScores.map((item) => (
                   <Cell
                     key={item.name}
                     fill={
