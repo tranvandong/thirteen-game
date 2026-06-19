@@ -137,7 +137,7 @@ export default function HistoryPage() {
   const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
 
   return (
-    <main className="h-[100dvh] min-h-0 overflow-hidden p-4 pb-[calc(6.25rem_+_env(safe-area-inset-bottom))]">
+    <main className="h-dvh min-h-0 overflow-hidden p-4 pb-[calc(6.25rem_+_env(safe-area-inset-bottom))]">
       <Card className="h-full min-h-0 flex flex-col overflow-hidden">
         <CardHeader className="shrink-0 pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -157,16 +157,16 @@ export default function HistoryPage() {
             </div>
           ) : (
             <div className="h-full overflow-auto overscroll-contain">
-              <Table className="border-separate border-spacing-0">
-                <TableHeader className="sticky top-0 z-20">
-                  <TableRow className="bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80 [&>th]:border-b">
-                    <TableHead className="sticky left-0 z-30 w-12 bg-muted/95 text-center backdrop-blur">
+              <Table className="w-full min-w-full table-fixed border-separate border-spacing-0">
+                <TableHeader className="z-30">
+                  <TableRow>
+                    <TableHead className="sticky left-0 top-0 z-30 w-12 bg-muted/95 text-center font-semibold text-muted-foreground backdrop-blur shadow-sm">
                       Ván
                     </TableHead>
                     {players.map((player) => (
                       <TableHead
                         key={player.id}
-                        className="min-w-[60px] text-center"
+                        className="sticky top-0 z-30 min-w-[60px] bg-muted/95 text-center font-semibold text-muted-foreground backdrop-blur shadow-sm"
                       >
                         <span className="hidden sm:inline">{player.name}</span>
                         <span className="sm:hidden">{player.shortName}</span>
@@ -178,7 +178,7 @@ export default function HistoryPage() {
                 <TableBody>
                   {rounds.map((round) => (
                     <TableRow key={round.id} className="hover:bg-muted/30">
-                      <TableCell className="sticky left-0 z-10 bg-background text-center font-bold">
+                      <TableCell className="sticky left-0 z-10 w-12 bg-background text-center font-bold">
                         {round.roundNo}
                       </TableCell>
                       {round.scores.map((score, index) => (
@@ -190,13 +190,16 @@ export default function HistoryPage() {
                   ))}
                 </TableBody>
 
-                <TableFooter className="sticky bottom-0 z-20">
-                  <TableRow className="bg-muted/95 font-bold backdrop-blur supports-[backdrop-filter]:bg-muted/80 [&>td]:border-t">
-                    <TableCell className="sticky left-0 z-30 bg-muted/95 text-center backdrop-blur">
+                <TableFooter className="z-30">
+                  <TableRow>
+                    <TableCell className="sticky bottom-0 left-0 z-30 bg-muted/95 text-center font-bold backdrop-blur shadow-[0_-6px_12px_rgba(0,0,0,0.08)]">
                       Tổng
                     </TableCell>
                     {playerTotals.map((total, index) => (
-                      <TableCell key={index} className="text-center">
+                      <TableCell
+                        key={index}
+                        className="sticky bottom-0 z-30 bg-muted/95 text-center font-bold backdrop-blur shadow-[0_-6px_12px_rgba(0,0,0,0.08)]"
+                      >
                         <div className="flex items-center justify-center gap-1">
                           {total > 0 ? (
                             <TrendingUp className="size-3 text-chart-2" />
