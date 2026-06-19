@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useFetcher, useLoaderData, useParams } from "react-router";
 import type { Route } from "./+types/match";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Swords,
   CheckCircle2,
@@ -823,6 +823,12 @@ export default function MatchPage() {
         ? "text-destructive"
         : "text-muted-foreground";
   const scoreFmt = (v: number) => (v > 0 ? `+${v}` : `${v}`);
+  const scoreBoxClass = (v: number) =>
+    v > 0
+      ? "border-chart-2/25 bg-chart-2/10 text-chart-2"
+      : v < 0
+        ? "border-destructive/25 bg-destructive/10 text-destructive"
+        : "border-border bg-muted/35 text-muted-foreground";
 
   const getRowMeta = (playerId: string, rankIndex: number) => {
     if (activeNhot) {
@@ -902,25 +908,129 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="p-4 flex flex-col gap-4 pb-6">
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 px-3 pb-28 pt-4 sm:px-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <section className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm">
+        <div className="relative p-5">
+          <div className="absolute -right-14 -top-14 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/10 blur-3xl" />
+
+          <div className="relative flex items-start justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/15">
+                <Swords className="size-3.5" />
+                Ván đấu
+              </div>
+              <h1 className="mt-3 text-2xl font-black tracking-tight text-foreground">
+                Ván {currentRoundNo}
+              </h1>
+              <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
+                Nhập thứ hạng, thưởng phạt, khạp/sảnh rồi lưu để cập nhật bảng
+                điểm realtime.
+              </p>
+            </div>
+
+            <div className="hidden rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-right shadow-sm sm:block">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Người nhập
+              </p>
+              <p className="mt-0.5 max-w-[160px] truncate text-sm font-bold">
+                {currentParticipant?.displayName ?? "—"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="overflow-hidden rounded-3xl border border-chart-4/20 bg-chart-4/10 p-4 ring-1 ring-chart-4/10">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-chart-4">
+                    <Flame className="size-3.5" />
+                    Khạp
+                  </div>
+                  <div className="mt-2 flex items-end gap-1">
+                    <span className="text-4xl font-black tracking-tight text-chart-4">
+                      {accumulated.khap}
+                    </span>
+                    <span className="mb-1 text-xs font-semibold text-muted-foreground">
+                      / {gameConfig.maxKhapAccumulate}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-chart-4 shadow-sm">
+                  <Flame className="size-5" />
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-5 gap-1.5">
+                {Array.from({ length: gameConfig.maxKhapAccumulate }).map(
+                  (_, i) => (
+                    <div
+                      key={i}
+                      className={`h-2 rounded-full transition-all ${i < accumulated.khap ? "bg-chart-4" : "bg-muted"}`}
+                    />
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-3xl border border-chart-1/20 bg-chart-1/10 p-4 ring-1 ring-chart-1/10">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-chart-1">
+                    <Spade className="size-3.5" />
+                    Sảnh
+                  </div>
+                  <div className="mt-2 flex items-end gap-1">
+                    <span className="text-4xl font-black tracking-tight text-chart-1">
+                      {accumulated.sanh}
+                    </span>
+                    <span className="mb-1 text-xs font-semibold text-muted-foreground">
+                      / {gameConfig.maxSanhAccumulate}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-chart-1 shadow-sm">
+                  <Spade className="size-5" />
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-5 gap-1.5">
+                {Array.from({ length: gameConfig.maxSanhAccumulate }).map(
+                  (_, i) => (
+                    <div
+                      key={i}
+                      className={`h-2 rounded-full transition-all ${i < accumulated.sanh ? "bg-chart-1" : "bg-muted"}`}
+                    />
+                  ),
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Swords className="size-4" />
           </div>
-          <span>Ván {currentRoundNo}</span>
+          <div>
+            <p className="text-sm font-black text-foreground">Nhập kết quả</p>
+            <p className="text-xs text-muted-foreground">
+              Chọn thứ hạng và các thưởng phạt
+            </p>
+          </div>
         </div>
+
         <div className="flex gap-2">
           {currentRoundId !== undefined && currentRoundNo > 1 && (
-            <form method="post">
+            <form method="post" className="flex-1 sm:flex-none">
               <input type="hidden" name="intent" value="delete-round" />
               <input type="hidden" name="roundId" value={currentRoundId} />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleReset}
-                className="gap-1.5 text-muted-foreground h-8 text-sm"
+                className="h-9 gap-1.5 text-xs font-bold text-muted-foreground hover:text-destructive sm:h-10"
                 type="submit"
               >
                 <Trash className="size-3.5" />
@@ -929,100 +1039,75 @@ export default function MatchPage() {
             </form>
           )}
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={handleReset}
-            className="gap-1.5 text-muted-foreground h-8"
+            className="h-9 gap-1.5 text-xs font-bold sm:h-10"
           >
             <RotateCcw className="size-3.5" />
             Reset
           </Button>
         </div>
       </div>
-      <div className="flex gap-2">
-        <div className="flex items-center gap-2 flex-1 rounded-lg bg-chart-4/10 border border-chart-4/20 px-3 py-2">
-          <div className="flex flex-col w-full">
-            <div className="flex justify-between items-center gap-2">
-              <div>
-                <div className="flex items-center gap-2 text-chart-1">
-                  {/* <Spade className="h-4 w-4" /> */}
-                  <span className="text-sm font-medium">Khạp</span>
-                </div>
-                <div className="flex items-end gap-1">
-                  <span className="text-4xl font-bold tracking-tight text-chart-1">
-                    {accumulated.khap}
-                  </span>
-                  <span className="mb-1 text-sm text-neutral-500">
-                    / {gameConfig.maxKhapAccumulate}
-                  </span>
-                </div>
-              </div>
-              <Flame className="size-3.5 text-chart-1 shrink-0" />
+
+      {/* Kết quả tạm tính */}
+      <Card className="overflow-hidden border-border/70 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
+              <CheckCircle2 className="size-4" />
             </div>
-            <div className="mt-3 grid grid-cols-10 gap-1">
-              {Array.from({ length: gameConfig.maxKhapAccumulate }).map(
-                (_, i) => (
-                  <div
-                    key={i}
-                    className={`h-2 rounded-full transition-all ${i < accumulated.khap ? "bg-chart-1" : "bg-emerald-950/80"}`}
-                  />
-                ),
-              )}
-            </div>
+            Kết quả tạm tính
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-2">
+            {players.map((player) => {
+              const sc = computedScores[player.id];
+              return (
+                <div
+                  key={player.id}
+                  className={`flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-wide opacity-70">
+                    {pShort(player.id)}
+                  </span>
+                  <span className="text-xl font-black tabular-nums">
+                    {scoreFmt(sc)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-1 rounded-lg bg-chart-4/10 border border-chart-4/20 px-3 py-2">
-          <div className="flex flex-col w-full">
-            <div className="flex justify-between items-center gap-2">
-              <div>
-                <div className="flex items-center gap-2 text-chart-1">
-                  {/* <Spade className="h-4 w-4" /> */}
-                  <span className="text-sm font-medium">Sảnh</span>
-                </div>
-                <div className="flex items-end gap-1">
-                  <span className="text-4xl font-bold tracking-tight text-chart-1">
-                    {accumulated.sanh}
-                  </span>
-                  <span className="mb-1 text-sm text-neutral-500">
-                    / {gameConfig.maxSanhAccumulate}
-                  </span>
-                </div>
-              </div>
-              <Flame className="size-3.5 text-chart-1 shrink-0" />
-            </div>
-            <div className="mt-3 grid grid-cols-10 gap-1">
-              {Array.from({ length: gameConfig.maxSanhAccumulate }).map(
-                (_, i) => (
-                  <div
-                    key={i}
-                    className={`h-2 rounded-full transition-all ${i < accumulated.sanh ? "bg-chart-1" : "bg-emerald-950/80"}`}
-                  />
-                ),
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* ── Nhốt bài ─────────────────────────── */}
-      <Card className="p-2">
+      <Card className="overflow-hidden border-border/70 shadow-sm">
         <button
           onClick={() => setExpandBonus((v) => !v)}
-          className="flex items-center justify-between w-full px-2 pt-2 pb-2"
+          className="flex w-full items-center justify-between px-4 py-4 text-left transition-colors hover:bg-muted/40"
         >
-          <div className="flex items-center gap-2">
-            <Lock className="size-4 text-chart-3" />
-            <span className="text-sm font-semibold">Nhốt Bài</span>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-chart-3/10 text-chart-3">
+              <Lock className="size-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-foreground">Nhốt Bài</p>
+              <p className="text-xs text-muted-foreground">
+                Thiết lập người nhốt, bị nhốt và đền bài
+              </p>
+            </div>
           </div>
           {expandBonus ? (
-            <CollapseIcon className="size-4 text-muted-foreground" />
+            <CollapseIcon className="size-5 text-muted-foreground" />
           ) : (
-            <ChevronRight className="size-4 text-muted-foreground" />
+            <ChevronRight className="size-5 text-muted-foreground" />
           )}
         </button>
 
         {expandBonus && (
-          <div className="flex flex-col gap-2 w-full">
+          <div className="flex flex-col gap-3 px-4 pb-4">
             {confirmNhot &&
               nhotList.length > 0 &&
               nhotList.map((n) => {
@@ -1072,49 +1157,55 @@ export default function MatchPage() {
                 return (
                   <div
                     key={n.id}
-                    className="flex flex-col gap-2 items-center justify-between w-full px-3 py-2 rounded-lg bg-chart-3/10 border border-chart-3/30 text-xs"
+                    className="flex flex-col gap-3 rounded-3xl border border-chart-3/20 bg-chart-3/10 p-4"
                   >
-                    <div className="flex flex-col gap-1.5 py-1.5 w-full">
-                      <div
-                        className={`ml-auto text-[11px] ${caseColor} px-1.5 py-1 rounded-md`}
-                      >
-                        {caseLabel}
-                      </div>
-                      <div className="flex justify-between gap-2 flex-wrap w-full">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Người nhốt:
-                        </p>
-                      </div>
-                      <div className="flex justify-between gap-2 flex-wrap w-full">
-                        <div
-                          className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors bg-primary text-primary-foreground border-primary"`}
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black text-background ${caseColor}`}
                         >
+                          {caseLabel}
+                        </span>
+                        <p className="mt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Người nhốt
+                        </p>
+                        <div className="mt-1 inline-flex items-center gap-2 rounded-2xl border border-primary/20 bg-background px-3 py-2 font-black text-primary">
+                          <Crown className="size-3.5" />
                           {pShort(n.nhotterId)}
                         </div>
-                        <span className="text-chart-2 font-bold">+{gain}</span>
                       </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          Điểm nhận
+                        </p>
+                        <p className="mt-1 text-2xl font-black text-chart-2">
+                          +{gain}
+                        </p>
+                      </div>
+                    </div>
 
-                      {n.dennerId && denForIds.length > 0 && (
-                        <>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            Người đền bài:
-                          </p>
-                          <div className="flex justify-between gap-2 flex-wrap w-full">
-                            <div
-                              className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors bg-chart-3 text-chart-3-foreground border-chart-3`}
-                            >
-                              {pShort(n.dennerId)}
-                            </div>
-                            <span className="text-chart-3 font-bold text-xs">
-                              đền cho{" "}
-                              {denForIds.map((id) => pShort(id)).join(", ")}
-                            </span>
-                          </div>
-                        </>
-                      )}
+                    {n.dennerId && denForIds.length > 0 && (
+                      <div className="rounded-2xl border border-destructive/15 bg-destructive/5 p-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-destructive">
+                          Người đền bài
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-background px-3 py-1.5 text-xs font-black text-destructive ring-1 ring-destructive/20">
+                            {pShort(n.dennerId)}
+                          </span>
+                          <span className="text-xs font-bold text-muted-foreground">
+                            đền cho {denForIds.map((id) => pShort(id)).join(", ")}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs font-semibold text-muted-foreground">
+                          Mất {dennerLoss} điểm
+                        </p>
+                      </div>
+                    )}
 
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Người bị nhốt:
+                    <div className="grid gap-2">
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Người bị nhốt
                       </p>
                       {n.victims.map((v) => {
                         const ecPts =
@@ -1145,29 +1236,26 @@ export default function MatchPage() {
                         return (
                           <div
                             key={v.victimId}
-                            className="flex justify-between items-center w-full gap-2 px-2 py-1.5 rounded-md bg-destructive/10 border border-destructive/20"
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-3"
                           >
-                            <div className="text-xs font-medium flex-1 text-destructive">
-                              {pShort(v.victimId)}
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-sm font-black text-destructive">
+                                {pShort(v.victimId)}
+                              </p>
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {(v.heo?.do ?? 0) > 0 && (
+                                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
+                                    {v.heo?.do} Đỏ
+                                  </span>
+                                )}
+                                {(v.heo?.den ?? 0) > 0 && (
+                                  <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-black text-background">
+                                    {v.heo?.den} Đen
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              {((v.heo?.do ?? 0) > 0 ||
-                                (v.heo?.den ?? 0) > 0) && (
-                                <span className="text-muted-foreground text-xs flex gap-1">
-                                  {(v.heo?.do ?? 0) > 0 && (
-                                    <span className="px-2 py-0.5 leading-normal rounded font-bold text-xs bg-red-500 text-white">
-                                      {v.heo?.do} Đỏ
-                                    </span>
-                                  )}
-                                  {(v.heo?.den ?? 0) > 0 && (
-                                    <span className="px-2 py-0.5 leading-normal rounded font-bold text-xs bg-foreground text-background">
-                                      {v.heo?.den} Đen
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-destructive font-bold text-xs w-6 text-right">
+                            <span className="shrink-0 text-sm font-black text-destructive">
                               {isDenFor ? "0" : `-${finalLoss}`}
                             </span>
                           </div>
@@ -1186,19 +1274,20 @@ export default function MatchPage() {
                           if (!victimLoss) return null;
 
                           return (
-                            <div className="flex justify-between items-center w-full gap-2 px-2 py-1.5 rounded-md bg-destructive/10 border border-destructive/20">
-                              <div className="text-xs font-medium flex-1 text-destructive">
+                            <div className="flex items-center justify-between rounded-2xl border border-destructive/20 bg-destructive/5 p-3">
+                              <span className="text-sm font-black text-destructive">
                                 {pShort(victimLoss.id)}
-                              </div>
-                              <span className="text-destructive font-bold text-xs">
+                              </span>
+                              <span className="text-sm font-black text-destructive">
                                 -{gameConfig.nhotBystanderPenalty}
                               </span>
                             </div>
                           );
                         })()}
                     </div>
+
                     <Button
-                      className="h-8 text-xs w-full"
+                      className="h-10 w-full text-xs font-black"
                       onClick={() => resetNhot()}
                     >
                       Chọn lại
@@ -1208,12 +1297,12 @@ export default function MatchPage() {
               })}
 
             {!confirmNhot && (
-              <div className="flex flex-col gap-2 p-3">
+              <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/35 p-4">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Người nhốt:
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Người nhốt
                   </p>
-                  <div className="flex gap-1.5 flex-wrap">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {players.map((p) => (
                       <button
                         key={p.id}
@@ -1226,18 +1315,23 @@ export default function MatchPage() {
                             ),
                           }))
                         }
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${nhotForm.nhotterId === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-muted"}`}
+                        className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                          nhotForm.nhotterId === p.id
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground hover:border-primary/40"
+                        }`}
                       >
                         {pShort(p.id)}
                       </button>
                     ))}
                   </div>
                 </div>
+
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Người bị nhốt:
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Người bị nhốt
                   </p>
-                  <div className="flex gap-1.5 flex-wrap mb-2">
+                  <div className="mt-2 flex flex-col gap-2">
                     {players
                       .filter((p) => p.id !== nhotForm.nhotterId)
                       .map((p) => {
@@ -1252,10 +1346,14 @@ export default function MatchPage() {
                         return (
                           <div
                             key={p.id}
-                            className={`flex justify-between items-center w-full gap-2 px-2 py-1.5 rounded-md ${isVictim ? "bg-destructive/10 border border-destructive/20" : "bg-muted border-muted"}`}
+                            className={`flex items-center justify-between gap-3 rounded-2xl border p-3 ${
+                              isVictim
+                                ? "border-destructive/25 bg-destructive/5"
+                                : "border-border bg-background"
+                            }`}
                           >
                             <div
-                              className={`text-xs font-medium w-10 flex-1 py-1 ${isVictim ? "text-destructive" : ""}`}
+                              className={`flex-1 text-sm font-black ${isVictim ? "text-destructive" : "text-foreground"}`}
                               onClick={() => toggleNhotVictim(p.id)}
                             >
                               {pShort(p.id)}
@@ -1268,7 +1366,11 @@ export default function MatchPage() {
                                     className="flex items-center gap-1 text-xs"
                                   >
                                     <span
-                                      className={`px-2 py-0.5 leading-normal rounded font-bold text-xs ${t === "den" ? "bg-foreground text-background" : "bg-red-500 text-white"}`}
+                                      className={`rounded-full px-2 py-0.5 font-black ${
+                                        t === "den"
+                                          ? "bg-foreground text-background"
+                                          : "bg-red-500 text-white"
+                                      }`}
                                     >
                                       {t === "do" ? "Đỏ" : "Đen"}
                                     </span>
@@ -1276,18 +1378,18 @@ export default function MatchPage() {
                                       onClick={() =>
                                         updateVictimHeo(p.id, t, -1)
                                       }
-                                      className="size-4 flex items-center justify-center rounded bg-muted/60 font-bold text-xs"
+                                      className="size-6 rounded-full bg-muted/70 font-black"
                                     >
                                       −
                                     </button>
-                                    <span className="w-3 text-center font-bold">
+                                    <span className="w-4 text-center font-black">
                                       {vicTimHeoCount?.[t] ?? 0}
                                     </span>
                                     <button
                                       onClick={() =>
                                         updateVictimHeo(p.id, t, 1)
                                       }
-                                      className="size-4 flex items-center justify-center rounded bg-muted/60 font-bold text-xs"
+                                      className="size-6 rounded-full bg-muted/70 font-black"
                                     >
                                       +
                                     </button>
@@ -1300,18 +1402,19 @@ export default function MatchPage() {
                       })}
                   </div>
                 </div>
+
                 {showDenBai && (
-                  <div className="flex flex-col gap-3 p-3 rounded-lg bg-chart-3/10 border border-chart-3/30">
+                  <div className="rounded-3xl border border-chart-3/20 bg-chart-3/10 p-4">
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="text-xs text-muted-foreground">
-                          Người đền bài:
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Người đền bài
                         </p>
                         <span className="text-xs text-muted-foreground">
                           Chọn 1 trong {dennerCandidates.length}
                         </span>
                       </div>
-                      <div className="flex gap-1.5 flex-wrap">
+                      <div className="mt-2 flex flex-wrap gap-2">
                         {dennerCandidates.map((pid) => {
                           const selected = dennerId === pid;
                           return (
@@ -1323,10 +1426,10 @@ export default function MatchPage() {
                                   denForCandidates.filter((id) => id !== pid),
                                 );
                               }}
-                              className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                              className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
                                 selected
-                                  ? "bg-destructive/10 border text-destructive border-destructive"
-                                  : "bg-muted border-muted"
+                                  ? "border-destructive bg-destructive/10 text-destructive"
+                                  : "border-border bg-background text-foreground hover:border-destructive/30"
                               }`}
                             >
                               {pShort(pid)}
@@ -1337,16 +1440,16 @@ export default function MatchPage() {
                     </div>
 
                     {dennerId && denForCandidates.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <p className="text-xs text-muted-foreground">
-                            Người được đền:
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                            Người được đền
                           </p>
                           <span className="text-xs text-muted-foreground">
                             Chọn 1 hoặc nhiều
                           </span>
                         </div>
-                        <div className="flex gap-1.5 flex-wrap">
+                        <div className="mt-2 flex flex-wrap gap-2">
                           {denForCandidates.map((pid) => {
                             const selected = denForIds.includes(pid);
                             return (
@@ -1359,10 +1462,10 @@ export default function MatchPage() {
                                       : [...prev, pid],
                                   )
                                 }
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
                                   selected
-                                    ? "bg-chart-1/20 text-chart-1 border-chart-1"
-                                    : "bg-muted border-muted"
+                                    ? "border-chart-1 bg-chart-1/20 text-chart-1"
+                                    : "border-border bg-background text-foreground hover:border-chart-1/30"
                                 }`}
                               >
                                 {pShort(pid)}
@@ -1379,18 +1482,18 @@ export default function MatchPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs"
+                    className="h-10 text-xs font-black"
                     onClick={() => setShowDenBai((v) => !v)}
                   >
                     {showDenBai ? "Hủy đền bài" : "Đền bài"}
                   </Button>
                 )}
-                <div className="flex gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   {!confirmNhot ? (
                     <>
                       <Button
                         size="sm"
-                        className="flex-1 h-8 text-xs"
+                        className="h-10 text-xs font-black"
                         onClick={addNhot}
                         disabled={
                           !nhotForm.nhotterId || nhotForm.victims.length === 0
@@ -1401,7 +1504,7 @@ export default function MatchPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 text-xs"
+                        className="h-10 text-xs font-black"
                         onClick={() => removeNhot()}
                       >
                         Hủy
@@ -1411,7 +1514,7 @@ export default function MatchPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="flex-1 h-8 text-xs"
+                      className="h-10 text-xs font-black"
                       onClick={() => resetNhot()}
                     >
                       Chọn lại
@@ -1425,16 +1528,23 @@ export default function MatchPage() {
       </Card>
 
       {/* ── Chặt heo ─────────────────────────── */}
-      <Card className="p-2 gap-0">
-        <div className="flex items-center justify-between w-full px-2 pt-2 pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Scissors className="size-3.5 text-red-400" />
-              <span className="text-xs font-semibold">Chặt Heo</span>
+      <Card className="overflow-hidden border-border/70 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+              <Scissors className="size-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-foreground">Chặt Heo</p>
+              <p className="text-xs text-muted-foreground">
+                {chatHeoList.length > 0
+                  ? `${chatHeoList.length} lượt chặt heo`
+                  : "Thêm lượt chặt heo nếu có"}
+              </p>
             </div>
           </div>
           {nhotCount === 3 && (
-            <p className="text-xs text-muted-foreground italic px-1">
+            <p className="text-xs font-medium italic text-muted-foreground">
               Nhốt tất cả · không tính chặt heo
             </p>
           )}
@@ -1442,17 +1552,23 @@ export default function MatchPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 text-xs px-2"
+              className="h-9 gap-1 text-xs font-black"
               onClick={() => setShowChatHeoForm((v) => !v)}
             >
-              <Plus className="size-3" />
+              <Plus className="size-3.5" />
               Thêm
             </Button>
           )}
         </div>
 
         {(showChatHeoForm || chatHeoList.length > 0) && (
-          <CardContent className="pt-0 flex flex-col gap-4 p-2">
+          <CardContent className="flex flex-col gap-4 pt-0">
+            {chatHeoList.length === 0 && showChatHeoForm && (
+              <p className="text-sm text-muted-foreground">
+                Chọn người chặt, người bị chặt và số lượng heo.
+              </p>
+            )}
+
             <div className="flex flex-col gap-2">
               {chatHeoList
                 .filter((c) => !nhotVictimIds.includes(c.victimId))
@@ -1463,35 +1579,37 @@ export default function MatchPage() {
                   return (
                     <div
                       key={c.id}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-3"
                     >
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-medium">
+                      <div className="flex min-w-0 items-center gap-1.5 flex-wrap">
+                        <span className="font-black">
                           {pShort(c.chatterId)}
                         </span>
-                        <Scissors className="size-3 text-muted-foreground" />
-                        <span className="font-medium">
+                        <Scissors className="size-3.5 text-muted-foreground" />
+                        <span className="font-black">
                           {pShort(c.victimId)}
                         </span>
                       </div>
-                      <div>
+                      <div className="flex items-center gap-2">
                         {(c.heo.do ?? 0) > 0 && (
-                          <span className="px-1.5 py-0.5 leading-normal rounded bg-red-500 text-white font-bold">
+                          <span className="rounded-full bg-red-500 px-2 py-1 text-[10px] font-black text-white">
                             {c.heo.do} Đỏ
                           </span>
                         )}
                         {(c.heo.den ?? 0) > 0 && (
-                          <span className="px-1.5 py-0.5 leading-normal rounded bg-foreground text-background font-bold">
+                          <span className="rounded-full bg-foreground px-2 py-1 text-[10px] font-black text-background">
                             {c.heo.den} Đen
                           </span>
                         )}
-                      </div>
-                      <div>
-                        <span className="text-chart-2 font-bold">+{pts}</span>
-                        <span className="text-muted-foreground">/ -{pts}</span>
+                        <span className="text-sm font-black text-chart-2">
+                          +{pts}
+                        </span>
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          / -{pts}
+                        </span>
                         <button
                           onClick={() => removeChatHeo(c.id)}
-                          className="text-muted-foreground hover:text-destructive ml-1"
+                          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         >
                           <X className="size-3.5" />
                         </button>
@@ -1500,12 +1618,12 @@ export default function MatchPage() {
                   );
                 })}
               {showChatHeoForm && nhotCount < 3 && (
-                <div className="flex flex-col gap-2 p-3 rounded-lg bg-muted/40 border border-muted">
+                <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/35 p-4">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Người chặt:
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Người chặt
                     </p>
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       {players
                         .filter((p) => !nhotVictimIds.includes(p.id))
                         .map((p) => (
@@ -1522,18 +1640,23 @@ export default function MatchPage() {
                                     : f.victimId,
                               }))
                             }
-                            className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${chatForm.chatterId === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-muted"}`}
+                            className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                              chatForm.chatterId === p.id
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-foreground hover:border-primary/40"
+                            }`}
                           >
                             {pShort(p.id)}
                           </button>
                         ))}
                     </div>
                   </div>
+
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Người bị chặt:
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Người bị chặt
                     </p>
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       {players
                         .filter(
                           (p) =>
@@ -1546,40 +1669,49 @@ export default function MatchPage() {
                             onClick={() =>
                               setChatForm((f) => ({ ...f, victimId: p.id }))
                             }
-                            className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${chatForm.victimId === p.id ? "bg-destructive text-destructive-foreground border-destructive" : "bg-muted border-muted"}`}
+                            className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                              chatForm.victimId === p.id
+                                ? "border-destructive bg-destructive/10 text-destructive"
+                                : "border-border bg-background text-foreground hover:border-destructive/30"
+                            }`}
                           >
                             {pShort(p.id)}
                           </button>
                         ))}
                     </div>
                   </div>
+
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Số lượng heo:
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Số lượng heo
                     </p>
-                    <div className="flex gap-3 justify-between">
+                    <div className="mt-2 flex gap-3">
                       {(["do", "den"] as HeoType[]).map((t) => (
                         <div
                           key={t}
-                          className="flex items-center gap-1.5 text-xs"
+                          className="flex flex-1 items-center justify-between gap-2 rounded-2xl border border-border/70 bg-background p-2"
                         >
                           <span
-                            className={`px-2 py-0.5 leading-normal rounded font-bold text-xs ${t === "den" ? "bg-foreground text-background" : "bg-red-500 text-white"}`}
+                            className={`rounded-full px-2 py-1 text-[10px] font-black ${
+                              t === "den"
+                                ? "bg-foreground text-background"
+                                : "bg-red-500 text-white"
+                            }`}
                           >
                             {t === "do" ? "Đỏ" : "Đen"}
                           </span>
                           <button
                             onClick={() => updateChatFormHeo(t, -1)}
-                            className="size-6 flex items-center justify-center rounded bg-muted font-bold"
+                            className="size-7 rounded-full bg-muted/70 font-black"
                           >
                             −
                           </button>
-                          <span className="w-4 text-center font-bold">
+                          <span className="w-5 text-center text-sm font-black">
                             {chatForm.heo[t]}
                           </span>
                           <button
                             onClick={() => updateChatFormHeo(t, 1)}
-                            className="size-6 flex items-center justify-center rounded bg-muted font-bold"
+                            className="size-7 rounded-full bg-muted/70 font-black"
                           >
                             +
                           </button>
@@ -1588,10 +1720,10 @@ export default function MatchPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 pt-1">
                     <Button
                       size="sm"
-                      className="flex-1 h-8 text-xs"
+                      className="h-10 text-xs font-black"
                       onClick={addChatHeo}
                       disabled={
                         !chatForm.chatterId ||
@@ -1604,7 +1736,7 @@ export default function MatchPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-8 text-xs"
+                      className="h-10 text-xs font-black"
                       onClick={() => setShowChatHeoForm(false)}
                     >
                       Hủy
@@ -1618,27 +1750,34 @@ export default function MatchPage() {
       </Card>
 
       {/* ── Xếp hạng ─────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {!activeNhot
-                ? "Chọn thứ tự người chơi"
-                : nhotCount === 3
-                  ? "Nhốt tất cả · không tính hạng"
-                  : nhotCount === 2
-                    ? "Nhốt 2 · người chơi còn lại đồng hạng 3"
-                    : "Nhốt 1 · cShọn hạng 2 và 3 cho 2 người chơi còn lại"}
-            </p>
+      <Card className="overflow-hidden border-border/70 shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Crown className="size-4" />
+                </div>
+                Xếp hạng
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {!activeNhot
+                  ? "Chọn thứ tự người chơi"
+                  : nhotCount === 3
+                    ? "Nhốt tất cả · không tính hạng"
+                    : nhotCount === 2
+                      ? "Nhốt 2 · người chơi còn lại đồng hạng 3"
+                      : "Nhốt 1 · chọn hạng 2 và 3 cho 2 người chơi còn lại"}
+              </p>
+            </div>
             {activeNhot && (
-              <span className="text-xs text-chart-3 font-medium flex items-center gap-1">
-                <Lock className="size-3" />
+              <span className="rounded-full bg-chart-3/10 px-3 py-1 text-xs font-black text-chart-3 ring-1 ring-chart-3/20">
                 {selectCounter}/{requiredSelections}
               </span>
             )}
           </div>
         </CardHeader>
-        <CardContent className="pt-0 flex flex-col gap-2">
+        <CardContent className="flex flex-col gap-2 pt-0">
           {ranking.map((playerId, rankIndex) => {
             const player = players.find((p) => p.id === playerId)!;
             const pIdx = players.findIndex((p) => p.id === playerId);
@@ -1715,18 +1854,26 @@ export default function MatchPage() {
             return (
               <div
                 key={playerId}
-                className={`rounded-lg border flex flex-col overflow-hidden transition-all ${showAsActive ? style : "border-muted/40 bg-muted/10 opacity-60"}`}
+                className={`overflow-hidden rounded-3xl border transition-all ${
+                  showAsActive
+                    ? "border-border/70 bg-card shadow-sm"
+                    : "border-border/30 bg-muted/20 opacity-75"
+                } ${showAsActive ? style : ""}`}
               >
                 <button
                   onClick={() =>
                     isSelectable && !isFixed && toggleSelect(playerId)
                   }
-                  className={`flex items-center gap-2 px-3 py-2.5 w-full text-left transition-colors ${isSelectable && !isFixed ? "hover:bg-background/30 cursor-pointer" : "cursor-default"}`}
+                  className={`flex w-full items-center gap-2 px-3 py-3 text-left transition-colors ${
+                    isSelectable && !isFixed
+                      ? "cursor-pointer hover:bg-background/60"
+                      : "cursor-default"
+                  }`}
                 >
                   {/* Badge */}
                   {isFixed ? (
                     <span
-                      className={`flex items-center justify-center size-6 rounded-full text-xs font-bold shrink-0 ${
+                      className={`flex shrink-0 items-center justify-center size-6 rounded-full text-xs font-black ${
                         playerId === nhotterId
                           ? "bg-primary text-primary-foreground"
                           : nhotVictimIds.includes(playerId)
@@ -1746,7 +1893,11 @@ export default function MatchPage() {
                     </span>
                   ) : (
                     <span
-                      className={`flex items-center justify-center size-6 rounded-full text-xs font-bold shrink-0 transition-colors ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground border border-muted-foreground/20"}`}
+                      className={`flex shrink-0 items-center justify-center size-6 rounded-full text-xs font-black transition-colors ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-muted-foreground/20 bg-muted text-muted-foreground"
+                      }`}
                     >
                       {isSelected ? order : "·"}
                     </span>
@@ -1754,18 +1905,20 @@ export default function MatchPage() {
 
                   {/* Label hạng */}
                   <span
-                    className={`text-xs font-bold w-14 shrink-0 ${showAsActive ? labelColor : "text-muted-foreground"}`}
+                    className={`shrink-0 w-14 text-xs font-black ${
+                      showAsActive ? labelColor : "text-muted-foreground"
+                    }`}
                   >
                     {showAsActive ? label : ""}
                   </span>
 
-                  <span className="font-medium text-sm flex-1 truncate">
+                  <span className="min-w-0 flex-1 truncate text-sm font-black">
                     {player.name}
                   </span>
 
                   {showAsActive && (
                     <span
-                      className={`text-sm font-bold tabular-nums shrink-0 ${scoreColor(score)}`}
+                      className={`shrink-0 text-sm font-black tabular-nums ${scoreColor(score)}`}
                     >
                       {scoreFmt(score)}
                     </span>
@@ -1773,20 +1926,20 @@ export default function MatchPage() {
 
                   {isSelected && !isFixed && (
                     <div
-                      className="flex flex-col gap-0.5 shrink-0 ml-1"
+                      className="ml-1 flex shrink-0 flex-col gap-0.5"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
                         onClick={() => moveRank(playerId, "up")}
                         disabled={!canMoveUp}
-                        className="flex items-center justify-center size-6 rounded hover:bg-background/60 disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         <ChevronUp className="size-3.5" />
                       </button>
                       <button
                         onClick={() => moveRank(playerId, "down")}
                         disabled={!canMoveDown}
-                        className="flex items-center justify-center size-6 rounded hover:bg-background/60 disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         <ChevronDown className="size-3.5" />
                       </button>
@@ -1796,40 +1949,47 @@ export default function MatchPage() {
 
                 {/* ── Khạp + Sảnh ── */}
                 {showBonus && (
-                  <div className="flex flex-wrap gap-2 px-3 pb-2.5">
+                  <div className="flex flex-wrap gap-2 px-3 pb-3">
                     {/* Khạp */}
                     <div
-                      className={`flex items-center gap-0 px-2 py-1.5 rounded-md border text-xs transition-colors ${isKhapWinner ? "bg-chart-4/20 border-chart-4/50 text-chart-4" : khapTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground"}`}
+                      className={`inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs transition-colors ${
+                        isKhapWinner
+                          ? "border-chart-4/40 bg-chart-4/10 text-chart-4"
+                          : khapTaken
+                            ? "border-destructive/20 bg-destructive/5 text-destructive"
+                            : "border-border bg-muted/35 text-muted-foreground"
+                      }`}
                     >
                       <button
                         onClick={() => toggleKhapPlayer(playerId)}
-                        className="flex items-center gap-1 hover:opacity-80"
+                        className="flex items-center gap-1 font-black hover:opacity-80"
                         disabled={nhotVictimIds.includes(playerId)}
                       >
-                        <span className="font-medium">Khạp</span>
+                        <Flame className="size-3.5" />
+                        <span>Khạp</span>
                       </button>
                       {isKhapWinner && (
                         <>
-                          <span className="mx-1 opacity-30">|</span>
+                          <span className="mx-0.5 opacity-30">|</span>
                           <button
                             onClick={() => updateKhapCount(-1)}
                             disabled={khapCount <= 1}
-                            className="size-6 flex items-center justify-center rounded hover:bg-background/50 disabled:opacity-30 font-bold"
+                            className="size-5 rounded-full bg-background font-black disabled:opacity-30"
                           >
                             −
                           </button>
-                          <span className="font-bold w-4 text-center">
+                          <span className="w-4 text-center font-black">
                             {khapCountDisplay}
                           </span>
                           <button
                             onClick={() => updateKhapCount(1)}
                             disabled={khapCount >= gameConfig.maxKhapAccumulate}
-                            className="size-6 flex items-center justify-center rounded hover:bg-background/50 disabled:opacity-30 font-bold"
+                            className="size-5 rounded-full bg-background font-black disabled:opacity-30"
                           >
                             +
                           </button>
                           <span className="mx-1 opacity-30">|</span>
-                          <span className="font-bold text-chart-4">
+                          <span className="font-black">
                             +{khapPtsDisplay}
                           </span>
                         </>
@@ -1837,8 +1997,8 @@ export default function MatchPage() {
                       {/* ── THÊM MỚI: điểm âm khạp cho người còn lại ── */}
                       {!isKhapWinner && khapPtsLoss > 0 && (
                         <>
-                          <span className="mx-1 opacity-30">|</span>
-                          <span className="font-bold text-destructive">
+                          <span className="mx-0.5 opacity-30">|</span>
+                          <span className="font-black text-destructive">
                             -{khapPtsLoss}
                           </span>
                         </>
@@ -1849,23 +2009,30 @@ export default function MatchPage() {
                     <button
                       onClick={() => toggleSanhPlayer(playerId)}
                       disabled={nhotVictimIds.includes(playerId)}
-                      className={`flex items-center gap-0.5 px-2 py-1 rounded-md border text-xs transition-colors disabled:cursor-not-allowed ${isSanhWinner ? "bg-chart-1/20 border-chart-1/50 text-chart-1" : sanhTaken ? "opacity-80 bg-muted border-destructive/20 text-destructive" : "bg-muted/60 border-muted text-muted-foreground hover:border-chart-1/40"}`}
+                      className={`inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed ${
+                        isSanhWinner
+                          ? "border-chart-1/40 bg-chart-1/10 text-chart-1"
+                          : sanhTaken
+                            ? "border-destructive/20 bg-destructive/5 text-destructive"
+                            : "border-border bg-muted/35 text-muted-foreground hover:border-chart-1/30"
+                      }`}
                     >
-                      <span className="font-medium">Sảnh</span>
+                      <Spade className="size-3.5" />
+                      <span className="font-black">Sảnh</span>
                       {isSanhWinner && (
                         <>
-                          <span className="font-bold ml-0.5">
-                            {effectiveSanh}
+                          <span className="font-black">{effectiveSanh}</span>
+                          <span className="mx-0.5 opacity-30">|</span>
+                          <span className="font-black">
+                            +{sanhPtsDisplay}
                           </span>
-                          <span className="mx-1 opacity-30">|</span>
-                          <span className="font-bold">+{sanhPtsDisplay}</span>
                         </>
                       )}
                       {/* ── THÊM MỚI: điểm âm sảnh cho người còn lại ── */}
                       {!isSanhWinner && sanhPtsLoss > 0 && (
                         <>
-                          <span className="mx-1 opacity-30">|</span>
-                          <span className="font-bold text-destructive">
+                          <span className="mx-0.5 opacity-30">|</span>
+                          <span className="font-black text-destructive">
                             -{sanhPtsLoss}
                           </span>
                         </>
@@ -1885,25 +2052,20 @@ export default function MatchPage() {
                             return (
                               <div
                                 key={c.id}
-                                className="flex items-center gap-1.5 py-1"
+                                className="inline-flex items-center gap-1 rounded-2xl border border-chart-2/30 bg-chart-2/10 px-2 py-1 text-xs text-chart-2"
                               >
-                                <div
-                                  key={c.id}
-                                  className="flex items-center justify-center gap-1 py-0.5 pr-2 rounded-md border text-xs bg-chart-2/10 border-chart-2/30 text-chart-2"
-                                >
-                                  {(c.heo.do ?? 0) > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
-                                      {c.heo.do} Đỏ
-                                    </span>
-                                  )}
-                                  {(c.heo.den ?? 0) > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
-                                      {c.heo.den} Đen
-                                    </span>
-                                  )}
+                                {(c.heo.do ?? 0) > 0 && (
+                                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-black leading-normal text-white">
+                                    {c.heo.do} Đỏ
+                                  </span>
+                                )}
+                                {(c.heo.den ?? 0) > 0 && (
+                                  <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[10px] font-black leading-normal text-background">
+                                    {c.heo.den} Đen
+                                  </span>
+                                )}
 
-                                  <span className="font-bold">+{pts}</span>
-                                </div>
+                                <span className="font-black">+{pts}</span>
                               </div>
                             );
                           })}
@@ -1914,23 +2076,18 @@ export default function MatchPage() {
                               (c.heo.do ?? 0) * gameConfig.heoDoPoints +
                               (c.heo.den ?? 0) * gameConfig.heodenPoints;
                             return (
-                              <div className="flex items-center gap-1.5">
-                                <div
-                                  key={c.id}
-                                  className="flex items-center gap-1 py-0.5 pr-2 rounded-md border text-xs bg-destructive/10 border-destructive/20 text-destructive"
-                                >
-                                  {(c.heo.do ?? 0) > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold leading-normal">
-                                      {c.heo.do} Đỏ
-                                    </span>
-                                  )}
-                                  {(c.heo.den ?? 0) > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-foreground text-background font-bold leading-normal">
-                                      {c.heo.den} Đen
-                                    </span>
-                                  )}
-                                  <span className="font-bold">-{pts}</span>
-                                </div>
+                              <div className="inline-flex items-center gap-1 rounded-2xl border border-destructive/20 bg-destructive/10 px-2 py-1 text-xs text-destructive">
+                                {(c.heo.do ?? 0) > 0 && (
+                                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-black leading-normal text-white">
+                                    {c.heo.do} Đỏ
+                                  </span>
+                                )}
+                                {(c.heo.den ?? 0) > 0 && (
+                                  <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[10px] font-black leading-normal text-background">
+                                    {c.heo.den} Đen
+                                  </span>
+                                )}
+                                <span className="font-black">-{pts}</span>
                               </div>
                             );
                           })}
@@ -1944,43 +2101,16 @@ export default function MatchPage() {
         </CardContent>
       </Card>
 
-      {/* Kết quả */}
-      <Card>
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-muted-foreground mb-2 font-medium">
-            Kết quả ván {currentRoundNo}
-          </p>
-          <div className="grid grid-cols-4 gap-1">
-            {players.map((player) => {
-              const sc = computedScores[player.id];
-              return (
-                <div
-                  key={player.id}
-                  className="flex flex-col items-center gap-0.5"
-                >
-                  <span className="text-xs text-muted-foreground truncate w-full text-center">
-                    {pShort(player.id)}
-                  </span>
-                  <span className={`text-base font-bold ${scoreColor(sc)}`}>
-                    {scoreFmt(sc)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
       {fetcher.data?.error && (
-        <p className="text-sm text-destructive text-center">
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-3 text-center text-sm font-semibold text-destructive">
           {fetcher.data.error}
-        </p>
+        </div>
       )}
 
       {/* Submit */}
       <Button
         size="lg"
-        className="w-full gap-2"
+        className="sticky bottom-24 z-20 h-14 w-full gap-2 rounded-2xl text-sm font-black shadow-xl shadow-primary/20"
         disabled={
           isSaving ||
           (submitted && fetcher.data?.success) ||
@@ -2004,10 +2134,13 @@ export default function MatchPage() {
             <Swords className="size-4" />
             {activeNhot
               ? `Chọn hạng 2 và 3 (${selectCounter}/${requiredSelections})`
-              : `Chon đủ người chơi (${selectCounter}/${players.length})`}
+              : `Chọn đủ người chơi (${selectCounter}/${players.length})`}
           </>
         ) : (
-          <>Lưu ván {currentRoundNo}</>
+          <>
+            <CheckCircle2 className="size-4" />
+            Lưu ván {currentRoundNo}
+          </>
         )}
       </Button>
     </main>
