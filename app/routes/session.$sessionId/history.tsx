@@ -120,7 +120,7 @@ export async function loader({
 function ScoreCell({ score }: { score: number }) {
   return (
     <span
-      className={`font-black tabular-nums ${
+      className={`font-black tabular-nums text-xs sm:text-sm ${
         score > 0
           ? "text-chart-2"
           : score < 0
@@ -136,9 +136,25 @@ function ScoreCell({ score }: { score: number }) {
 function PlayerScoreCell({ score }: { score: number }) {
   return (
     <div
-      className={`inline-flex min-w-16 items-center justify-center rounded-2xl px-2 py-1.5 text-sm font-black tabular-nums ${
+      className={`inline-flex min-w-0 items-center justify-center rounded-2xl px-1.5 py-1.5 text-xs font-black tabular-nums sm:px-2 sm:py-2 ${
         score > 0
           ? "bg-chart-2/10 text-chart-2"
+          : score < 0
+            ? "bg-destructive/10 text-destructive"
+            : "bg-muted text-muted-foreground"
+      }`}
+    >
+      {score > 0 ? `+${score}` : score}
+    </div>
+  );
+}
+
+function TotalScoreCell({ score }: { score: number }) {
+  return (
+    <div
+      className={`inline-flex min-w-0 items-center justify-center rounded-2xl px-1.5 py-1.5 text-xs font-black tabular-nums sm:px-2 sm:py-2 ${
+        score > 0
+          ? "bg-chart-4/10 text-chart-4"
           : score < 0
             ? "bg-destructive/10 text-destructive"
             : "bg-muted text-muted-foreground"
@@ -199,25 +215,22 @@ export default function HistoryPage() {
               </div>
             </div>
           ) : (
-            <div className="relative h-full overflow-auto overscroll-contain">
-              <Table className="min-w-[640px] border-separate border-spacing-0">
+            <div className="relative h-full overflow-y-auto overflow-x-hidden overscroll-contain">
+              <Table className="w-full min-w-0 border-separate border-spacing-0 table-fixed">
                 <TableHeader className="sticky top-0 z-30">
-                  <TableRow className="bg-background/95 backdrop-blur shadow-[inset_0_1px_0_0_rgba(148,163,184,0.18)] [&>th]:py-3 [&>th]:text-[11px] [&>th]:uppercase [&>th]:tracking-wider">
-                    <TableHead className="sticky left-0 z-40 w-24 bg-background/95 text-center text-chart-4">
+                  <TableRow className="bg-background/95 backdrop-blur shadow-[inset_0_1px_0_0_rgba(148,163,184,0.18)] [&>th]:py-2">
+                    <TableHead className="w-12 px-1 text-center text-[11px] uppercase tracking-wider text-chart-4">
                       Ván
                     </TableHead>
                     {players.map((player) => (
-                      <TableHead
-                        key={player.id}
-                        className="min-w-[150px] text-center"
-                      >
-                        <span className="hidden sm:inline">{player.name}</span>
-                        <span className="sm:hidden">{player.shortName}</span>
+                      <TableHead key={player.id} className="px-1 text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="max-w-full truncate text-[11px] font-bold uppercase tracking-wide text-foreground">
+                            {player.shortName}
+                          </span>
+                        </div>
                       </TableHead>
                     ))}
-                    <TableHead className="sticky right-0 z-40 min-w-[150px] bg-background/95 text-center">
-                      Tổng điểm
-                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -225,49 +238,43 @@ export default function HistoryPage() {
                   {rounds.map((round, roundIndex) => (
                     <TableRow
                       key={round.id}
-                      className={`transition-colors hover:bg-primary/5 [&>td]:py-3 ${
+                      className={`transition-colors hover:bg-primary/5 [&>td]:py-2 ${
                         roundIndex % 2 === 0
                           ? "bg-background/70"
                           : "bg-muted/20"
                       }`}
                     >
-                      <TableCell className="sticky left-0 z-20 w-24 bg-background/95 text-center">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-black shadow-sm">
+                      <TableCell className="w-12 px-1 text-center">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-2xl bg-primary text-[11px] font-black text-primary-foreground shadow-sm">
                           {round.roundNo}
                         </span>
                       </TableCell>
                       {round.scores.map((score, index) => (
-                        <TableCell key={index} className="text-center">
+                        <TableCell key={index} className="px-1 text-center">
                           <PlayerScoreCell score={score} />
                         </TableCell>
                       ))}
-                      <TableCell className="sticky right-0 z-20 min-w-[150px] bg-background/95 text-center">
-                        <PlayerScoreCell score={playerTotals[roundIndex] ?? 0} />
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
 
                 <TableFooter className="sticky bottom-0 z-30">
-                  <TableRow className="bg-card/95 backdrop-blur shadow-[0_-1px_0_0_rgba(148,163,184,0.18)] [&>td]:py-3">
-                    <TableCell className="sticky left-0 z-50 w-24 bg-card/95 text-center font-black text-foreground">
+                  <TableRow className="bg-card/95 backdrop-blur shadow-[0_-1px_0_0_rgba(148,163,184,0.18)] [&>td]:py-2">
+                    <TableCell className="w-12 px-1 text-center font-black text-foreground">
                       Tổng
                     </TableCell>
                     {playerTotals.map((total, index) => (
-                      <TableCell key={index} className="text-center">
+                      <TableCell key={index} className="px-1 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {total > 0 ? (
                             <TrendingUp className="size-3.5 text-chart-2" />
                           ) : total < 0 ? (
                             <TrendingDown className="size-3.5 text-destructive" />
                           ) : null}
-                          <ScoreCell score={total} />
+                          <TotalScoreCell score={total} />
                         </div>
                       </TableCell>
                     ))}
-                    <TableCell className="sticky right-0 z-50 min-w-[150px] bg-card/95 text-center font-black text-foreground">
-                      {playerTotals.reduce((sum, score) => sum + score, 0)}
-                    </TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
