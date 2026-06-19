@@ -916,18 +916,39 @@ export default function MatchPage() {
           <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/10 blur-3xl" />
 
           <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/15">
-                <Swords className="size-3.5" />
-                Ván đấu
-              </div>
-              <h1 className="mt-3 text-2xl font-black tracking-tight text-foreground">
+            <div className="flex justify-between w-full">
+              <h1 className="text-2xl font-black tracking-tight text-foreground">
                 Ván {currentRoundNo}
               </h1>
-              <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
-                Nhập thứ hạng, thưởng phạt, khạp/sảnh rồi lưu để cập nhật bảng
-                điểm realtime.
-              </p>
+              <div className="flex gap-2">
+                {currentRoundId !== undefined && currentRoundNo > 1 && (
+                  <form method="post" className="flex-1 sm:flex-none">
+                    <input type="hidden" name="intent" value="delete-round" />
+                    <input
+                      type="hidden"
+                      name="roundId"
+                      value={currentRoundId}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReset}
+                      className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+                      type="submit"
+                    >
+                      <Trash className="size-3.5" />
+                    </Button>
+                  </form>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+                >
+                  <RotateCcw className="size-3.5" />
+                </Button>
+              </div>
             </div>
 
             <div className="hidden rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-right shadow-sm sm:block">
@@ -961,7 +982,7 @@ export default function MatchPage() {
                   <Flame className="size-5" />
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-5 gap-1.5">
+              <div className="mt-4 grid grid-cols-10 gap-0.5">
                 {Array.from({ length: gameConfig.maxKhapAccumulate }).map(
                   (_, i) => (
                     <div
@@ -993,7 +1014,7 @@ export default function MatchPage() {
                   <Spade className="size-5" />
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-5 gap-1.5">
+              <div className="mt-4 grid grid-cols-10 gap-0.5">
                 {Array.from({ length: gameConfig.maxSanhAccumulate }).map(
                   (_, i) => (
                     <div
@@ -1015,72 +1036,10 @@ export default function MatchPage() {
           </div>
           <div>
             <p className="text-sm font-black text-foreground">Nhập kết quả</p>
-            <p className="text-xs text-muted-foreground">
-              Chọn thứ hạng và các thưởng phạt
-            </p>
-          </div>
-        </div>
 
-        <div className="flex gap-2">
-          {currentRoundId !== undefined && currentRoundNo > 1 && (
-            <form method="post" className="flex-1 sm:flex-none">
-              <input type="hidden" name="intent" value="delete-round" />
-              <input type="hidden" name="roundId" value={currentRoundId} />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="h-9 gap-1.5 text-xs font-bold text-muted-foreground hover:text-destructive sm:h-10"
-                type="submit"
-              >
-                <Trash className="size-3.5" />
-                Hủy ván trước
-              </Button>
-            </form>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReset}
-            className="h-9 gap-1.5 text-xs font-bold sm:h-10"
-          >
-            <RotateCcw className="size-3.5" />
-            Reset
-          </Button>
+          </div>
         </div>
       </div>
-
-      {/* Kết quả tạm tính */}
-      <Card className="overflow-hidden border-border/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
-              <CheckCircle2 className="size-4" />
-            </div>
-            Kết quả tạm tính
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-2">
-            {players.map((player) => {
-              const sc = computedScores[player.id];
-              return (
-                <div
-                  key={player.id}
-                  className={`flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
-                >
-                  <span className="text-[10px] font-black uppercase tracking-wide opacity-70">
-                    {pShort(player.id)}
-                  </span>
-                  <span className="text-xl font-black tabular-nums">
-                    {scoreFmt(sc)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* ── Nhốt bài ─────────────────────────── */}
       <Card className="overflow-hidden border-border/70 shadow-sm">
@@ -1194,7 +1153,8 @@ export default function MatchPage() {
                             {pShort(n.dennerId)}
                           </span>
                           <span className="text-xs font-bold text-muted-foreground">
-                            đền cho {denForIds.map((id) => pShort(id)).join(", ")}
+                            đền cho{" "}
+                            {denForIds.map((id) => pShort(id)).join(", ")}
                           </span>
                         </div>
                         <p className="mt-2 text-xs font-semibold text-muted-foreground">
@@ -1586,9 +1546,7 @@ export default function MatchPage() {
                           {pShort(c.chatterId)}
                         </span>
                         <Scissors className="size-3.5 text-muted-foreground" />
-                        <span className="font-black">
-                          {pShort(c.victimId)}
-                        </span>
+                        <span className="font-black">{pShort(c.victimId)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {(c.heo.do ?? 0) > 0 && (
@@ -1989,9 +1947,7 @@ export default function MatchPage() {
                             +
                           </button>
                           <span className="mx-1 opacity-30">|</span>
-                          <span className="font-black">
-                            +{khapPtsDisplay}
-                          </span>
+                          <span className="font-black">+{khapPtsDisplay}</span>
                         </>
                       )}
                       {/* ── THÊM MỚI: điểm âm khạp cho người còn lại ── */}
@@ -2023,9 +1979,7 @@ export default function MatchPage() {
                         <>
                           <span className="font-black">{effectiveSanh}</span>
                           <span className="mx-0.5 opacity-30">|</span>
-                          <span className="font-black">
-                            +{sanhPtsDisplay}
-                          </span>
+                          <span className="font-black">+{sanhPtsDisplay}</span>
                         </>
                       )}
                       {/* ── THÊM MỚI: điểm âm sảnh cho người còn lại ── */}
@@ -2098,6 +2052,38 @@ export default function MatchPage() {
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+            {/* Kết quả tạm tính */}
+      <Card className="overflow-hidden border-border/70 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
+              <CheckCircle2 className="size-4" />
+            </div>
+            Kết quả tạm tính
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-2">
+            {players.map((player) => {
+              const sc = computedScores[player.id];
+              return (
+                <div
+                  key={player.id}
+                  className={`flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-wide opacity-70">
+                    {pShort(player.id)}
+                  </span>
+                  <span className="text-xl font-black tabular-nums">
+                    {scoreFmt(sc)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 

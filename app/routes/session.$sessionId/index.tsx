@@ -105,8 +105,8 @@ function ScorePill({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-2xl border px-3 py-1.5 font-black tabular-nums shadow-sm",
-        "min-w-16 text-base sm:min-w-20 sm:text-xl",
+        "inline-flex items-center justify-center rounded-2xl border px-1 py-1 font-black tabular-nums shadow-sm",
+        "min-w-12 text-base sm:min-w-20 sm:text-xl",
         tone.bg,
         tone.border,
         tone.text,
@@ -123,12 +123,10 @@ function ScorePill({
 function LeaderSummaryCard({
   title,
   player,
-  description,
   accent,
 }: {
   title: string;
   player: PlayerTotal | null;
-  description: string;
   accent: "leader" | "lowest";
 }) {
   const score = player?.totalScore ?? 0;
@@ -153,12 +151,8 @@ function LeaderSummaryCard({
             {title}
           </div>
 
-          <p className="mt-1.5 truncate text-sm font-black text-foreground sm:text-base">
+          <p className="mt-1.5 pl-4 truncate text-sm font-black text-foreground sm:text-base">
             {player?.playerName ?? "—"}
-          </p>
-
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {description}
           </p>
         </div>
 
@@ -241,43 +235,26 @@ export default function SessionScoreboard({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-4 pb-32">
-      {/* Compact page title */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
-            Tổng điểm
-          </p>
-          <h1 className="mt-1 text-xl font-black tracking-tight text-foreground">
-            Bảng điểm
-          </h1>
-        </div>
-      </div>
-
       {/* Leader vs lowest */}
       <div className="grid grid-cols-2 gap-3">
         <LeaderSummaryCard
           title="Dẫn đầu"
           player={leader}
-          description="Cao nhất"
           accent="leader"
         />
 
         <LeaderSummaryCard
           title="Thấp nhất"
           player={lowest}
-          description="Thấp nhất"
           accent="lowest"
         />
       </div>
 
       {/* Ranking list */}
       <Card className="mt-4 overflow-hidden border-border/70 shadow-sm">
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div>
             <CardTitle className="text-base">Xếp hạng hiện tại</CardTitle>
-            <CardDescription>
-              Tên người chơi và tổng điểm.
-            </CardDescription>
           </div>
         </CardHeader>
 
