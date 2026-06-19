@@ -2,10 +2,8 @@ import type { Route } from "./+types/index";
 import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import { players } from "~/db/schema/players";
-import { rounds } from "~/db/schema/rounds";
-import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
-import { eq, desc, max } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   Card,
   CardContent,
@@ -13,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
 import { Trophy, Crown } from "lucide-react";
 import { cn } from "~/lib/utils";
 
@@ -44,38 +41,9 @@ export async function loader({ params }: Route.LoaderArgs) {
     .where(eq(players.sessionId, session.id))
     .orderBy(players.orderNo);
 
-  const [lastRoundRow] = await db
-    .select({ maxRoundNo: max(rounds.roundNo) })
-    .from(rounds)
-    .where(eq(rounds.sessionId, session.id));
-
-  const maxRoundNo = lastRoundRow?.maxRoundNo ?? null;
-
-  let lastRoundResults: { playerId: string; score: number }[] = [];
-
-  if (maxRoundNo !== null) {
-    const [lastRound] = await db
-      .select({ id: rounds.id })
-      .from(rounds)
-      .where(eq(rounds.sessionId, session.id))
-      .orderBy(desc(rounds.roundNo))
-      .limit(1);
-
-    if (lastRound) {
-      lastRoundResults = await db
-        .select({
-          playerId: roundResults.playerId,
-          score: roundResults.score,
-        })
-        .from(roundResults)
-        .where(eq(roundResults.roundId, lastRound.id));
-    }
-  }
-
   return {
     session,
     playerTotals,
-    lastRoundResults,
   };
 }
 
@@ -121,28 +89,6 @@ function scoreTone(score: number) {
   };
 }
 
-function statusLabel(status: string) {
-  switch (status) {
-    case "playing":
-      return "Đang chơi";
-    case "finished":
-      return "Hoàn tất";
-    default:
-      return "Chờ bắt đầu";
-  }
-}
-
-function statusBadgeClass(status: string) {
-  switch (status) {
-    case "playing":
-      return "border-chart-2/20 bg-chart-2/10 text-chart-2";
-    case "finished":
-      return "border-destructive/20 bg-destructive/10 text-destructive";
-    default:
-      return "border-primary/20 bg-primary/10 text-primary";
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -159,8 +105,8 @@ function ScorePill({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-2xl border px-4 py-2 font-black tabular-nums shadow-sm",
-        "min-w-20 text-2xl sm:text-3xl",
+        "inline-flex items-center justify-center rounded-2xl border px-3 py-1.5 font-black tabular-nums shadow-sm",
+        "min-w-16 text-base sm:min-w-20 sm:text-xl",
         tone.bg,
         tone.border,
         tone.text,
@@ -190,28 +136,30 @@ function LeaderSummaryCard({
   return (
     <Card
       className={cn(
-        "overflow-hidden border p-4 shadow-sm",
+        "overflow-hidden border p-3 shadow-sm",
         accent === "leader"
           ? "border-primary/20 bg-primary/5"
           : "border-destructive/15 bg-destructive/5",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
             {accent === "leader" ? (
-              <Crown className="size-3.5 text-primary" />
+              <Crown className="size-3 text-primary" />
             ) : (
-              <Trophy className="size-3.5 text-destructive" />
+              <Trophy className="size-3 text-destructive" />
             )}
             {title}
           </div>
 
-          <p className="mt-2 truncate text-lg font-black text-foreground">
+          <p className="mt-1.5 truncate text-sm font-black text-foreground sm:text-base">
             {player?.playerName ?? "—"}
           </p>
 
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {description}
+          </p>
         </div>
 
         <ScorePill score={score} />
@@ -241,7 +189,7 @@ function ScoreRow({
     >
       <div
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black",
+          "flex size-8 shrink-0 items-center justify-center rounded-xl text-xs font-black",
           isLeader
             ? "bg-primary text-primary-foreground"
             : "bg-muted text-muted-foreground",
@@ -251,7 +199,7 @@ function ScoreRow({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-black text-foreground">
+        <p className="truncate text-sm font-black text-foreground sm:text-base">
           {player.playerName}
         </p>
       </div>
@@ -282,7 +230,7 @@ function EmptyState() {
 export default function SessionScoreboard({
   loaderData,
 }: Route.ComponentProps) {
-  const { session, playerTotals } = loaderData;
+  const { playerTotals } = loaderData;
 
   const sorted = [...playerTotals].sort(
     (a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0),
@@ -293,56 +241,31 @@ export default function SessionScoreboard({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-4 pb-32">
-      {/* Header */}
-      <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                <Trophy className="size-6" />
-              </div>
-
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CardDescription className="text-xs font-black uppercase tracking-wide text-primary">
-                    Phòng {session.code}
-                  </CardDescription>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "rounded-full text-xs font-black",
-                      statusBadgeClass(session.status),
-                    )}
-                  >
-                    {statusLabel(session.status)}
-                  </Badge>
-                </div>
-
-                <CardTitle className="mt-1 text-2xl font-black tracking-tight text-foreground">
-                  Bảng điểm tổng
-                </CardTitle>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Theo dõi thứ hạng và tổng điểm hiện tại của từng người chơi.
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      {/* Compact page title */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+            Tổng điểm
+          </p>
+          <h1 className="mt-1 text-xl font-black tracking-tight text-foreground">
+            Bảng điểm
+          </h1>
+        </div>
+      </div>
 
       {/* Leader vs lowest */}
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <LeaderSummaryCard
           title="Dẫn đầu"
           player={leader}
-          description="Tổng điểm cao nhất"
+          description="Cao nhất"
           accent="leader"
         />
 
         <LeaderSummaryCard
           title="Thấp nhất"
           player={lowest}
-          description="Tổng điểm thấp nhất"
+          description="Thấp nhất"
           accent="lowest"
         />
       </div>
@@ -353,7 +276,7 @@ export default function SessionScoreboard({
           <div>
             <CardTitle className="text-base">Xếp hạng hiện tại</CardTitle>
             <CardDescription>
-              Tên người chơi và tổng điểm được hiển thị rõ ràng.
+              Tên người chơi và tổng điểm.
             </CardDescription>
           </div>
         </CardHeader>
