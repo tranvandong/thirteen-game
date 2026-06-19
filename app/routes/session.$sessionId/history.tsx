@@ -137,8 +137,8 @@ export default function HistoryPage() {
   const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
 
   return (
-    <main className="p-4 flex flex-col h-[calc(100dvh-3.5rem-5rem)] min-h-0 box-border">
-      <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <main className="h-[100dvh] min-h-0 overflow-hidden p-4 pb-[calc(6.25rem_+_env(safe-area-inset-bottom))]">
+      <Card className="h-full min-h-0 flex flex-col overflow-hidden">
         <CardHeader className="shrink-0 pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
@@ -147,23 +147,26 @@ export default function HistoryPage() {
             Lịch sử ván đấu
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 min-h-0 p-0 overflow-hidden">
+
+        <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
           {rounds.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-12 px-4">
-              Chưa có ván đấu nào.
-            </p>
+            <div className="flex h-full items-center justify-center px-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Chưa có ván đấu nào.
+              </p>
+            </div>
           ) : (
-            <div className="relative h-full overflow-auto">
-              <Table className="[&>div]:overflow-visible">
+            <div className="h-full overflow-auto overscroll-contain">
+              <Table className="border-separate border-spacing-0">
                 <TableHeader className="sticky top-0 z-20">
-                  <TableRow className="bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
-                    <TableHead className="text-center w-12 sticky left-0 bg-muted/95 backdrop-blur z-30">
-                      Van
+                  <TableRow className="bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80 [&>th]:border-b">
+                    <TableHead className="sticky left-0 z-30 w-12 bg-muted/95 text-center backdrop-blur">
+                      Ván
                     </TableHead>
                     {players.map((player) => (
                       <TableHead
                         key={player.id}
-                        className="text-center min-w-[60px]"
+                        className="min-w-[60px] text-center"
                       >
                         <span className="hidden sm:inline">{player.name}</span>
                         <span className="sm:hidden">{player.shortName}</span>
@@ -171,10 +174,11 @@ export default function HistoryPage() {
                     ))}
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
                   {rounds.map((round) => (
                     <TableRow key={round.id} className="hover:bg-muted/30">
-                      <TableCell className="text-center font-bold sticky left-0 bg-background z-10">
+                      <TableCell className="sticky left-0 z-10 bg-background text-center font-bold">
                         {round.roundNo}
                       </TableCell>
                       {round.scores.map((score, index) => (
@@ -185,9 +189,10 @@ export default function HistoryPage() {
                     </TableRow>
                   ))}
                 </TableBody>
+
                 <TableFooter className="sticky bottom-0 z-20">
-                  <TableRow className="bg-muted/95 backdrop-blur font-bold">
-                    <TableCell className="text-center sticky left-0 bg-muted/95 backdrop-blur z-30">
+                  <TableRow className="bg-muted/95 font-bold backdrop-blur supports-[backdrop-filter]:bg-muted/80 [&>td]:border-t">
+                    <TableCell className="sticky left-0 z-30 bg-muted/95 text-center backdrop-blur">
                       Tổng
                     </TableCell>
                     {playerTotals.map((total, index) => (
