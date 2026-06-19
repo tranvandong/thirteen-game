@@ -4,7 +4,6 @@ import {
   useParams,
   useLocation,
   useNavigate,
-  useLoaderData,
 } from "react-router";
 import type { Route } from "./+types/layout";
 import { db } from "~/db/client.server";
@@ -12,7 +11,6 @@ import { sessions } from "~/db/schema/sessions";
 import { gameConfigs } from "~/db/schema/game-configs";
 import { players as playersSchema } from "~/db/schema/players";
 import { participants } from "~/db/schema/participants";
-import { playerDevices } from "~/db/schema/player-devices";
 import { eq, asc, and } from "drizzle-orm";
 import { redirect } from "react-router";
 import { ModeToggle } from "~/components/mode-toggle";
@@ -230,8 +228,8 @@ async function registerDevice(
   const platform = /iphone|ipad|ipod/.test(ua)
     ? "ios"
     : /android/.test(ua)
-    ? "android"
-    : "web";
+      ? "android"
+      : "web";
 
   // 3. Gọi API upsert device (không block UI nếu lỗi)
   try {
@@ -285,8 +283,6 @@ export default function SessionLayout() {
 
   const session = useSession();
   const currentParticipant = useCurrentParticipant();
-  const addRound = useSessionStore((s) => s.addRound);
-  const setTotals = useSessionStore((s) => s.setTotals);
 
   // Đăng ký thiết bị sau khi hydrate xong
   useEffect(() => {
@@ -300,26 +296,19 @@ export default function SessionLayout() {
 
     joinSession(sessionId, currentParticipant.id, currentParticipant.displayName);
 
-    // const handleRoundFinished = (payload: any) => { addRound(payload.round); };
-    // const handleScoreUpdated  = (payload: any) => { setTotals(payload.totals); };
-    // onRoundFinished(handleRoundFinished);
-    // onScoreUpdated(handleScoreUpdated);
-
     return () => {
-      // offRoundFinished(handleRoundFinished);
-      // offScoreUpdated(handleScoreUpdated);
       leaveSession(sessionId);
     };
   }, [sessionId, currentParticipant?.id]);
 
   const leftTabs = [
-    { to: `/session/${sessionId}`,         label: "Xếp hạng", icon: Home,    exact: true  },
-    { to: `/session/${sessionId}/history`, label: "Lịch Sử",  icon: Clock,   exact: false },
+    { to: `/session/${sessionId}`, label: "Xếp hạng", icon: Home, exact: true },
+    { to: `/session/${sessionId}/history`, label: "Lịch Sử", icon: Clock, exact: false },
   ];
 
   const rightTabs = [
-    { to: `/session/${sessionId}/chart`,    label: "Thống Kê", icon: BarChart2, exact: false },
-    { to: `/session/${sessionId}/settings`, label: "Cấu Hình", icon: Settings,  exact: false },
+    { to: `/session/${sessionId}/chart`, label: "Thống Kê", icon: BarChart2, exact: false },
+    { to: `/session/${sessionId}/settings`, label: "Cấu Hình", icon: Settings, exact: false },
   ];
 
   const centerTab = {
@@ -343,62 +332,94 @@ export default function SessionLayout() {
   }) => {
     const active = isTabActive(tab);
     const Icon = tab.icon;
+
     return (
       <Link
         to={tab.to}
-        className={`flex flex-col items-center justify-center flex-1 gap-1 transition-colors relative ${
-          active ? "text-primary" : "text-muted-foreground"
+        className={`group flex min-w-0 w-full flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-all ${
+          active
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         }`}
       >
-        <Icon className={`size-5 transition-transform ${active ? "-translate-y-0.5" : ""}`} />
-        <span className="text-xs font-medium">{tab.label}</span>
+        <span
+          className={`flex size-9 items-center justify-center rounded-2xl transition-all ${
+            active
+              ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+              : "bg-transparent group-hover:bg-background/70"
+          }`}
+        >
+          <Icon className={`size-5 transition-transform ${active ? "-translate-y-0.5" : ""}`} />
+        </span>
+        <span className="w-full truncate text-center text-[10px] font-semibold leading-none sm:text-[11px]">
+          {tab.label}
+        </span>
       </Link>
     );
   };
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <div className="min-h-screen bg-background pb-20">
+      <div className="relative min-h-dvh overflow-hidden bg-background pb-[calc(6.25rem_+_env(safe-area-inset-bottom))]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-48 bg-gradient-to-b from-primary/10 to-transparent" />
+
         {/* Header */}
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-          <div className="flex items-center justify-between px-4 h-14">
+        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/88 backdrop-blur-xl">
+          <div className="mx-auto flex min-h-16 max-w-[430px] items-center justify-between gap-2 px-3 py-2 sm:max-w-lg sm:px-4">
             <Link
               to="/"
-              className="flex items-center gap-2 text-lg font-bold text-primary"
+              className="group flex min-w-0 items-center gap-3 rounded-2xl px-2 py-2 transition hover:bg-primary/5"
             >
-              <Spade className="size-5" />
-              Thirteen Game
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-lg shadow-primary/20 transition group-hover:scale-[1.03]">
+                <Spade className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-foreground">
+                  Thirteen Game
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  Phòng {session?.code ?? "realtime"}
+                </p>
+              </div>
             </Link>
-            <div className="flex items-center gap-4">
+
+            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-border/70 bg-card/70 p-1 shadow-sm">
               <ModeToggle />
-              <LucideLogOut onClick={() => navigate("/")} className="size-6 cursor-pointer" />
+              <button
+                onClick={() => navigate("/")}
+                className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                title="Thoát phòng"
+              >
+                <LucideLogOut className="size-5" />
+              </button>
             </div>
           </div>
         </header>
 
         <Outlet />
 
-        {/* Bottom Tab Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
-          <div className="flex items-center h-16 max-w-lg mx-auto px-2">
+        {/* Mobile-first Bottom Tab Bar: 5 equal columns */}
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/92 px-2 pb-[calc(0.5rem_+_env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+          <div className="mx-auto grid w-full max-w-[430px] grid-cols-5 items-end justify-center gap-0.5 px-1.5 sm:max-w-lg sm:px-0">
             {leftTabs.map((tab) => (
               <TabItem key={tab.to} tab={tab} />
             ))}
 
             {/* Center FAB */}
-            <div className="flex flex-col items-center justify-center flex-shrink-0 px-3 -mt-5">
+            <div className="col-span-1 flex flex-col items-center justify-center -mt-7">
               <Link
                 to={centerTab.to}
-                className={`flex items-center justify-center size-14 rounded-full shadow-lg transition-all active:scale-95 ${
+                aria-label="Ván Đấu"
+                className={`relative flex items-center justify-center size-14 rounded-full border-[5px] border-background shadow-xl transition-all active:scale-95 ${
                   isCenterActive
-                    ? "bg-primary text-primary-foreground shadow-primary/40 shadow-xl"
-                    : "bg-primary text-primary-foreground shadow-primary/30"
+                    ? "bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-2xl shadow-primary/35"
+                    : "bg-primary text-primary-foreground shadow-xl shadow-primary/30"
                 }`}
               >
                 <Swords className="size-6" />
               </Link>
               <span
-                className={`text-xs font-medium mt-1 ${
+                className={`mt-1 w-full truncate text-center text-[10px] font-semibold ${
                   isCenterActive ? "text-primary" : "text-muted-foreground"
                 }`}
               >

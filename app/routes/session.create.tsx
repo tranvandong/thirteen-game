@@ -9,7 +9,7 @@ import { players as playersSchema } from "~/db/schema/players";
 import { participants } from "~/db/schema/participants";
 import { redirect } from "react-router";
 import { eq } from "drizzle-orm";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -33,6 +33,9 @@ import {
   Sparkles,
   PiggyBank,
   Swords,
+  Crown,
+  Zap,
+  Target,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -136,7 +139,7 @@ export async function action({ request }: Route.ActionArgs) {
           orderNo: idx + 1,
         })),
       );
-console.log(session.id)
+
       return {
         sessionCode: session.code,
         sessionId: session.id,
@@ -164,12 +167,12 @@ export function meta({}: Route.MetaArgs) {
 
 // ── Score preview helper ──────────────────────────────────────
 
-const RANK_LABELS = ["Hang 1", "Hang 2", "Hang 3", "Hang 4"];
+const RANK_LABELS = ["Nhất", "Nhì", "Ba", "Tư"];
 const RANK_COLORS = [
-  "text-chart-4 bg-chart-4/10 border-chart-4/30",
-  "text-chart-2 bg-chart-2/10 border-chart-2/30",
-  "text-muted-foreground bg-muted/40 border-muted",
-  "text-destructive bg-destructive/10 border-destructive/30",
+  "from-yellow-300 to-amber-500 text-amber-950",
+  "from-emerald-300 to-emerald-500 text-emerald-950",
+  "from-slate-200 to-slate-400 text-slate-950",
+  "from-rose-300 to-red-500 text-white",
 ];
 
 // ── Number stepper component ──────────────────────────────────
@@ -191,17 +194,17 @@ function ScoreInput({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <Label htmlFor={id} className="text-xs font-medium">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={id} className="text-xs font-semibold text-muted-foreground">
           {label}
         </Label>
-        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+        {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
       </div>
-      <div className="flex items-center">
+      <div className="flex items-center rounded-2xl border border-input bg-card p-1 shadow-sm">
         <button
           type="button"
           onClick={() => onChange(value - 1)}
-          className="flex items-center justify-center size-9 rounded-l-md border border-r-0 border-input bg-muted hover:bg-muted/70 text-muted-foreground font-bold transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-muted/80"
         >
           −
         </button>
@@ -211,16 +214,59 @@ function ScoreInput({
           name={name}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value) || 0)}
-          className="rounded-none text-center font-bold h-9 border-x-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+          className="h-8 rounded-none border-0 bg-transparent px-2 text-center font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         />
         <button
           type="button"
           onClick={() => onChange(value + 1)}
-          className="flex items-center justify-center size-9 rounded-r-md border border-l-0 border-input bg-muted hover:bg-muted/70 text-muted-foreground font-bold transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-muted/80"
         >
           +
         </button>
       </div>
+    </div>
+  );
+}
+
+function PlayerRow({
+  index,
+  value,
+  error,
+  onChange,
+}: {
+  index: number;
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div
+      className={`group relative flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors ${
+        error
+          ? "border-destructive/40 bg-destructive/5"
+          : "border-border/70 bg-background/70 hover:border-primary/40 hover:bg-primary/5"
+      }`}
+    >
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-sm font-black shadow-sm ${RANK_COLORS[index]}`}
+      >
+        {index + 1}
+      </div>
+
+      <Input
+        id={`player${index + 1}`}
+        name={`player${index + 1}`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={`Tên người chơi ${index + 1}`}
+        className={`min-w-0 border-0 bg-transparent px-0 text-base font-semibold shadow-none ring-0 placeholder:font-medium placeholder:text-muted-foreground/50 focus-visible:ring-0`}
+      />
+
+      {error && (
+        <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+          !
+        </span>
+      )}
     </div>
   );
 }
@@ -283,51 +329,77 @@ export default function CreateSession() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-primary/15 via-background to-background pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="flex items-center gap-3 px-4 h-14">
-          <Link to="/" className="flex items-center justify-center">
-            <Button variant="ghost" size="icon">
-              <ChevronLeft className="size-5" />
-            </Button>
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
+          <Link to="/" className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
+            <ChevronLeft className="size-5" />
           </Link>
-          <div className="flex items-center gap-2">
-            <Spade className="size-4 text-primary" />
-            <h1 className="text-base font-semibold">Tao Phong Choi</h1>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+              <Spade className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-bold">Tạo phòng chơi</h1>
+              <p className="truncate text-xs text-muted-foreground">
+                Thiết lập luật và người chơi cho ván mới
+              </p>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="pb-28">
-        {/*
-          method="post" → React Router tự dispatch tới action() của route này
-          Không cần action URL rõ ràng vì đây là cùng route file
-        */}
+      <main className="mx-auto grid max-w-3xl gap-4 px-4 py-5">
+        {/* Hero */}
+        <section className="overflow-hidden rounded-[2rem] border border-primary/20 bg-card p-5 shadow-xl shadow-primary/10">
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+            <div className="relative">
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary">
+                <Zap className="size-4" />
+                Thirteen Game
+              </div>
+              <h2 className="text-2xl font-black tracking-tight text-foreground">
+                Tạo bàn chơi mới
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Nhập tên người chơi và luật điểm. Sau khi tạo, bạn sẽ nhận được
+                mã phòng để chia sẻ cho mọi người cùng tham gia.
+              </p>
+            </div>
+            <div className="relative flex shrink-0 items-center gap-3 rounded-3xl bg-primary/10 p-4 text-primary ring-1 ring-primary/15">
+              <Crown className="size-7" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide">
+                  Chủ phòng
+                </p>
+                <p className="text-sm font-bold">{formData.ownerName || "—"}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <form
           id="create-form"
           method="post"
           onSubmit={handleSubmit}
-          className="flex flex-col gap-4 p-4"
+          className="flex flex-col gap-4"
         >
-          {/* ── Hidden fields cho các giá trị number từ state ── */}
-          {/* Các ScoreInput dùng name= nên tự submit, nhưng thêm hidden
-              fields phòng trường hợp input bị uncontrolled */}
-
           {/* ── Chủ phòng ─────────────────────────────────── */}
-          <Card>
+          <Card className="overflow-hidden border-border/70 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <div className="flex items-center justify-center size-7 rounded-full bg-primary/10 text-primary">
-                  <Spade className="size-3.5" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Spade className="size-4" />
                 </div>
-                Chu Phong
+                Thông tin chủ phòng
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="ownerName" className="text-xs font-medium">
-                  Ten cua ban
+                <Label htmlFor="ownerName" className="text-xs font-semibold text-muted-foreground">
+                  Tên của bạn
                 </Label>
                 <Input
                   id="ownerName"
@@ -338,8 +410,8 @@ export default function CreateSession() {
                     if (errors.ownerName)
                       setErrors((p) => ({ ...p, ownerName: "" }));
                   }}
-                  placeholder="Nhap ten cua ban"
-                  className={errors.ownerName ? "border-destructive" : ""}
+                  placeholder="Nhập tên của bạn"
+                  className={`h-11 rounded-2xl ${errors.ownerName ? "border-destructive focus-visible:ring-destructive/20" : ""}`}
                 />
                 {errors.ownerName && (
                   <p className="text-destructive text-xs">{errors.ownerName}</p>
@@ -349,86 +421,68 @@ export default function CreateSession() {
           </Card>
 
           {/* ── Người chơi ────────────────────────────────── */}
-          <Card>
+          <Card className="overflow-hidden border-border/70 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="flex items-center justify-center size-7 rounded-full bg-chart-2/20 text-chart-2">
-                  <Users className="size-3.5" />
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-2/15 text-chart-2">
+                  <Users className="size-4" />
                 </div>
-                Nguoi Choi
-                <Badge variant="secondary" className="ml-auto text-xs">
-                  4 nguoi
+                <CardTitle className="text-base">Người chơi</CardTitle>
+                <Badge variant="secondary" className="ml-auto rounded-full text-xs">
+                  4 người
                 </Badge>
-              </CardTitle>
+              </div>
             </CardHeader>
-            <CardContent className="flex flex-col gap-0 p-0">
-              {[0, 1, 2, 3].map((i) => {
-                const key = `player${i + 1}` as keyof typeof formData;
-                const err = errors[`player${i + 1}`];
-                const rankColor = RANK_COLORS[i];
-                return (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-3 px-4 py-3 ${i < 3 ? "border-b border-muted/60" : ""}`}
-                  >
-                    <span
-                      className={`flex items-center justify-center size-7 rounded-full text-xs font-bold border shrink-0 ${rankColor}`}
-                    >
-                      {i + 1}
-                    </span>
-                    <Input
-                      id={`player${i + 1}`}
-                      name={`player${i + 1}`}
-                      value={formData[key] as string}
-                      onChange={(e) => {
-                        set(key, e.target.value);
-                        if (err)
-                          setErrors((p) => ({
-                            ...p,
-                            [`player${i + 1}`]: "",
-                          }));
-                      }}
-                      placeholder={`Ten nguoi choi ${i + 1}`}
-                      className={`border-0 shadow-none bg-transparent focus-visible:ring-0 px-0 font-medium ${err ? "placeholder:text-destructive" : ""}`}
-                    />
-                    {err && (
-                      <p className="text-destructive text-xs shrink-0">!</p>
-                    )}
-                  </div>
-                );
-              })}
+            <CardContent className="grid gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <PlayerRow
+                  key={i}
+                  index={i}
+                  value={formData[`player${i + 1}` as keyof typeof formData] as string}
+                  error={errors[`player${i + 1}`]}
+                  onChange={(value) => {
+                    set(`player${i + 1}` as keyof typeof formData, value);
+                    if (errors[`player${i + 1}`]) {
+                      setErrors((p) => ({
+                        ...p,
+                        [`player${i + 1}`]: "",
+                      }));
+                    }
+                  }}
+                />
+              ))}
             </CardContent>
           </Card>
 
           {/* ── Điểm hạng ─────────────────────────────────── */}
-          <Card>
+          <Card className="overflow-hidden border-border/70 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="flex items-center justify-center size-7 rounded-full bg-chart-4/20 text-chart-4">
-                  <Trophy className="size-3.5" />
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-4/15 text-chart-4">
+                  <Trophy className="size-4" />
                 </div>
-                Diem Hang
-              </CardTitle>
+                <CardTitle className="text-base">Điểm hạng</CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {/* Preview bar */}
-              <div className="flex gap-1.5 rounded-lg overflow-hidden border border-muted p-1 bg-muted/30">
+              <div className="grid grid-cols-4 gap-2 rounded-3xl border border-border/70 bg-muted/35 p-2">
                 {rankScores.map((score, i) => (
                   <div
                     key={i}
-                    className={`flex-1 flex flex-col items-center py-1.5 rounded-md border text-xs font-bold ${RANK_COLORS[i]}`}
+                    className={`flex min-h-20 flex-col items-center justify-center rounded-2xl bg-gradient-to-br px-2 py-2 shadow-sm ${RANK_COLORS[i]}`}
                   >
-                    <span className="text-[10px] opacity-70 mb-0.5">
-                      {RANK_LABELS[i]}
+                    <span className="text-[10px] font-bold uppercase tracking-wide opacity-75">
+                      Hạng {RANK_LABELS[i]}
                     </span>
-                    <span>{score > 0 ? `+${score}` : score}</span>
+                    <span className="mt-1 text-xl font-black">{score > 0 ? `+${score}` : score}</span>
                   </div>
                 ))}
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <ScoreInput
                   id="firstPlaceScore"
-                  label="Hang Nhat"
+                  label="Hạng nhất"
                   name="firstPlaceScore"
                   value={formData.firstPlaceScore}
                   onChange={(v) =>
@@ -444,21 +498,21 @@ export default function CreateSession() {
                 />
                 <ScoreInput
                   id="secondPlaceScore"
-                  label="Hang Nhi"
+                  label="Hạng nhì"
                   name="secondPlaceScore"
                   value={formData.secondPlaceScore}
                   onChange={(v) => set("secondPlaceScore", v)}
                 />
                 <ScoreInput
                   id="thirdPlaceScore"
-                  label="Hang Ba"
+                  label="Hạng ba"
                   name="thirdPlaceScore"
                   value={formData.thirdPlaceScore}
                   onChange={(v) => set("thirdPlaceScore", v)}
                 />
                 <ScoreInput
                   id="fourthPlaceScore"
-                  label="Hang Tu"
+                  label="Hạng tư"
                   name="fourthPlaceScore"
                   value={formData.fourthPlaceScore}
                   onChange={(v) => set("fourthPlaceScore", v)}
@@ -469,15 +523,15 @@ export default function CreateSession() {
 
           {/* ── Cài đặt nâng cao ──────────────────────────── */}
           <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-            <Card>
+            <Card className="overflow-hidden border-border/70 shadow-sm">
               <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors rounded-xl pb-3">
+                <CardHeader className="cursor-pointer hover:bg-muted/40 active:bg-muted/70 transition-colors pb-3">
                   <CardTitle className="flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
-                      <div className="flex items-center justify-center size-7 rounded-full bg-muted text-muted-foreground">
-                        <Settings className="size-3.5" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                        <Settings className="size-4" />
                       </div>
-                      Cai Dat Nang Cao
+                      Cài đặt nâng cao
                     </span>
                     <ChevronDown
                       className={`size-4 text-muted-foreground transition-transform duration-200 ${isAdvancedOpen ? "rotate-180" : ""}`}
@@ -488,27 +542,27 @@ export default function CreateSession() {
               <CollapsibleContent>
                 <CardContent className="flex flex-col gap-5 pt-0">
                   {/* Heo */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/30 p-4">
                     <div className="flex items-center gap-2">
-                      <PiggyBank className="size-3.5 text-muted-foreground" />
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Diem Heo
+                      <PiggyBank className="size-4 text-red-500" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Điểm heo
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <ScoreInput
                         id="redPigScore"
-                        label="Heo Do"
+                        label="Heo đỏ"
                         name="redPigScore"
-                        hint="đ/nguoi"
+                        hint="đ/người"
                         value={formData.redPigScore}
                         onChange={(v) => set("redPigScore", v)}
                       />
                       <ScoreInput
                         id="blackPigScore"
-                        label="Heo Den"
+                        label="Heo đen"
                         name="blackPigScore"
-                        hint="đ/nguoi"
+                        hint="đ/người"
                         value={formData.blackPigScore}
                         onChange={(v) => set("blackPigScore", v)}
                       />
@@ -518,43 +572,43 @@ export default function CreateSession() {
                   <Separator />
 
                   {/* Khạp */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/30 p-4">
                     <div className="flex items-center gap-2">
-                      <Flame className="size-3.5 text-chart-4" />
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Diem Khap
+                      <Flame className="size-4 text-chart-4" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Điểm khạp
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <ScoreInput
                         id="khapScore"
-                        label="Diem/Khap"
+                        label="Điểm/khạp"
                         name="khapScore"
-                        hint="đ/nguoi"
+                        hint="đ/người"
                         value={formData.khapScore}
                         onChange={(v) => set("khapScore", v)}
                       />
                       <ScoreInput
                         id="khapLimit"
-                        label="Gioi Han"
+                        label="Giới hạn"
                         name="khapLimit"
-                        hint="van"
+                        hint="ván"
                         value={formData.khapLimit}
                         onChange={(v) => set("khapLimit", v)}
                       />
                     </div>
-                    <div className="flex gap-1.5 p-2.5 rounded-lg bg-chart-4/5 border border-chart-4/20 text-xs text-muted-foreground">
-                      <Flame className="size-3.5 text-chart-4 shrink-0 mt-0.5" />
+                    <div className="flex gap-2 rounded-2xl bg-chart-4/10 p-3 text-xs text-muted-foreground ring-1 ring-chart-4/15">
+                      <Flame className="size-4 shrink-0 text-chart-4" />
                       <span>
-                        Moi khap tich luy, nguoi thang nhan{" "}
+                        Mỗi khạp tích lũy, người thắng nhận{" "}
                         <strong className="text-chart-4">
                           {formData.khapScore * 3}đ
                         </strong>
-                        , 3 nguoi con lai moi nguoi mat{" "}
+                        , 3 người còn lại mỗi người mất{" "}
                         <strong className="text-chart-4">
                           {formData.khapScore}đ
                         </strong>
-                        . Toi da {formData.khapLimit} van.
+                        . Tối đa {formData.khapLimit} ván.
                       </span>
                     </div>
                   </div>
@@ -562,43 +616,43 @@ export default function CreateSession() {
                   <Separator />
 
                   {/* Sảnh */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/30 p-4">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="size-3.5 text-chart-1" />
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Diem Sanh
+                      <Sparkles className="size-4 text-chart-1" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Điểm sảnh
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <ScoreInput
                         id="sanhScore"
-                        label="Diem/Sanh"
+                        label="Điểm/sảnh"
                         name="sanhScore"
-                        hint="đ/nguoi"
+                        hint="đ/người"
                         value={formData.sanhScore}
                         onChange={(v) => set("sanhScore", v)}
                       />
                       <ScoreInput
                         id="sanhLimit"
-                        label="Gioi Han"
+                        label="Giới hạn"
                         name="sanhLimit"
-                        hint="van"
+                        hint="ván"
                         value={formData.sanhLimit}
                         onChange={(v) => set("sanhLimit", v)}
                       />
                     </div>
-                    <div className="flex gap-1.5 p-2.5 rounded-lg bg-chart-1/5 border border-chart-1/20 text-xs text-muted-foreground">
-                      <Sparkles className="size-3.5 text-chart-1 shrink-0 mt-0.5" />
+                    <div className="flex gap-2 rounded-2xl bg-chart-1/10 p-3 text-xs text-muted-foreground ring-1 ring-chart-1/15">
+                      <Sparkles className="size-4 shrink-0 text-chart-1" />
                       <span>
-                        Moi sanh tich luy (1 lan/van), nguoi thang nhan{" "}
+                        Mỗi sảnh tích lũy, người thắng nhận{" "}
                         <strong className="text-chart-1">
                           {formData.sanhScore * 3}đ
                         </strong>
-                        , 3 nguoi con lai moi nguoi mat{" "}
+                        , 3 người còn lại mỗi người mất{" "}
                         <strong className="text-chart-1">
                           {formData.sanhScore}đ
                         </strong>
-                        . Toi da {formData.sanhLimit} van.
+                        . Tối đa {formData.sanhLimit} ván.
                       </span>
                     </div>
                   </div>
@@ -606,29 +660,29 @@ export default function CreateSession() {
                   <Separator />
 
                   {/* Nhốt */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/30 p-4">
                     <div className="flex items-center gap-2">
-                      <Swords className="size-3.5 text-chart-3" />
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Nhot Bai
+                      <Swords className="size-4 text-chart-3" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Nhốt bài
                       </p>
                     </div>
                     <ScoreInput
                       id="nhotPenalty"
-                      label="Phat Nguoi Ngoai (Nhot 2)"
+                      label="Phạt người ngoài"
                       name="nhotPenalty"
                       hint="đ cố định"
                       value={formData.nhotPenalty}
                       onChange={(v) => set("nhotPenalty", v)}
                     />
-                    <div className="flex gap-1.5 p-2.5 rounded-lg bg-chart-3/5 border border-chart-3/20 text-xs text-muted-foreground">
-                      <Swords className="size-3.5 text-chart-3 shrink-0 mt-0.5" />
+                    <div className="flex gap-2 rounded-2xl bg-chart-3/10 p-3 text-xs text-muted-foreground ring-1 ring-chart-3/15">
+                      <Target className="size-4 shrink-0 text-chart-3" />
                       <span>
-                        Khi nhot 2 nguoi, nguoi con lai bi phat{" "}
+                        Khi nhốt 2 người, người còn lại bị phạt{" "}
                         <strong className="text-chart-3">
                           {formData.nhotPenalty}đ
                         </strong>{" "}
-                        co dinh.
+                        cố định.
                       </span>
                     </div>
                   </div>
@@ -640,15 +694,15 @@ export default function CreateSession() {
       </main>
 
       {/* Fixed Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t p-4">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/85 p-4 backdrop-blur-xl">
         <Button
           type="submit"
           form="create-form"
-          className="w-full gap-2"
+          className="mx-auto flex h-12 w-full max-w-3xl gap-2 rounded-2xl text-base font-bold shadow-xl shadow-primary/20"
           size="lg"
         >
           <Play className="size-4" />
-          Bat Dau Choi
+          Tạo phòng và bắt đầu chơi
         </Button>
       </div>
     </div>

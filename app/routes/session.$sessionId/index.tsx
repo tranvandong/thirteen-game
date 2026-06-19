@@ -2,27 +2,25 @@ import type { Route } from "./+types/index";
 import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import { players } from "~/db/schema/players";
-import { rounds } from "~/db/schema/rounds";
-import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
-import { eq, desc, max } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { eq } from "drizzle-orm";
 import {
-  Trophy,
-  Crown,
-  ArrowBigUpDash,
-  ArrowBigDownDash,
-  Minus,
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { Trophy, Crown } from "lucide-react";
+import { cn } from "~/lib/utils";
 
 // ---------------------------------------------------------------------------
-// Loader — chạy server-side, fetch đúng 3 query từ DB
+// Loader
 // ---------------------------------------------------------------------------
 
 export async function loader({ params }: Route.LoaderArgs) {
   const { sessionId } = params;
 
-  // 1. Lấy thông tin session
   const [session] = await db
     .select()
     .from(sessions)
@@ -31,8 +29,6 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   if (!session) throw new Response("Session not found", { status: 404 });
 
-  // 2. Danh sách players + tổng điểm từ session_totals
-  //    JOIN players ← session_totals để lấy tên + totalScore cùng lúc
   const playerTotals = await db
     .select({
       playerId: players.id,
@@ -45,42 +41,9 @@ export async function loader({ params }: Route.LoaderArgs) {
     .where(eq(players.sessionId, session.id))
     .orderBy(players.orderNo);
 
-  // 3. Tìm roundNo lớn nhất (ván cuối cùng) của session
-  const [lastRoundRow] = await db
-    .select({ maxRoundNo: max(rounds.roundNo) })
-    .from(rounds)
-    .where(eq(rounds.sessionId, session.id));
-
-  const maxRoundNo = lastRoundRow?.maxRoundNo ?? null;
-
-  // 4. Nếu có ít nhất 1 ván → lấy round_results của ván cuối
-  //    để tính rank trước ván cuối (= totalScore - lastRoundScore)
-  let lastRoundResults: { playerId: string; score: number }[] = [];
-
-  if (maxRoundNo !== null) {
-    const [lastRound] = await db
-      .select({ id: rounds.id })
-      .from(rounds)
-      .where(eq(rounds.sessionId, session.id))
-      // Lấy đúng ván có roundNo = maxRoundNo
-      .orderBy(desc(rounds.roundNo))
-      .limit(1);
-
-    if (lastRound) {
-      lastRoundResults = await db
-        .select({
-          playerId: roundResults.playerId,
-          score: roundResults.score,
-        })
-        .from(roundResults)
-        .where(eq(roundResults.roundId, lastRound.id));
-    }
-  }
-
   return {
     session,
     playerTotals,
-    lastRoundResults,
   };
 }
 
@@ -95,70 +58,168 @@ type PlayerTotal = {
   totalScore: number | null;
 };
 
-type LastRoundResult = { playerId: string; score: number };
+function formatScore(score: number) {
+  return score > 0 ? `+${score}` : `${score}`;
+}
 
-/**
- * So sánh rank sau ván cuối vs rank trước ván cuối.
- *
- * Rank trước = sort by (totalScore - lastRoundScore) desc
- * Rank sau   = sort by totalScore desc
- */
-function computeRankChanges(
-  playerTotals: PlayerTotal[],
-  lastRoundResults: LastRoundResult[],
-): Map<string, "up" | "down" | "same"> {
-  const lastScoreMap = new Map(
-    lastRoundResults.map((r) => [r.playerId, r.score]),
-  );
-
-  const normalize = (t: PlayerTotal) => t.totalScore ?? 0;
-
-  // Rank hiện tại
-  const currentRanked = [...playerTotals]
-    .sort((a, b) => normalize(b) - normalize(a))
-    .map((t) => t.playerId);
-
-  // Rank trước ván cuối
-  const prevRanked = [...playerTotals]
-    .map((t) => ({
-      playerId: t.playerId,
-      prevScore: normalize(t) - (lastScoreMap.get(t.playerId) ?? 0),
-    }))
-    .sort((a, b) => b.prevScore - a.prevScore)
-    .map((t) => t.playerId);
-
-  const result = new Map<string, "up" | "down" | "same">();
-  for (const id of currentRanked) {
-    const cur = currentRanked.indexOf(id);
-    const prev = prevRanked.indexOf(id);
-    if (prev === -1 || prev === cur) result.set(id, "same");
-    else if (cur < prev) result.set(id, "up");
-    else result.set(id, "down");
+function scoreTone(score: number) {
+  if (score > 0) {
+    return {
+      text: "text-chart-2",
+      bg: "bg-chart-2/15",
+      border: "border-chart-2/20",
+      ring: "ring-chart-2/15",
+    };
   }
-  return result;
+
+  if (score < 0) {
+    return {
+      text: "text-destructive",
+      bg: "bg-destructive/10",
+      border: "border-destructive/20",
+      ring: "ring-destructive/10",
+    };
+  }
+
+  return {
+    text: "text-muted-foreground",
+    bg: "bg-muted/40",
+    border: "border-border/70",
+    ring: "ring-muted/10",
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function RankChangeIndicator({ change }: { change: "up" | "down" | "same" }) {
-  if (change === "up")
-    return (
-      <span className="flex items-center text-chart-2">
-        <ArrowBigUpDash className="size-4" fill="currentColor" />
-      </span>
-    );
-  if (change === "down")
-    return (
-      <span className="flex items-center text-destructive">
-        <ArrowBigDownDash className="size-4" fill="currentColor" />
-      </span>
-    );
+function ScorePill({
+  score,
+  className,
+}: {
+  score: number;
+  className?: string;
+}) {
+  const tone = scoreTone(score);
+
   return (
-    <span className="flex items-center text-muted-foreground opacity-40">
-      <Minus className="size-3" />
+    <span
+      className={cn(
+        "inline-flex items-center justify-center rounded-2xl border px-3 py-1.5 font-black tabular-nums shadow-sm",
+        "min-w-16 text-base sm:min-w-20 sm:text-xl",
+        tone.bg,
+        tone.border,
+        tone.text,
+        tone.ring,
+        "ring-1",
+        className,
+      )}
+    >
+      {formatScore(score)}
     </span>
+  );
+}
+
+function LeaderSummaryCard({
+  title,
+  player,
+  description,
+  accent,
+}: {
+  title: string;
+  player: PlayerTotal | null;
+  description: string;
+  accent: "leader" | "lowest";
+}) {
+  const score = player?.totalScore ?? 0;
+
+  return (
+    <Card
+      className={cn(
+        "overflow-hidden border p-3 shadow-sm",
+        accent === "leader"
+          ? "border-primary/20 bg-primary/5"
+          : "border-destructive/15 bg-destructive/5",
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+            {accent === "leader" ? (
+              <Crown className="size-3 text-primary" />
+            ) : (
+              <Trophy className="size-3 text-destructive" />
+            )}
+            {title}
+          </div>
+
+          <p className="mt-1.5 truncate text-sm font-black text-foreground sm:text-base">
+            {player?.playerName ?? "—"}
+          </p>
+
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {description}
+          </p>
+        </div>
+
+        <ScorePill score={score} />
+      </div>
+    </Card>
+  );
+}
+
+function ScoreRow({
+  player,
+  rank,
+}: {
+  player: PlayerTotal;
+  rank: number;
+}) {
+  const score = player.totalScore ?? 0;
+  const isLeader = rank === 0;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-2xl border p-3 transition-all",
+        isLeader
+          ? "border-primary/25 bg-primary/8 shadow-sm shadow-primary/10"
+          : "border-border/70 bg-card/70",
+      )}
+    >
+      <div
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-xl text-xs font-black",
+          isLeader
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground",
+        )}
+      >
+        {rank + 1}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-black text-foreground sm:text-base">
+          {player.playerName}
+        </p>
+      </div>
+
+      <ScorePill score={score} />
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-muted/30 p-8 text-center">
+      <div className="mb-4 flex size-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+        <Trophy className="size-7" />
+      </div>
+      <p className="font-black text-foreground">Chưa có người chơi nào</p>
+      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+        Bảng điểm sẽ xuất hiện ngay khi người chơi được thêm vào phòng.
+      </p>
+    </div>
   );
 }
 
@@ -169,69 +230,69 @@ function RankChangeIndicator({ change }: { change: "up" | "down" | "same" }) {
 export default function SessionScoreboard({
   loaderData,
 }: Route.ComponentProps) {
-  const { playerTotals, lastRoundResults } = loaderData;
+  const { playerTotals } = loaderData;
 
-  // Sort desc by totalScore
   const sorted = [...playerTotals].sort(
     (a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0),
   );
 
-  const rankChanges = computeRankChanges(playerTotals, lastRoundResults);
-
-  const getRowStyle = (score: number) =>
-    score >= 0
-      ? "bg-chart-2/20 text-chart-2 border-chart-2/30"
-      : "bg-destructive/10 text-destructive border-destructive/30";
+  const leader = sorted[0] ?? null;
+  const lowest = sorted[sorted.length - 1] ?? null;
 
   return (
-    <main className="p-4 flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
-              <Trophy className="size-4" />
-            </div>
-            Bảng Điểm
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {sorted.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Chưa có người chơi nào.
-            </p>
-          )}
-          {sorted.map((player, index) => {
-            const score = player.totalScore ?? 0;
-            const rankChange = rankChanges.get(player.playerId) ?? "same";
+    <main className="mx-auto max-w-3xl px-4 py-4 pb-32">
+      {/* Compact page title */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+            Tổng điểm
+          </p>
+          <h1 className="mt-1 text-xl font-black tracking-tight text-foreground">
+            Bảng điểm
+          </h1>
+        </div>
+      </div>
 
-            return (
-              <div
+      {/* Leader vs lowest */}
+      <div className="grid grid-cols-2 gap-3">
+        <LeaderSummaryCard
+          title="Dẫn đầu"
+          player={leader}
+          description="Cao nhất"
+          accent="leader"
+        />
+
+        <LeaderSummaryCard
+          title="Thấp nhất"
+          player={lowest}
+          description="Thấp nhất"
+          accent="lowest"
+        />
+      </div>
+
+      {/* Ranking list */}
+      <Card className="mt-4 overflow-hidden border-border/70 shadow-sm">
+        <CardHeader className="pb-3">
+          <div>
+            <CardTitle className="text-base">Xếp hạng hiện tại</CardTitle>
+            <CardDescription>
+              Tên người chơi và tổng điểm.
+            </CardDescription>
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex flex-col gap-2 pt-0">
+          {sorted.length === 0 ? (
+            <EmptyState />
+          ) : (
+            sorted.map((player, index) => (
+              <ScoreRow
                 key={player.playerId}
-                className={`flex items-center justify-between p-3 rounded-lg border ${getRowStyle(score)}`}
-              >
-                <div className="flex items-center gap-3">
-                  {index === 0 ? (
-                    <span className="flex items-center justify-center size-6">
-                      <Crown className="size-4 text-chart-4" />
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center size-6 rounded-full bg-background text-xs font-bold">
-                      {index + 1}
-                    </span>
-                  )}
-                  <span className="font-medium">{player.playerName}</span>
-                  <RankChangeIndicator change={rankChange} />
-                </div>
-                <span
-                  className={`text-lg font-bold ${
-                    score >= 0 ? "text-chart-2" : "text-destructive"
-                  }`}
-                >
-                  {score > 0 ? `+${score}` : score}
-                </span>
-              </div>
-            );
-          })}
+                player={player}
+                rank={index}
+              />
+            ))
+          )}
         </CardContent>
       </Card>
     </main>

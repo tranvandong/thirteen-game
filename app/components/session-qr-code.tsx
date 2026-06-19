@@ -2,7 +2,6 @@
  * components/session-qr.tsx
  *
  * QR Code hiển thị ở tab Settings của session.
- * Dùng thư viện `qrcode` (npm install qrcode @types/qrcode).
  *
  * Hiển thị:
  * - QR code chứa URL join session
@@ -15,6 +14,7 @@ import QRCode from "qrcode";
 import { Copy, Check, Share2, QrCode } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useSession } from "~/stores/useSessionStore";
+import { cn } from "~/lib/utils";
 
 // ── Component ─────────────────────────────────────────────────
 
@@ -24,12 +24,11 @@ export function SessionQRCode() {
   const [copied, setCopied] = useState(false);
   const [qrReady, setQrReady] = useState(false);
 
-  // Build URL join session
-  const joinUrl = session
-    ? `${window.location.origin}/join/${session.code}`
-    : "";
+  const joinUrl =
+    session && typeof window !== "undefined"
+      ? `${window.location.origin}/join/${session.code}`
+      : "";
 
-  // Render QR lên canvas
   useEffect(() => {
     if (!canvasRef.current || !joinUrl) return;
 
@@ -38,8 +37,8 @@ export function SessionQRCode() {
       width: 240,
       margin: 2,
       color: {
-        dark: "#1a1a2e", // màu module
-        light: "#ffffff", // màu nền
+        dark: "#1a1a2e",
+        light: "#ffffff",
       },
       errorCorrectionLevel: "M",
     })
@@ -47,7 +46,6 @@ export function SessionQRCode() {
       .catch(console.error);
   }, [joinUrl]);
 
-  // Copy link vào clipboard
   const handleCopy = async () => {
     if (!joinUrl) return;
     await navigator.clipboard.writeText(joinUrl);
@@ -55,7 +53,6 @@ export function SessionQRCode() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Web Share API (mobile)
   const handleShare = async () => {
     if (!joinUrl || !session) return;
     if (navigator.share) {
@@ -72,77 +69,79 @@ export function SessionQRCode() {
   if (!session) return null;
 
   return (
-    <div className="flex flex-col items-center gap-5 py-4">
-      {/* Title */}
-      <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-        <QrCode className="size-4" />
-        <span>Chia sẻ phòng chơi</span>
-      </div>
+    <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+      <div className="flex flex-col items-center gap-5">
+        <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
+          <QrCode className="size-4 text-chart-4" />
+          Chia sẻ phòng chơi
+        </div>
 
-      {/* QR Card */}
-      <div className="relative flex flex-col items-center gap-3 p-5 rounded-2xl border bg-white shadow-sm">
-        {/* Canvas QR */}
-        <div
-          className={`relative transition-opacity duration-300 ${qrReady ? "opacity-100" : "opacity-0"}`}
-        >
-          <canvas ref={canvasRef} className="rounded-lg" />
+        <div className="relative flex flex-col items-center gap-3 rounded-3xl border bg-background p-5 shadow-sm">
+          <div
+            className={cn(
+              "relative transition-opacity duration-300",
+              qrReady ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <canvas ref={canvasRef} className="rounded-2xl" />
 
-          {/* Logo overlay ở giữa QR */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="size-9 rounded-lg bg-white flex items-center justify-center shadow-sm border border-gray-100">
-              <span className="text-lg">🃏</span>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="flex size-10 items-center justify-center rounded-xl border bg-background shadow-sm">
+                <span className="text-lg">🃏</span>
+              </div>
             </div>
+          </div>
+
+          {!qrReady && (
+            <div
+              className="absolute inset-5 rounded-2xl bg-muted animate-pulse"
+              style={{ width: 240, height: 240 }}
+            />
+          )}
+
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Mã phòng
+            </p>
+            <p className="font-mono text-2xl font-black tracking-[0.24em] text-foreground">
+              {session.code}
+            </p>
           </div>
         </div>
 
-        {/* Skeleton khi QR chưa load */}
-        {!qrReady && (
-          <div
-            className="absolute inset-5 rounded-lg bg-muted animate-pulse"
-            style={{ width: 240, height: 240 }}
-          />
-        )}
+        <p className="break-all text-center text-xs text-muted-foreground">
+          {joinUrl || `Tham gia qua mã phòng: ${session.code}`}
+        </p>
 
-        {/* Session code */}
-        <div className="flex flex-col items-center gap-0.5">
-          <p className="text-xs text-muted-foreground">Mã phòng</p>
-          <p className="text-2xl font-bold font-mono tracking-[0.2em] text-gray-900">
-            {session.code}
-          </p>
+        <div className="grid w-full grid-cols-2 gap-2 sm:max-w-xs">
+          <Button
+            variant="outline"
+            className="gap-2 rounded-2xl"
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <>
+                <Check className="size-4 text-chart-2" />
+                <span className="text-chart-2">Đã copy</span>
+              </>
+            ) : (
+              <>
+                <Copy className="size-4" />
+                Copy link
+              </>
+            )}
+          </Button>
+
+          <Button className="gap-2 rounded-2xl" onClick={handleShare}>
+            <Share2 className="size-4" />
+            Chia sẻ
+          </Button>
         </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Quét QR hoặc gửi link để mời người khác vào phòng
+        </p>
       </div>
-
-      {/* URL hint */}
-      <p className="text-xs text-muted-foreground text-center px-6 break-all">
-        {joinUrl}
-      </p>
-
-      {/* Actions */}
-      <div className="flex gap-2 w-full max-w-xs">
-        <Button variant="outline" className="flex-1 gap-2" onClick={handleCopy}>
-          {copied ? (
-            <>
-              <Check className="size-4 text-green-500" />
-              <span className="text-green-600">Đã copy!</span>
-            </>
-          ) : (
-            <>
-              <Copy className="size-4" />
-              Copy link
-            </>
-          )}
-        </Button>
-
-        <Button className="flex-1 gap-2" onClick={handleShare}>
-          <Share2 className="size-4" />
-          Chia sẻ
-        </Button>
-      </div>
-
-      {/* Hint */}
-      <p className="text-xs text-muted-foreground text-center">
-        Quét QR hoặc gửi link để mời người khác vào phòng
-      </p>
     </div>
   );
 }
