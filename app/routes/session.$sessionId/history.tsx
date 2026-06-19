@@ -137,8 +137,8 @@ export default function HistoryPage() {
   const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
 
   return (
-    <main className="h-dvh min-h-0 overflow-hidden p-4 pb-[calc(6.25rem_+_env(safe-area-inset-bottom))]">
-      <Card className="h-full min-h-0 flex flex-col overflow-hidden">
+    <main className="p-4 flex flex-col h-[calc(100dvh-3.5rem-5rem)] min-h-0 box-border">
+      <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <CardHeader className="shrink-0 pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
@@ -147,26 +147,23 @@ export default function HistoryPage() {
             Lịch sử ván đấu
           </CardTitle>
         </CardHeader>
-
-        <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
+        <CardContent className="flex-1 min-h-0 p-0 overflow-hidden">
           {rounds.length === 0 ? (
-            <div className="flex h-full items-center justify-center px-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                Chưa có ván đấu nào.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground text-center py-12 px-4">
+              Chưa có ván đấu nào.
+            </p>
           ) : (
-            <div className="h-full overflow-auto overscroll-contain">
-              <Table className="w-full min-w-full table-fixed border-separate border-spacing-0">
-                <TableHeader className="z-30">
-                  <TableRow>
-                    <TableHead className="sticky left-0 top-0 z-30 w-12 bg-muted/95 text-center font-semibold text-muted-foreground backdrop-blur shadow-sm">
-                      Ván
+            <div className="relative h-full overflow-auto">
+              <Table className="[&>div]:overflow-visible">
+                <TableHeader className="sticky top-0 z-20">
+                  <TableRow className="bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                    <TableHead className="text-center w-12 sticky left-0 bg-muted/95 backdrop-blur z-30">
+                      Van
                     </TableHead>
                     {players.map((player) => (
                       <TableHead
                         key={player.id}
-                        className="sticky top-0 z-30 min-w-[60px] bg-muted/95 text-center font-semibold text-muted-foreground backdrop-blur shadow-sm"
+                        className="text-center min-w-[60px]"
                       >
                         <span className="hidden sm:inline">{player.name}</span>
                         <span className="sm:hidden">{player.shortName}</span>
@@ -174,11 +171,10 @@ export default function HistoryPage() {
                     ))}
                   </TableRow>
                 </TableHeader>
-
                 <TableBody>
                   {rounds.map((round) => (
                     <TableRow key={round.id} className="hover:bg-muted/30">
-                      <TableCell className="sticky left-0 z-10 w-12 bg-background text-center font-bold">
+                      <TableCell className="text-center font-bold sticky left-0 bg-background z-10">
                         {round.roundNo}
                       </TableCell>
                       {round.scores.map((score, index) => (
@@ -189,17 +185,13 @@ export default function HistoryPage() {
                     </TableRow>
                   ))}
                 </TableBody>
-
-                <TableFooter className="z-30">
-                  <TableRow>
-                    <TableCell className="sticky bottom-0 left-0 z-30 bg-muted/95 text-center font-bold backdrop-blur shadow-[0_-6px_12px_rgba(0,0,0,0.08)]">
+                <TableFooter className="sticky bottom-0 z-20">
+                  <TableRow className="bg-muted/95 backdrop-blur font-bold">
+                    <TableCell className="text-center sticky left-0 bg-muted/95 backdrop-blur z-30">
                       Tổng
                     </TableCell>
                     {playerTotals.map((total, index) => (
-                      <TableCell
-                        key={index}
-                        className="sticky bottom-0 z-30 bg-muted/95 text-center font-bold backdrop-blur shadow-[0_-6px_12px_rgba(0,0,0,0.08)]"
-                      >
+                      <TableCell key={index} className="text-center">
                         <div className="flex items-center justify-center gap-1">
                           {total > 0 ? (
                             <TrendingUp className="size-3 text-chart-2" />
