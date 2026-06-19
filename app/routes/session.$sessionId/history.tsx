@@ -8,12 +8,6 @@ import { rounds } from "~/db/schema/rounds";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import {
   Table,
   TableBody,
   TableCell,
@@ -248,31 +242,24 @@ export default function HistoryPage() {
 
   return (
     <main className="flex h-[calc(100dvh-3.5rem-5rem)] min-h-0 box-border overflow-hidden p-3 sm:p-4">
-      <Card className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden border-border/70 shadow-sm">
-        <CardHeader className="shrink-0 gap-3 pb-3">
-          <div className="flex items-start justify-between gap-3">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden">
+        <div className="shrink-0 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex size-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <History className="size-4" />
+            </div>
             <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="flex size-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <History className="size-4" />
-                </div>
+              <h1 className="text-base font-bold text-foreground">
                 Lịch sử ván đấu
-              </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
+              </h1>
+              <p className="text-xs text-muted-foreground">
                 Bảng điểm theo từng ván.
               </p>
             </div>
-
-            <div className="rounded-2xl bg-muted px-3 py-2 text-right">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                Số ván
-              </p>
-              <p className="text-lg font-black text-foreground">{rounds.length}</p>
-            </div>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-0">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           {players.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
               <div className="flex size-14 items-center justify-center rounded-3xl bg-muted text-muted-foreground">
@@ -298,16 +285,14 @@ export default function HistoryPage() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-3 pb-4">
-              <RoundTable
-                rounds={rounds}
-                players={players}
-                playerTotals={[]}
-              />
-            </div>
+            <RoundTable
+              rounds={rounds}
+              players={players}
+              playerTotals={[]}
+            />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </main>
   );
 }
