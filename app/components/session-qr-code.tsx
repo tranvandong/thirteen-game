@@ -77,10 +77,10 @@ export function SessionQRCode() {
 
         <div className="relative flex flex-col items-center gap-3 rounded-3xl border bg-background p-5 shadow-sm">
           <div
-            className={cn(
-              "relative transition-opacity duration-300",
-              qrReady ? "opacity-100" : "opacity-0",
-            )}
+            className={`
+              relative transition-opacity duration-300 
+              ${qrReady ? "opacity-100" : "opacity-0"}
+            `}
           >
             <canvas ref={canvasRef} className="rounded-2xl" />
 
