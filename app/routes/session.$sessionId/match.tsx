@@ -18,6 +18,7 @@ import {
   ChevronDown as CollapseIcon,
   Crown,
   Trash,
+  Spade,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { redirect } from "react-router";
@@ -846,7 +847,7 @@ export default function MatchPage() {
       if (denForIds.includes(playerId)) {
         return {
           label: "Được đền",
-          labelColor:  "text-muted-foreground",
+          labelColor: "text-muted-foreground",
           style: "border-muted bg-muted/30",
           isFixed: true,
         };
@@ -943,24 +944,27 @@ export default function MatchPage() {
           <div className="flex flex-col w-full">
             <div className="flex justify-between items-center gap-2">
               <div>
-                <span className="text-xs text-muted-foreground">Khạp</span>
+                <div className="flex items-center gap-2 text-chart-1">
+                  {/* <Spade className="h-4 w-4" /> */}
+                  <span className="text-sm font-medium">Khạp</span>
+                </div>
                 <div className="flex items-end gap-1">
-                  <span className="text-lg font-bold text-chart-1 leading-none">
+                  <span className="text-4xl font-bold tracking-tight text-chart-1">
                     {accumulated.khap}
                   </span>
-                  <span className="text-xs text-muted-foreground mb-0.5">
+                  <span className="mb-1 text-sm text-neutral-500">
                     / {gameConfig.maxKhapAccumulate}
                   </span>
                 </div>
               </div>
               <Flame className="size-3.5 text-chart-1 shrink-0" />
             </div>
-            <div className="flex gap-1 mt-1">
+            <div className="mt-3 grid grid-cols-10 gap-1">
               {Array.from({ length: gameConfig.maxKhapAccumulate }).map(
                 (_, i) => (
                   <div
                     key={i}
-                    className={`size-2 rounded-full ${i < accumulated.khap ? "bg-chart-1" : "bg-chart-4/20"}`}
+                    className={`h-2 rounded-full transition-all ${i < accumulated.khap ? "bg-chart-1" : "bg-emerald-950/80"}`}
                   />
                 ),
               )}
@@ -971,24 +975,27 @@ export default function MatchPage() {
           <div className="flex flex-col w-full">
             <div className="flex justify-between items-center gap-2">
               <div>
-                <span className="text-xs text-muted-foreground">Sảnh</span>
+                <div className="flex items-center gap-2 text-chart-1">
+                  {/* <Spade className="h-4 w-4" /> */}
+                  <span className="text-sm font-medium">Sảnh</span>
+                </div>
                 <div className="flex items-end gap-1">
-                  <span className="text-lg font-bold text-chart-1 leading-none">
+                  <span className="text-4xl font-bold tracking-tight text-chart-1">
                     {accumulated.sanh}
                   </span>
-                  <span className="text-xs text-muted-foreground mb-0.5">
+                  <span className="mb-1 text-sm text-neutral-500">
                     / {gameConfig.maxSanhAccumulate}
                   </span>
                 </div>
               </div>
               <Flame className="size-3.5 text-chart-1 shrink-0" />
             </div>
-            <div className="flex gap-1 mt-1">
+            <div className="mt-3 grid grid-cols-10 gap-1">
               {Array.from({ length: gameConfig.maxSanhAccumulate }).map(
                 (_, i) => (
                   <div
                     key={i}
-                    className={`size-2 rounded-full ${i < accumulated.sanh ? "bg-chart-1" : "bg-chart-4/20"}`}
+                    className={`h-2 rounded-full transition-all ${i < accumulated.sanh ? "bg-chart-1" : "bg-emerald-950/80"}`}
                   />
                 ),
               )}
@@ -1729,7 +1736,9 @@ export default function MatchPage() {
                     >
                       {playerId === nhotterId ? (
                         <Crown className="size-3" />
-                      ) : denForIds.includes(playerId) ? '—' : nhotVictimIds.includes(playerId) ? (
+                      ) : denForIds.includes(playerId) ? (
+                        "—"
+                      ) : nhotVictimIds.includes(playerId) ? (
                         "✕"
                       ) : (
                         "3"
