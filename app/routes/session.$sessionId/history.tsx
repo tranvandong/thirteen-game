@@ -7,7 +7,21 @@ import { players as playersSchema } from "~/db/schema/players";
 import { rounds } from "~/db/schema/rounds";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
 import { History, Trophy, TrendingUp, TrendingDown } from "lucide-react";
 
 export interface HistoryLoaderData {
@@ -142,7 +156,7 @@ function ScorePill({ score }: { score: number }) {
   return (
     <span
       className={[
-        "inline-flex min-w-14 justify-center rounded-full px-2.5 py-1 text-sm font-black tabular-nums",
+        "inline-flex min-w-10 justify-center rounded-full px-2 py-0.5 text-xs font-black tabular-nums",
         tone.bg,
         tone.border,
         "border",
@@ -175,7 +189,7 @@ function StatCard({
   return (
     <div
       className={[
-        "min-h-[72px] rounded-2xl border border-border/60 p-3 shadow-sm",
+        "min-h-[68px] rounded-2xl border border-border/60 p-3 shadow-sm",
         toneClass,
       ].join(" ")}
     >
@@ -183,107 +197,80 @@ function StatCard({
         {icon}
         <span>{label}</span>
       </div>
-      <p className="truncate text-base font-black leading-tight">{value}</p>
+      <p className="truncate text-sm font-black leading-tight">{value}</p>
     </div>
   );
 }
 
-function RoundCard({
-  round,
-  players,
-}: {
-  round: HistoryLoaderData["rounds"][number];
-  players: HistoryLoaderData["players"];
-}) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-border/70 bg-muted/30 px-3 py-2.5">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary text-xs font-black text-primary-foreground">
-            {round.roundNo}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-black text-foreground">
-              Ván {round.roundNo}
-            </p>
-            <p className="text-[11px] text-muted-foreground">Kết quả từng người</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 p-3">
-        {round.scores.map((score, index) => {
-          const player = players[index];
-
-          return (
-            <div
-              key={`${round.id}-${player?.id ?? index}`}
-              className="min-w-0 rounded-2xl border border-border/60 bg-background/70 px-3 py-2.5"
-            >
-              <div className="flex min-w-0 items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-sm font-bold text-foreground">
-                  {player?.name ?? "—"}
-                </span>
-                <ScorePill score={score} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function TotalsCard({
+function RoundTable({
+  rounds,
   players,
   playerTotals,
 }: {
+  rounds: HistoryLoaderData["rounds"];
   players: HistoryLoaderData["players"];
   playerTotals: number[];
 }) {
   return (
-    <Card className="border-border/70 bg-primary/5 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Trophy className="size-4" />
-          </div>
-          Tổng điểm hiện tại
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-2 gap-2">
-          {players.map((player, index) => {
-            const total = playerTotals[index] ?? 0;
-            const tone = scoreTone(total);
-
-            return (
-              <div
-                key={player.id}
-                className="min-w-0 rounded-2xl border border-border/60 bg-background/80 px-3 py-2.5"
-              >
-                <div className="flex min-w-0 items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-bold text-foreground">
-                    {player.name}
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <Table className="table-fixed">
+        <TableHeader>
+          <TableRow className="border-border/70 bg-muted/70">
+            <TableHead className="w-12 p-2 text-center text-[10px] font-black uppercase tracking-wide">
+              Ván
+            </TableHead>
+            {players.map((player, index) => (
+              <TableHead key={player.id} className="p-2 text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="max-w-full truncate text-[10px] font-black text-foreground">
+                    {player.shortName}
                   </span>
-                  <span
-                    className={[
-                      "inline-flex min-w-14 justify-center rounded-full px-2.5 py-1 text-sm font-black",
-                      tone.bg,
-                      tone.border,
-                      "border",
-                      tone.text,
-                    ].join(" ")}
-                  >
-                    {formatScore(total)}
+                  <ScorePill score={playerTotals[index] ?? 0} />
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {rounds.map((round) => (
+            <TableRow
+              key={round.id}
+              className="border-border/50 transition-colors hover:bg-primary/5"
+            >
+              <TableCell className="w-12 p-2 text-center">
+                <span className="inline-flex size-7 items-center justify-center rounded-xl bg-primary text-xs font-black text-primary-foreground">
+                  {round.roundNo}
+                </span>
+              </TableCell>
+              {round.scores.map((score, index) => (
+                <TableCell key={`${round.id}-${index}`} className="p-2 text-center">
+                  <ScorePill score={score} />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+
+        <TableFooter>
+          <TableRow className="border-t border-border/80 bg-muted/70 font-bold">
+            <TableCell className="w-12 p-2 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
+              Tổng
+            </TableCell>
+            {players.map((player, index) => (
+              <TableCell key={player.id} className="p-2 text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <ScorePill score={playerTotals[index] ?? 0} />
+                  <span className="text-[9px] font-semibold text-muted-foreground">
+                    {player.shortName}
                   </span>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </div>
   );
 }
 
@@ -315,7 +302,7 @@ export default function HistoryPage() {
                 Lịch sử ván đấu
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
-                Điểm từng ván và tổng điểm hiện tại.
+                Bảng điểm theo từng ván.
               </p>
             </div>
 
@@ -378,13 +365,11 @@ export default function HistoryPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-3 pb-4">
-              <TotalsCard players={players} playerTotals={playerTotals} />
-
-              <div className="grid gap-2 md:grid-cols-2">
-                {rounds.map((round) => (
-                  <RoundCard key={round.id} round={round} players={players} />
-                ))}
-              </div>
+              <RoundTable
+                rounds={rounds}
+                players={players}
+                playerTotals={playerTotals}
+              />
             </div>
           )}
         </CardContent>
