@@ -38,37 +38,43 @@ function QRScannerModal({
   };
 
   const modal = (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-black/70 backdrop-blur-sm">
-        <span className="text-white font-semibold text-sm">
-          Quét mã QR phòng chơi
-        </span>
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
+      <div className="relative flex items-center justify-between px-4 py-4">
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-sm font-semibold text-white">
+            Quét mã QR phòng chơi
+          </span>
+          <span className="text-[11px] text-white/50">
+            Đưa mã QR vào khung hình để vào nhanh
+          </span>
+        </div>
+
         <button
           onClick={onClose}
-          className="flex items-center justify-center size-9 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20"
         >
-          <X className="size-4" />
+          <X className="size-5" />
         </button>
       </div>
 
-      {/* Scanner */}
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+      <div className="relative flex-1 overflow-hidden">
         {error ? (
-          <div className="flex flex-col items-center gap-3 p-8 text-center">
-            <div className="size-16 rounded-full bg-white/10 flex items-center justify-center">
-              <ScanLine className="size-8 text-white/50" />
+          <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10">
+              <ScanLine className="size-8 text-white/70" />
             </div>
-            <p className="text-white/80 text-sm">{error}</p>
+            <p className="max-w-xs text-sm leading-6 text-white/80">
+              {error}
+            </p>
             <button
               onClick={onClose}
-              className="mt-2 px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-colors"
+              className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90"
             >
               Đóng
             </button>
           </div>
         ) : (
-          <div className="w-full h-full">
+          <div className="absolute inset-4 overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl shadow-black/50">
             <Scanner
               onScan={handleScan}
               onError={(err) => {
@@ -97,14 +103,21 @@ function QRScannerModal({
                 },
               }}
             />
+
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute left-1/2 top-1/2 h-[240px] w-[240px] -translate-x-1/2 -translate-y-1/2 rounded-[2rem] border-2 border-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.38)]" />
+              <div className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-tl-3xl border-l-4 border-t-4 border-primary" />
+              <div className="absolute left-1/2 top-1/2 h-8 w-8 translate-x-1/2 -translate-y-1/2 rounded-tr-3xl border-r-4 border-t-4 border-primary" />
+              <div className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 translate-y-1/2 rounded-bl-3xl border-b-4 border-l-4 border-primary" />
+              <div className="absolute left-1/2 top-1/2 h-8 w-8 translate-x-1/2 translate-y-1/2 rounded-br-3xl border-b-4 border-r-4 border-primary" />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Hint */}
-      <div className="px-6 py-4 bg-black/70 backdrop-blur-sm text-center">
-        <p className="text-white/60 text-xs">
-          Đưa mã QR vào khung hình để tự động nhận diện
+      <div className="border-t border-white/10 bg-black/70 px-6 py-5 text-center">
+        <p className="text-xs leading-5 text-white/50">
+          Mã QR phòng chơi có dạng <strong className="text-white">/join/XXXX-XXXX</strong>
         </p>
       </div>
     </div>
@@ -140,59 +153,83 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center px-4">
-      {showScanner && (
-        <QRScannerModal
-          onClose={() => setShowScanner(false)}
-          onDetected={handleQRDetected}
-        />
-      )}
+    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/2 top-0 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute -left-24 bottom-20 h-72 w-72 rounded-full bg-chart-2/20 blur-3xl" />
+        <div className="absolute -right-24 top-40 h-80 w-80 rounded-full bg-chart-4/20 blur-3xl" />
+      </div>
 
-      <div className="text-center w-full max-w-md">
-        {/* Logo & Title */}
-        <div className="flex flex-col items-center justify-center gap-6 mb-6">
-          <img
-            src="/icons/icon-72x72.png"
-            alt="logo"
-            className="w-24 h-24 rounded-full shadow-2xl"
-          />
-          <h1 className="text-5xl font-bold text-white drop-shadow-lg">
-            Thirteen Game
-          </h1>
-        </div>
-        <p className="text-xl text-white/90 mb-10">
-          Ghi điểm Tiến Lên theo thời gian thực
-        </p>
-
-        <div className="space-y-4">
-          {/* Tạo phòng */}
-          <Link
-            to="/session/create"
-            className="flex items-center justify-center gap-2 w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-4 px-6 rounded-xl transition duration-200 text-lg shadow-lg"
-          >
-            <Plus className="size-5" />
-            Tạo Phòng Chơi Mới
-          </Link>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 py-1">
-            <div className="flex-1 h-px bg-white/30" />
-            <span className="text-white/70 text-sm font-medium">
-              hoặc tham gia
-            </span>
-            <div className="flex-1 h-px bg-white/30" />
+      <main className="mx-auto flex min-h-[calc(100dvh-3rem)] max-w-xl flex-col justify-center gap-6">
+        <section className="text-center">
+          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white p-2 shadow-2xl shadow-primary/20 dark:bg-card">
+            <img
+              src="/icons/icon-72x72.png"
+              alt="logo"
+              className="h-full w-full rounded-[1.6rem]"
+            />
           </div>
 
-          {/* Join section */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 space-y-3">
-            <div className="flex items-center gap-2 text-white/80 text-sm mb-1">
-              <Users className="size-4" />
-              <span className="font-medium">Nhập mã phòng để tham gia</span>
+          <div className="mb-3 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <span className="size-2 rounded-full bg-primary" />
+              Thirteen Game Score Tracker
+            </span>
+          </div>
+
+          <h1 className="text-4xl font-black tracking-tight text-foreground sm:text-5xl">
+            Ghi điểm Tiến Lên
+            <br />
+            theo thời gian thực
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-muted-foreground sm:text-base">
+            Tạo phòng, mời bạn bè và theo dõi bảng điểm ngay trên điện thoại.
+          </p>
+        </section>
+
+        <section className="grid gap-3">
+          <Link
+            to="/session/create"
+            className="group flex items-center justify-between rounded-[1.75rem] bg-primary px-5 py-4 text-primary-foreground shadow-xl shadow-primary/20 transition hover:bg-primary/90 active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+                <Plus className="size-6" />
+              </div>
+              <div className="text-left">
+                <p className="text-base font-bold">Tạo phòng mới</p>
+                <p className="mt-0.5 text-xs text-primary-foreground/70">
+                  Thiết lập người chơi và luật điểm
+                </p>
+              </div>
             </div>
 
-            {/* Input + QR button */}
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-black transition group-hover:translate-x-0.5">
+              →
+            </span>
+          </Link>
+
+          <div className="relative overflow-hidden rounded-[1.75rem] border border-border/70 bg-card/85 p-5 shadow-xl shadow-black/5 backdrop-blur">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
+
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  Tham gia phòng chơi
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Nhập mã phòng hoặc quét QR để vào nhanh.
+                </p>
+              </div>
+
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Users className="size-6" />
+              </div>
+            </div>
+
             <div className="flex gap-2">
-              <div className="flex-1">
+              <div className="min-w-0 flex-1">
                 <Input
                   value={roomCode}
                   onChange={(e) => {
@@ -201,29 +238,21 @@ export default function Home() {
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                   placeholder="XXXX-XXXX"
-                  className={`
-                    bg-white text-gray-800 font-mono font-bold text-center tracking-widest
-                    border-0 h-11 text-base placeholder:font-normal placeholder:tracking-normal
-                    ${codeError ? "ring-2 ring-red-400" : ""}
-                  `}
+                  className={`h-12 rounded-2xl bg-background text-center font-mono text-lg font-black tracking-[0.24em] placeholder:tracking-normal ${
+                    codeError ? "border-destructive focus-visible:ring-destructive/20" : ""
+                  }`}
                   maxLength={9}
                 />
                 {codeError && (
-                  <p className="text-red-200 text-xs mt-1 text-left">
+                  <p className="mt-1 text-left text-xs text-destructive">
                     {codeError}
                   </p>
                 )}
               </div>
 
-              {/* QR Scan button */}
               <button
                 onClick={() => setShowScanner(true)}
-                className="
-                  flex items-center justify-center size-11 rounded-lg shrink-0
-                  bg-white/20 hover:bg-white/30 active:bg-white/40
-                  border border-white/30 text-white
-                  transition-all duration-150
-                "
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition hover:bg-primary/90 active:scale-95"
                 title="Quét mã QR"
               >
                 <ScanLine className="size-5" />
@@ -232,16 +261,46 @@ export default function Home() {
 
             <button
               onClick={handleJoin}
-              className="flex items-center justify-center gap-2 w-full bg-white hover:bg-gray-100 text-blue-600 font-bold py-2.5 px-6 rounded-lg transition duration-200"
+              className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-foreground text-background text-sm font-black transition hover:bg-foreground/90 active:scale-[0.99]"
             >
               <Users className="size-4" />
-              Tham Gia
+              Vào phòng
             </button>
           </div>
+        </section>
 
-          <InstallPWA />
-        </div>
-      </div>
+        <section className="grid grid-cols-3 gap-3">
+          <div className="rounded-[1.35rem] border border-border/70 bg-card/70 p-4 text-center shadow-sm">
+            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-chart-4/15 text-chart-4">
+              <Users className="size-4" />
+            </div>
+            <p className="text-xs font-bold text-foreground">Nhiều người</p>
+          </div>
+
+          <div className="rounded-[1.35rem] border border-border/70 bg-card/70 p-4 text-center shadow-sm">
+            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-chart-2/15 text-chart-2">
+              <ScanLine className="size-4" />
+            </div>
+            <p className="text-xs font-bold text-foreground">Realtime</p>
+          </div>
+
+          <div className="rounded-[1.35rem] border border-border/70 bg-card/70 p-4 text-center shadow-sm">
+            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <Plus className="size-4" />
+            </div>
+            <p className="text-xs font-bold text-foreground">Dễ dùng</p>
+          </div>
+        </section>
+
+        <InstallPWA />
+      </main>
+
+      {showScanner && (
+        <QRScannerModal
+          onClose={() => setShowScanner(false)}
+          onDetected={handleQRDetected}
+        />
+      )}
     </div>
   );
 }
