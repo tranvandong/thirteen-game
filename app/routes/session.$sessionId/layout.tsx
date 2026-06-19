@@ -11,7 +11,6 @@ import { sessions } from "~/db/schema/sessions";
 import { gameConfigs } from "~/db/schema/game-configs";
 import { players as playersSchema } from "~/db/schema/players";
 import { participants } from "~/db/schema/participants";
-import { playerDevices } from "~/db/schema/player-devices";
 import { eq, asc, and } from "drizzle-orm";
 import { redirect } from "react-router";
 import { ModeToggle } from "~/components/mode-toggle";
@@ -337,7 +336,7 @@ export default function SessionLayout() {
     return (
       <Link
         to={tab.to}
-        className={`group flex flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-2 transition-all ${
+        className={`group flex min-w-0 w-full flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-all ${
           active
             ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -352,7 +351,7 @@ export default function SessionLayout() {
         >
           <Icon className={`size-5 transition-transform ${active ? "-translate-y-0.5" : ""}`} />
         </span>
-        <span className="text-[11px] font-semibold leading-none">
+        <span className="w-full truncate text-center text-[10px] font-semibold leading-none sm:text-[11px]">
           {tab.label}
         </span>
       </Link>
@@ -361,17 +360,17 @@ export default function SessionLayout() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <div className="relative min-h-screen overflow-hidden bg-background pb-24">
+      <div className="relative min-h-dvh overflow-hidden bg-background pb-[calc(6.25rem_+_env(safe-area-inset-bottom))]">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-48 bg-gradient-to-b from-primary/10 to-transparent" />
 
         {/* Header */}
-        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 max-w-lg items-center justify-between gap-3 px-4">
+        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/88 backdrop-blur-xl">
+          <div className="mx-auto flex min-h-16 max-w-[430px] items-center justify-between gap-2 px-3 py-2 sm:max-w-lg sm:px-4">
             <Link
               to="/"
               className="group flex min-w-0 items-center gap-3 rounded-2xl px-2 py-2 transition hover:bg-primary/5"
             >
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-lg shadow-primary/20 transition group-hover:scale-[1.03]">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-lg shadow-primary/20 transition group-hover:scale-[1.03]">
                 <Spade className="size-5" />
               </div>
               <div className="min-w-0">
@@ -379,12 +378,12 @@ export default function SessionLayout() {
                   Thirteen Game
                 </p>
                 <p className="truncate text-[11px] text-muted-foreground">
-                  Phòng chơi realtime
+                  Phòng {session?.code ?? "realtime"}
                 </p>
               </div>
             </Link>
 
-            <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-card/70 p-1 shadow-sm">
+            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-border/70 bg-card/70 p-1 shadow-sm">
               <ModeToggle />
               <button
                 onClick={() => navigate("/")}
@@ -399,18 +398,19 @@ export default function SessionLayout() {
 
         <Outlet />
 
-        {/* Bottom Tab Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/70 bg-background/90 px-3 pb-2 pt-2 shadow-[0_-20px_50px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
-          <div className="mx-auto flex h-16 max-w-lg items-center gap-1">
+        {/* Mobile-first Bottom Tab Bar: 5 equal columns */}
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/92 px-2 pb-[calc(0.5rem_+_env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+          <div className="mx-auto grid w-full max-w-[430px] grid-cols-5 items-end justify-center gap-0.5 px-1.5 sm:max-w-lg sm:px-0">
             {leftTabs.map((tab) => (
               <TabItem key={tab.to} tab={tab} />
             ))}
 
             {/* Center FAB */}
-            <div className="flex flex-col items-center justify-center flex-shrink-0 px-2 -mt-7">
+            <div className="col-span-1 flex flex-col items-center justify-center -mt-7">
               <Link
                 to={centerTab.to}
-                className={`relative flex items-center justify-center size-16 rounded-full border-4 border-background shadow-xl transition-all active:scale-95 ${
+                aria-label="Ván Đấu"
+                className={`relative flex items-center justify-center size-14 rounded-full border-[5px] border-background shadow-xl transition-all active:scale-95 ${
                   isCenterActive
                     ? "bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-2xl shadow-primary/35"
                     : "bg-primary text-primary-foreground shadow-xl shadow-primary/30"
@@ -419,7 +419,7 @@ export default function SessionLayout() {
                 <Swords className="size-6" />
               </Link>
               <span
-                className={`mt-1 text-[11px] font-semibold ${
+                className={`mt-1 w-full truncate text-center text-[10px] font-semibold ${
                   isCenterActive ? "text-primary" : "text-muted-foreground"
                 }`}
               >
