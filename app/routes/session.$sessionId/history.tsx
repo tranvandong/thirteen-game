@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { History, Trophy, TrendingUp, TrendingDown } from "lucide-react";
+import { History } from "lucide-react";
 
 export interface HistoryLoaderData {
   players: Array<{ id: string; name: string; shortName: string }>;
@@ -168,40 +168,6 @@ function ScorePill({ score }: { score: number }) {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-  tone = "primary",
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  tone?: "primary" | "chart" | "destructive";
-}) {
-  const toneClass =
-    tone === "destructive"
-      ? "bg-destructive/10 text-destructive"
-      : tone === "chart"
-        ? "bg-chart-4/10 text-chart-4"
-        : "bg-primary/10 text-primary";
-
-  return (
-    <div
-      className={[
-        "min-h-[68px] rounded-2xl border border-border/60 p-3 shadow-sm",
-        toneClass,
-      ].join(" ")}
-    >
-      <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide opacity-80">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <p className="truncate text-sm font-black leading-tight">{value}</p>
-    </div>
-  );
-}
-
 function RoundTable({
   rounds,
   players,
@@ -244,7 +210,10 @@ function RoundTable({
                 </span>
               </TableCell>
               {round.scores.map((score, index) => (
-                <TableCell key={`${round.id}-${index}`} className="p-2 text-center">
+                <TableCell
+                  key={`${round.id}-${index}`}
+                  className="p-2 text-center"
+                >
                   <ScorePill score={score} />
                 </TableCell>
               ))}
@@ -275,19 +244,7 @@ function RoundTable({
 }
 
 export default function HistoryPage() {
-  const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
-
-  const leaderIndex = playerTotals.reduce(
-    (bestIndex, score, index) =>
-      score > playerTotals[bestIndex] ? index : bestIndex,
-    0,
-  );
-
-  const lowestIndex = playerTotals.reduce(
-    (lowestIndex, score, index) =>
-      score < playerTotals[lowestIndex] ? index : lowestIndex,
-    0,
-  );
+  const { players, rounds } = useLoaderData<HistoryLoaderData>();
 
   return (
     <main className="flex h-[calc(100dvh-3.5rem-5rem)] min-h-0 box-border overflow-hidden p-3 sm:p-4">
@@ -313,29 +270,6 @@ export default function HistoryPage() {
               <p className="text-lg font-black text-foreground">{rounds.length}</p>
             </div>
           </div>
-
-          {players.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              <StatCard
-                label="Dẫn đầu"
-                value={players[leaderIndex]?.name ?? "—"}
-                icon={<Trophy className="size-3.5" />}
-                tone="chart"
-              />
-              <StatCard
-                label="Tổng cao nhất"
-                value={formatScore(playerTotals[leaderIndex] ?? 0)}
-                icon={<TrendingUp className="size-3.5" />}
-                tone="chart"
-              />
-              <StatCard
-                label="Thấp nhất"
-                value={formatScore(playerTotals[lowestIndex] ?? 0)}
-                icon={<TrendingDown className="size-3.5" />}
-                tone="destructive"
-              />
-            </div>
-          )}
         </CardHeader>
 
         <CardContent className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-0">
@@ -368,7 +302,7 @@ export default function HistoryPage() {
               <RoundTable
                 rounds={rounds}
                 players={players}
-                playerTotals={playerTotals}
+                playerTotals={[]}
               />
             </div>
           )}
