@@ -203,7 +203,7 @@ export default function HistoryPage() {
               <Table className="min-w-[640px] border-separate border-spacing-0">
                 <TableHeader className="sticky top-0 z-30">
                   <TableRow className="bg-background/95 backdrop-blur shadow-[inset_0_1px_0_0_rgba(148,163,184,0.18)] [&>th]:py-3 [&>th]:text-[11px] [&>th]:uppercase [&>th]:tracking-wider">
-                    <TableHead className="sticky left-0 z-40 w-16 bg-background/95 text-center text-chart-4">
+                    <TableHead className="sticky left-0 z-40 w-24 bg-background/95 text-center text-chart-4">
                       Ván
                     </TableHead>
                     {players.map((player) => (
@@ -215,6 +215,9 @@ export default function HistoryPage() {
                         <span className="sm:hidden">{player.shortName}</span>
                       </TableHead>
                     ))}
+                    <TableHead className="sticky right-0 z-40 min-w-[150px] bg-background/95 text-center">
+                      Tổng điểm
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -228,7 +231,7 @@ export default function HistoryPage() {
                           : "bg-muted/20"
                       }`}
                     >
-                      <TableCell className="sticky left-0 z-20 w-16 bg-background/95 text-center">
+                      <TableCell className="sticky left-0 z-20 w-24 bg-background/95 text-center">
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-black shadow-sm">
                           {round.roundNo}
                         </span>
@@ -238,13 +241,16 @@ export default function HistoryPage() {
                           <PlayerScoreCell score={score} />
                         </TableCell>
                       ))}
+                      <TableCell className="sticky right-0 z-20 min-w-[150px] bg-background/95 text-center">
+                        <PlayerScoreCell score={playerTotals[roundIndex] ?? 0} />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
 
                 <TableFooter className="sticky bottom-0 z-30">
                   <TableRow className="bg-card/95 backdrop-blur shadow-[0_-1px_0_0_rgba(148,163,184,0.18)] [&>td]:py-3">
-                    <TableCell className="sticky left-0 z-50 w-16 bg-card/95 text-center font-black text-foreground">
+                    <TableCell className="sticky left-0 z-50 w-24 bg-card/95 text-center font-black text-foreground">
                       Tổng
                     </TableCell>
                     {playerTotals.map((total, index) => (
@@ -259,6 +265,9 @@ export default function HistoryPage() {
                         </div>
                       </TableCell>
                     ))}
+                    <TableCell className="sticky right-0 z-50 min-w-[150px] bg-card/95 text-center font-black text-foreground">
+                      {playerTotals.reduce((sum, score) => sum + score, 0)}
+                    </TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
