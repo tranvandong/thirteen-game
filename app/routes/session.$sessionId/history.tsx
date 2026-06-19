@@ -179,14 +179,11 @@ function RoundTable({
             <TableHead className="w-12 p-2 text-center text-[10px] font-black uppercase tracking-wide">
               Ván
             </TableHead>
-            {players.map((player, index) => (
+            {players.map((player) => (
               <TableHead key={player.id} className="p-2 text-center">
-                <div className="flex flex-col items-center gap-1">
-                  <span className="max-w-full truncate text-[10px] font-black text-foreground">
-                    {player.shortName}
-                  </span>
-                  <ScorePill score={playerTotals[index] ?? 0} />
-                </div>
+                <span className="max-w-full truncate text-[10px] font-black text-foreground">
+                  {player.shortName}
+                </span>
               </TableHead>
             ))}
           </TableRow>
@@ -222,12 +219,7 @@ function RoundTable({
             </TableCell>
             {players.map((player, index) => (
               <TableCell key={player.id} className="p-2 text-center">
-                <div className="flex flex-col items-center gap-1">
-                  <ScorePill score={playerTotals[index] ?? 0} />
-                  <span className="text-[9px] font-semibold text-muted-foreground">
-                    {player.shortName}
-                  </span>
-                </div>
+                <ScorePill score={playerTotals[index] ?? 0} />
               </TableCell>
             ))}
           </TableRow>
@@ -238,7 +230,7 @@ function RoundTable({
 }
 
 export default function HistoryPage() {
-  const { players, rounds } = useLoaderData<HistoryLoaderData>();
+  const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
 
   return (
     <main className="flex h-[calc(100dvh-3.5rem-5rem)] min-h-0 box-border overflow-hidden p-3 sm:p-4">
@@ -288,7 +280,7 @@ export default function HistoryPage() {
             <RoundTable
               rounds={rounds}
               players={players}
-              playerTotals={[]}
+              playerTotals={playerTotals}
             />
           )}
         </div>
