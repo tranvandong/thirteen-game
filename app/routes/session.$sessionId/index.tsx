@@ -11,8 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Trophy, Crown } from "lucide-react";
+import { Trophy, Crown, Flame, Spade } from "lucide-react";
 import { cn } from "~/lib/utils";
+import { getRoundMeta } from "~/lib/round.server";
+import { useLoaderData, useFetcher } from "react-router";
+import type { MatchLoaderData } from "./match";
+import { useGameConfig } from "~/stores/useSessionStore";
+import { useMemo } from "react";
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -40,10 +45,12 @@ export async function loader({ params }: Route.LoaderArgs) {
     .leftJoin(sessionTotals, eq(sessionTotals.playerId, players.id))
     .where(eq(players.sessionId, session.id))
     .orderBy(players.orderNo);
+  const roundMeta = await getRoundMeta(session.id);
 
   return {
     session,
     playerTotals,
+    roundMeta,
   };
 }
 
@@ -162,13 +169,7 @@ function LeaderSummaryCard({
   );
 }
 
-function ScoreRow({
-  player,
-  rank,
-}: {
-  player: PlayerTotal;
-  rank: number;
-}) {
+function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
   const score = player.totalScore ?? 0;
   const isLeader = rank === 0;
 
@@ -176,24 +177,28 @@ function ScoreRow({
     <div
       className={cn(
         "flex items-center gap-3 rounded-2xl border p-3 transition-all",
-        isLeader
+        score > 0
           ? "border-primary/25 bg-primary/8 shadow-sm shadow-primary/10"
-          : "border-border/70 bg-card/70",
+          : score === 0
+            ? "border-border/70 bg-card/70"
+            : "border-destructive/25 bg-destructive/8 shadow-sm shadow-destructive/10",
       )}
     >
       <div
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-xl text-xs font-black",
-          isLeader
+          score > 0
             ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground",
+            : score === 0
+              ? "text-muted-foreground bg-muted/40 border-border/70 ring-muted/10"
+              : "bg-destructive text-primary-foreground",
         )}
       >
         {rank + 1}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-black text-foreground sm:text-base">
+        <p className="truncate font-black text-foreground text-base">
           {player.playerName}
         </p>
       </div>
@@ -224,7 +229,8 @@ function EmptyState() {
 export default function SessionScoreboard({
   loaderData,
 }: Route.ComponentProps) {
-  const { playerTotals } = loaderData;
+  const config = useGameConfig();
+  const { playerTotals, roundMeta } = loaderData;
 
   const sorted = [...playerTotals].sort(
     (a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0),
@@ -233,21 +239,96 @@ export default function SessionScoreboard({
   const leader = sorted[0] ?? null;
   const lowest = sorted[sorted.length - 1] ?? null;
 
+  const matchLoaderFetcher = useFetcher<typeof loader>();
+  const accumulated = roundMeta.accumulated;
+
+  const currentRoundNo = roundMeta.currentRoundNo;
+
+  const gameConfig = useMemo(
+    () => ({
+      rankPoints: [
+        config?.firstPlaceScore ?? 3,
+        config?.secondPlaceScore ?? 1,
+        config?.thirdPlaceScore ?? -1,
+        config?.fourthPlaceScore ?? -3,
+      ],
+      khapPoints: config?.khapScore ?? 3,
+      sanhPoints: config?.sanhScore ?? 5,
+      maxKhapAccumulate: config?.khapLimit ?? 5,
+      maxSanhAccumulate: config?.sanhLimit ?? 3,
+      heoDoPoints: config?.redPigScore ?? 3,
+      heodenPoints: config?.blackPigScore ?? 5,
+      nhotBystanderPenalty: 2,
+    }),
+    [config],
+  );
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-4 pb-32">
-      {/* Leader vs lowest */}
-      <div className="grid grid-cols-2 gap-3">
-        <LeaderSummaryCard
-          title="Dẫn đầu"
-          player={leader}
-          accent="leader"
-        />
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="overflow-hidden rounded-3xl border border-chart-4/20 bg-chart-4/10 p-4 ring-1 ring-chart-4/10">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-chart-4">
+                <Flame className="size-3.5" />
+                Khạp
+              </div>
+              <div className="mt-2 flex items-end gap-1">
+                <span className="text-4xl font-black tracking-tight text-chart-4">
+                  {accumulated.khap}
+                </span>
+                <span className="mb-1 text-xs font-semibold text-muted-foreground">
+                  / {gameConfig.maxKhapAccumulate}
+                </span>
+              </div>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-chart-4 shadow-sm">
+              <Flame className="size-5" />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-10 gap-0.5">
+            {Array.from({ length: gameConfig.maxKhapAccumulate }).map(
+              (_, i) => (
+                <div
+                  key={i}
+                  className={`h-2 rounded-full transition-all ${i < accumulated.khap ? "bg-chart-4" : "bg-muted"}`}
+                />
+              ),
+            )}
+          </div>
+        </div>
 
-        <LeaderSummaryCard
-          title="Thấp nhất"
-          player={lowest}
-          accent="lowest"
-        />
+        <div className="overflow-hidden rounded-3xl border border-chart-1/20 bg-chart-1/10 p-4 ring-1 ring-chart-1/10">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-chart-1">
+                <Spade className="size-3.5" />
+                Sảnh
+              </div>
+              <div className="mt-2 flex items-end gap-1">
+                <span className="text-4xl font-black tracking-tight text-chart-1">
+                  {accumulated.sanh}
+                </span>
+                <span className="mb-1 text-xs font-semibold text-muted-foreground">
+                  / {gameConfig.maxSanhAccumulate}
+                </span>
+              </div>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-chart-1 shadow-sm">
+              <Spade className="size-5" />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-10 gap-0.5">
+            {Array.from({ length: gameConfig.maxSanhAccumulate }).map(
+              (_, i) => (
+                <div
+                  key={i}
+                  className={`h-2 rounded-full transition-all ${i < accumulated.sanh ? "bg-chart-1" : "bg-muted"}`}
+                />
+              ),
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Ranking list */}
@@ -263,11 +344,7 @@ export default function SessionScoreboard({
             <EmptyState />
           ) : (
             sorted.map((player, index) => (
-              <ScoreRow
-                key={player.playerId}
-                player={player}
-                rank={index}
-              />
+              <ScoreRow key={player.playerId} player={player} rank={index} />
             ))
           )}
         </CardContent>

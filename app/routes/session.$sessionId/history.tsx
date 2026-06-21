@@ -173,58 +173,65 @@ function RoundTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <Table className="table-fixed">
-        <TableHeader>
-          <TableRow className="border-border/70 bg-muted/70">
-            <TableHead className="w-12 p-2 text-center text-[10px] font-black uppercase tracking-wide">
-              Ván
-            </TableHead>
-            {players.map((player) => (
-              <TableHead key={player.id} className="p-2 text-center">
-                <span className="max-w-full truncate text-[10px] font-black text-foreground">
-                  {player.shortName}
-                </span>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {rounds.map((round) => (
-            <TableRow
-              key={round.id}
-              className="border-border/50 transition-colors hover:bg-primary/5"
-            >
-              <TableCell className="w-12 p-2 text-center">
-                <span className="inline-flex size-7 items-center justify-center rounded-xl bg-primary text-xs font-black text-primary-foreground">
-                  {round.roundNo}
-                </span>
-              </TableCell>
-              {round.scores.map((score, index) => (
-                <TableCell
-                  key={`${round.id}-${index}`}
-                  className="p-2 text-center"
+      <div className="max-h-[60vh] overflow-y-auto">
+        <table className="w-full table-fixed caption-bottom text-sm">
+          <thead>
+            <tr className="border-b border-border/70 bg-muted/70">
+              {/* ✅ sticky trực tiếp trên <th>, không phải <thead> hay <tr> */}
+              <th className="sticky top-0 z-20 w-12 bg-muted/70 p-2 text-center text-[10px] font-black uppercase tracking-wide backdrop-blur-sm">
+                Ván
+              </th>
+              {players.map((player) => (
+                <th
+                  key={player.id}
+                  className="sticky top-0 z-20 bg-muted/70 p-2 text-center backdrop-blur-sm"
                 >
-                  <ScorePill score={score} />
-                </TableCell>
+                  <span className="max-w-full truncate text-[10px] font-black text-foreground">
+                    {player.shortName}
+                  </span>
+                </th>
               ))}
-            </TableRow>
-          ))}
-        </TableBody>
+            </tr>
+          </thead>
 
-        <TableFooter>
-          <TableRow className="border-t border-border/80 bg-muted/70 font-bold">
-            <TableCell className="w-12 p-2 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
-              Tổng
-            </TableCell>
-            {players.map((player, index) => (
-              <TableCell key={player.id} className="p-2 text-center">
-                <ScorePill score={playerTotals[index] ?? 0} />
-              </TableCell>
+          <tbody>
+            {rounds.map((round) => (
+              <tr
+                key={round.id}
+                className="border-b border-border/50 transition-colors hover:bg-primary/5"
+              >
+                <td className="w-12 p-2 text-center">
+                  <span className="inline-flex size-7 items-center justify-center rounded-xl bg-primary text-xs font-black text-primary-foreground">
+                    {round.roundNo}
+                  </span>
+                </td>
+                {round.scores.map((score, index) => (
+                  <td key={`${round.id}-${index}`} className="p-2 text-center">
+                    <ScorePill score={score} />
+                  </td>
+                ))}
+              </tr>
             ))}
-          </TableRow>
-        </TableFooter>
-      </Table>
+          </tbody>
+
+          <tfoot>
+            <tr className="border-t border-border/80 bg-muted/70 font-bold">
+              {/* ✅ sticky bottom trực tiếp trên <td> */}
+              <td className="sticky bottom-0 z-20 w-12 bg-muted/70 p-2 text-center text-[10px] uppercase tracking-wide text-muted-foreground backdrop-blur-sm">
+                Tổng
+              </td>
+              {players.map((player, index) => (
+                <td
+                  key={player.id}
+                  className="sticky bottom-0 z-20 bg-muted/70 p-2 text-center backdrop-blur-sm"
+                >
+                  <ScorePill score={playerTotals[index] ?? 0} />
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }

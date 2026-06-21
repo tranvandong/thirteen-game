@@ -1910,7 +1910,7 @@ export default function MatchPage() {
                   <div className="flex flex-wrap gap-2 px-3 pb-3">
                     {/* Khạp */}
                     <div
-                      className={`inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs transition-colors ${
+                      className={`inline-flex items-center gap-1 rounded-2xl border px-2.5 py-1 text-xs transition-colors ${
                         isKhapWinner
                           ? "border-chart-4/40 bg-chart-4/10 text-chart-4"
                           : khapTaken
