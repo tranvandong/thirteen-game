@@ -186,7 +186,7 @@ function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
     >
       <div
         className={cn(
-          "flex size-8 shrink-0 items-center justify-center rounded-xl text-xs font-black",
+          "flex size-8 shrink-0 items-center justify-center rounded-xl font-black",
           score > 0
             ? "bg-primary text-primary-foreground"
             : score === 0
@@ -265,7 +265,7 @@ export default function SessionScoreboard({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-4 pb-32">
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="overflow-hidden rounded-3xl border border-chart-4/20 bg-chart-4/10 p-4 ring-1 ring-chart-4/10">
           <div className="flex items-center justify-between gap-3">
             <div>

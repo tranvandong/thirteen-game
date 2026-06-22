@@ -233,6 +233,7 @@ export default function MatchPage() {
   const [denForIds, setDenForIds] = useState<string[]>([]);
   const [showDenBai, setShowDenBai] = useState(false);
   const [expandBonus, setExpandBonus] = useState(false);
+  const [showChatHeo, setShowChatHeo] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
 
@@ -782,6 +783,8 @@ export default function MatchPage() {
     setShowDenBai(false);
     setSubmitted(false);
     setConfirmNhot(false);
+    setShowChatHeoForm(false);
+    setShowChatHeo(false);
   };
 
   const handleSave = () => {
@@ -1030,42 +1033,66 @@ export default function MatchPage() {
       </section>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Swords className="size-4" />
-          </div>
-          <div>
-            <p className="text-sm font-black text-foreground">Nhập kết quả</p>
+        <div className="flex items-center justify-between gap-2 w-full">
+          <div className="flex gap-2 items-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Swords className="size-4" />
+            </div>
 
+            <p className="text-sm font-black text-foreground">Kết quả</p>
+          </div>
+          <div className="flex gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1 font-black text-sm"
+              onClick={() => setExpandBonus((v) => !v)}
+            >
+              <Plus className="size-4" />
+              Nhốt bài
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1 font-black text-sm"
+              onClick={() => {
+                setShowChatHeo((v) => !v);
+                setShowChatHeoForm(true);
+              }}
+            >
+              <Plus className="size-4" />
+              Chặt heo
+            </Button>
           </div>
         </div>
       </div>
 
       {/* ── Nhốt bài ─────────────────────────── */}
-      <Card className="overflow-hidden border-border/70 shadow-sm">
-        <button
-          onClick={() => setExpandBonus((v) => !v)}
-          className="flex w-full items-center justify-between px-4 py-4 text-left transition-colors hover:bg-muted/40"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-chart-3/10 text-chart-3">
-              <Lock className="size-5" />
+      {expandBonus && (
+        <Card className="overflow-hidden border-border/70 shadow-sm">
+          <button className="flex w-full items-center justify-between px-4 py-4 text-left transition-colors hover:bg-muted/40">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-chart-3/10 text-chart-3">
+                <Lock className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-foreground">Nhốt Bài</p>
+                <p className="text-xs text-muted-foreground">
+                  Thiết lập người nhốt, bị nhốt và đền bài
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-foreground">Nhốt Bài</p>
-              <p className="text-xs text-muted-foreground">
-                Thiết lập người nhốt, bị nhốt và đền bài
-              </p>
-            </div>
-          </div>
-          {expandBonus ? (
-            <CollapseIcon className="size-5 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="size-5 text-muted-foreground" />
-          )}
-        </button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpandBonus((v) => !v)}
+              className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+              type="submit"
+            >
+              <X className="size-5" />
+            </Button>
+          </button>
 
-        {expandBonus && (
           <div className="flex flex-col gap-3 px-4 pb-4">
             {confirmNhot &&
               nhotList.length > 0 &&
@@ -1257,12 +1284,12 @@ export default function MatchPage() {
               })}
 
             {!confirmNhot && (
-              <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/35 p-4">
+              <div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                     Người nhốt
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-1">
                     {players.map((p) => (
                       <button
                         key={p.id}
@@ -1275,7 +1302,7 @@ export default function MatchPage() {
                             ),
                           }))
                         }
-                        className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                        className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
                           nhotForm.nhotterId === p.id
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-border bg-background text-foreground hover:border-primary/40"
@@ -1288,10 +1315,10 @@ export default function MatchPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mt-4">
                     Người bị nhốt
                   </p>
-                  <div className="mt-2 flex flex-col gap-2">
+                  <div className="mt-2 flex flex-col gap-1">
                     {players
                       .filter((p) => p.id !== nhotForm.nhotterId)
                       .map((p) => {
@@ -1313,17 +1340,17 @@ export default function MatchPage() {
                             }`}
                           >
                             <div
-                              className={`flex-1 text-sm font-black ${isVictim ? "text-destructive" : "text-foreground"}`}
+                              className={`flex-1 font-black  ${isVictim ? "text-destructive" : "text-foreground"}`}
                               onClick={() => toggleNhotVictim(p.id)}
                             >
                               {pShort(p.id)}
                             </div>
                             {isVictim && (
-                              <div className="flex gap-3">
+                              <div className="flex gap-1">
                                 {(["do", "den"] as HeoType[]).map((t) => (
                                   <div
                                     key={t}
-                                    className="flex items-center gap-1 text-xs"
+                                    className="flex items-center gap-0.5 text-xs"
                                   >
                                     <span
                                       className={`rounded-full px-2 py-0.5 font-black ${
@@ -1364,7 +1391,7 @@ export default function MatchPage() {
                 </div>
 
                 {showDenBai && (
-                  <div className="rounded-3xl border border-chart-3/20 bg-chart-3/10 p-4">
+                  <div className="rounded-3xl border border-chart-3/20 bg-chart-3/10 p-4 mt-4">
                     <div>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -1374,7 +1401,7 @@ export default function MatchPage() {
                           Chọn 1 trong {dennerCandidates.length}
                         </span>
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-2 flex flex-wrap gap-1">
                         {dennerCandidates.map((pid) => {
                           const selected = dennerId === pid;
                           return (
@@ -1386,7 +1413,7 @@ export default function MatchPage() {
                                   denForCandidates.filter((id) => id !== pid),
                                 );
                               }}
-                              className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                              className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
                                 selected
                                   ? "border-destructive bg-destructive/10 text-destructive"
                                   : "border-border bg-background text-foreground hover:border-destructive/30"
@@ -1401,7 +1428,7 @@ export default function MatchPage() {
 
                     {dennerId && denForCandidates.length > 0 && (
                       <div className="mt-4">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center justify-between gap-1">
                           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                             Người được đền
                           </p>
@@ -1422,7 +1449,7 @@ export default function MatchPage() {
                                       : [...prev, pid],
                                   )
                                 }
-                                className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                                className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
                                   selected
                                     ? "border-chart-1 bg-chart-1/20 text-chart-1"
                                     : "border-border bg-background text-foreground hover:border-chart-1/30"
@@ -1442,18 +1469,19 @@ export default function MatchPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-10 text-xs font-black"
+                    className="h-10 font-black w-full mt-2"
                     onClick={() => setShowDenBai((v) => !v)}
                   >
+                    <Plus className="size-3.5" />
                     {showDenBai ? "Hủy đền bài" : "Đền bài"}
                   </Button>
                 )}
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1">
                   {!confirmNhot ? (
                     <>
                       <Button
                         size="sm"
-                        className="h-10 text-xs font-black"
+                        className="h-10 font-black"
                         onClick={addNhot}
                         disabled={
                           !nhotForm.nhotterId || nhotForm.victims.length === 0
@@ -1464,7 +1492,7 @@ export default function MatchPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-10 text-xs font-black"
+                        className="h-10 font-black"
                         onClick={() => removeNhot()}
                       >
                         Hủy
@@ -1474,7 +1502,7 @@ export default function MatchPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-10 text-xs font-black"
+                      className="h-10 font-black"
                       onClick={() => resetNhot()}
                     >
                       Chọn lại
@@ -1484,44 +1512,52 @@ export default function MatchPage() {
               </div>
             )}
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* ── Chặt heo ─────────────────────────── */}
-      <Card className="overflow-hidden border-border/70 shadow-sm">
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
-              <Scissors className="size-5" />
+      {showChatHeo && (
+        <Card className="overflow-hidden border-border/70 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+                <Scissors className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-foreground">Chặt Heo</p>
+                <p className="text-xs text-muted-foreground">
+                  {chatHeoList.length > 0
+                    ? `${chatHeoList.length} lượt chặt heo`
+                    : "Thêm lượt chặt heo nếu có"}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-foreground">Chặt Heo</p>
-              <p className="text-xs text-muted-foreground">
-                {chatHeoList.length > 0
-                  ? `${chatHeoList.length} lượt chặt heo`
-                  : "Thêm lượt chặt heo nếu có"}
+            {nhotCount === 3 && (
+              <p className="text-xs font-medium italic text-muted-foreground">
+                Nhốt tất cả · không tính chặt heo
               </p>
-            </div>
-          </div>
-          {nhotCount === 3 && (
-            <p className="text-xs font-medium italic text-muted-foreground">
-              Nhốt tất cả · không tính chặt heo
-            </p>
-          )}
-          {nhotCount < 3 && (
+            )}
+
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 gap-1 text-xs font-black"
-              onClick={() => setShowChatHeoForm((v) => !v)}
+              onClick={() => {
+                setShowChatHeoForm(false);
+                setShowChatHeo(false);
+                setChatHeoList([]);
+                setChatForm({
+                  chatterId: "",
+                  victimId: "",
+                  heo: { do: 0, den: 0 },
+                });
+              }}
+              className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+              type="submit"
             >
-              <Plus className="size-3.5" />
-              Thêm
+              <X className="size-5" />
             </Button>
-          )}
-        </div>
+          </div>
 
-        {(showChatHeoForm || chatHeoList.length > 0) && (
           <CardContent className="flex flex-col gap-4 pt-0">
             {chatHeoList.length === 0 && showChatHeoForm && (
               <p className="text-sm text-muted-foreground">
@@ -1575,13 +1611,13 @@ export default function MatchPage() {
                     </div>
                   );
                 })}
-              {showChatHeoForm && nhotCount < 3 && (
+              {showChatHeoForm && nhotCount < 3 ? (
                 <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/35 p-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                       Người chặt
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-1">
                       {players
                         .filter((p) => !nhotVictimIds.includes(p.id))
                         .map((p) => (
@@ -1598,7 +1634,7 @@ export default function MatchPage() {
                                     : f.victimId,
                               }))
                             }
-                            className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                            className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
                               chatForm.chatterId === p.id
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-background text-foreground hover:border-primary/40"
@@ -1614,7 +1650,7 @@ export default function MatchPage() {
                     <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                       Người bị chặt
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-1">
                       {players
                         .filter(
                           (p) =>
@@ -1627,7 +1663,7 @@ export default function MatchPage() {
                             onClick={() =>
                               setChatForm((f) => ({ ...f, victimId: p.id }))
                             }
-                            className={`rounded-2xl border px-3 py-2 text-xs font-black transition-colors ${
+                            className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
                               chatForm.victimId === p.id
                                 ? "border-destructive bg-destructive/10 text-destructive"
                                 : "border-border bg-background text-foreground hover:border-destructive/30"
@@ -1643,14 +1679,14 @@ export default function MatchPage() {
                     <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                       Số lượng heo
                     </p>
-                    <div className="mt-2 flex gap-3">
+                    <div className="mt-2 flex gap-0.5">
                       {(["do", "den"] as HeoType[]).map((t) => (
                         <div
                           key={t}
-                          className="flex flex-1 items-center justify-between gap-2 rounded-2xl border border-border/70 bg-background p-2"
+                          className="flex flex-1 items-center justify-between gap-0.5 rounded-2xl border border-border/70 bg-background p-2"
                         >
                           <span
-                            className={`rounded-full px-2 py-1 text-[10px] font-black ${
+                            className={`rounded-full px-2 py-1 text-[12px] font-black ${
                               t === "den"
                                 ? "bg-foreground text-background"
                                 : "bg-red-500 text-white"
@@ -1678,10 +1714,10 @@ export default function MatchPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1">
                     <Button
                       size="sm"
-                      className="h-10 text-xs font-black"
+                      className="h-10 font-black"
                       onClick={addChatHeo}
                       disabled={
                         !chatForm.chatterId ||
@@ -1694,18 +1730,28 @@ export default function MatchPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-10 text-xs font-black"
+                      className="h-10 font-black"
                       onClick={() => setShowChatHeoForm(false)}
                     >
                       Hủy
                     </Button>
                   </div>
                 </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1 font-black"
+                  onClick={() => setShowChatHeoForm((v) => !v)}
+                >
+                  <Plus className="size-3.5" />
+                  Thêm
+                </Button>
               )}
             </div>
           </CardContent>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* ── Xếp hạng ─────────────────────────────────────── */}
       <Card className="overflow-hidden border-border/70 shadow-sm">
@@ -1716,17 +1762,19 @@ export default function MatchPage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <Crown className="size-4" />
                 </div>
-                Xếp hạng
+                <div>
+                  <div>Xếp hạng</div>
+                  <p className="text-xs text-muted-foreground">
+                    {!activeNhot
+                      ? "Chọn thứ tự người chơi"
+                      : nhotCount === 3
+                        ? "Nhốt tất cả · không tính hạng"
+                        : nhotCount === 2
+                          ? "Nhốt 2 · người chơi còn lại đồng hạng 3"
+                          : "Nhốt 1 · chọn hạng 2 và 3 cho 2 người chơi còn lại"}
+                  </p>
+                </div>
               </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {!activeNhot
-                  ? "Chọn thứ tự người chơi"
-                  : nhotCount === 3
-                    ? "Nhốt tất cả · không tính hạng"
-                    : nhotCount === 2
-                      ? "Nhốt 2 · người chơi còn lại đồng hạng 3"
-                      : "Nhốt 1 · chọn hạng 2 và 3 cho 2 người chơi còn lại"}
-              </p>
             </div>
             {activeNhot && (
               <span className="rounded-full bg-chart-3/10 px-3 py-1 text-xs font-black text-chart-3 ring-1 ring-chart-3/20">
@@ -1851,7 +1899,7 @@ export default function MatchPage() {
                     </span>
                   ) : (
                     <span
-                      className={`flex shrink-0 items-center justify-center size-6 rounded-full text-xs font-black transition-colors ${
+                      className={`flex shrink-0 items-center justify-center size-6 rounded-full font-black transition-colors ${
                         isSelected
                           ? "bg-primary text-primary-foreground"
                           : "border border-muted-foreground/20 bg-muted text-muted-foreground"
@@ -1863,14 +1911,14 @@ export default function MatchPage() {
 
                   {/* Label hạng */}
                   <span
-                    className={`shrink-0 w-14 text-xs font-black ${
+                    className={`shrink-0 w-14 font-black ${
                       showAsActive ? labelColor : "text-muted-foreground"
                     }`}
                   >
                     {showAsActive ? label : ""}
                   </span>
 
-                  <span className="min-w-0 flex-1 truncate text-sm font-black">
+                  <span className="min-w-0 flex-1 truncate font-black">
                     {player.name}
                   </span>
 
@@ -2055,7 +2103,7 @@ export default function MatchPage() {
         </CardContent>
       </Card>
 
-            {/* Kết quả tạm tính */}
+      {/* Kết quả tạm tính */}
       <Card className="overflow-hidden border-border/70 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -2074,7 +2122,7 @@ export default function MatchPage() {
                   key={player.id}
                   className={`flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
                 >
-                  <span className="text-[10px] font-black uppercase tracking-wide opacity-70">
+                  <span className="text-xs font-black uppercase tracking-wide opacity-70">
                     {pShort(player.id)}
                   </span>
                   <span className="text-xl font-black tabular-nums">

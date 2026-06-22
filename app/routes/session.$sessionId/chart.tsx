@@ -9,7 +9,7 @@ import { players } from "~/db/schema/players";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
 import { eq } from "drizzle-orm";
-import { TrendingUp, BarChart2 } from "lucide-react";
+import { TrendingUp, BarChart2, TrendingDown } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -179,6 +179,8 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
     "var(--chart-4)",
   ];
 
+  const specificColors = ["#ef4444", "#22c55e", "#eab308", "#3b82f6"];
+
   const lineChartConfig = Object.fromEntries(
     players.map((p, i) => [
       `p${i + 1}`,
@@ -203,6 +205,12 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
   // Tìm người dẫn đầu số lần về nhất
   const topRank = rankData.reduce(
     (best, cur) => (cur.nhat > (best?.nhat ?? -1) ? cur : best),
+    rankData[0],
+  );
+
+  // Tìm người dẫn đầu số lần về bét
+  const topRank2 = rankData.reduce(
+    (best, cur) => (cur.tu > (best?.tu ?? -1) ? cur : best),
     rankData[0],
   );
 
@@ -246,10 +254,11 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                   key={p.id}
                   dataKey={`p${i + 1}`}
                   type="monotone"
-                  stroke={`var(--color-p${i + 1})`}
+                  stroke={specificColors[i] ?? `var(--color-p${i + 1})`}
                   strokeWidth={2}
                   dot={{ r: 0 }}
                   activeDot={{ r: 5 }}
+                  markerEnd="s"
                 />
               ))}
             </LineChart>
@@ -287,10 +296,14 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </ChartContainer>
         </CardContent>
         {topRank && (
-          <CardFooter className="flex gap-2 text-sm">
-            <div className="flex items-center gap-1 text-chart-4 font-medium">
+          <CardFooter className="flex flex-col gap-2 text-sm">
+            <div className="flex gap-1 text-chart-2 text-sm">
               <TrendingUp className="size-4" />
               {topRank.name} dẫn đầu số lần về nhất ({topRank.nhat} lần)
+            </div>
+            <div className="flex items-center gap-1 text-destructive text-sm">
+              <TrendingDown className="size-4" />
+              {topRank2.name} dẫn đầu số lần về tư ({topRank2.nhat} lần)
             </div>
           </CardFooter>
         )}
@@ -327,38 +340,6 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         <CardFooter className="text-sm text-muted-foreground">
           Tổng hợp sảnh và khạp trong toàn bộ phiên
         </CardFooter>
-      </Card>
-
-      {/* ── 4. Tổng điểm mỗi người chơi ─────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tổng điểm</CardTitle>
-          <CardDescription>
-            Tổng điểm tích lũy của từng người chơi
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={totalScoreConfig}>
-            <BarChart accessibilityLayer data={totalScores}>
-              <CartesianGrid vertical={false} />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel hideIndicator />}
-              />
-              <Bar dataKey="diem">
-                <LabelList position="top" dataKey="name" fillOpacity={1} />
-                {totalScores.map((item) => (
-                  <Cell
-                    key={item.name}
-                    fill={
-                      item.diem >= 0 ? "var(--chart-2)" : "var(--destructive)"
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
       </Card>
     </main>
   );
