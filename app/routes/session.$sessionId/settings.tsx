@@ -14,6 +14,8 @@ import {
   Gamepad2,
   RotateCcw,
   CheckCircle2,
+  Pencil,
+  Shield,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
 import {
@@ -21,7 +23,8 @@ import {
   usePlayers,
   useCurrentParticipant,
 } from "~/stores/useSessionStore";
-import { sessions } from "~/db/schema";
+import { players, sessions } from "~/db/schema";
+import { useEffect, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Loader — chỉ fetch những gì store không có
@@ -37,22 +40,24 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   if (!session) throw new Response("Session not found", { status: 404 });
 
-  const [participantList, selections, pendingRequests] = await Promise.all([
-    db.query.participants.findMany({
-      where: eq(participants.sessionId, session.id),
-    }),
+  const [participantList, selections, pendingRequests, playerList] =
+    await Promise.all([
+      db.query.participants.findMany({
+        where: eq(participants.sessionId, session.id),
+      }),
 
-    db.query.participantPlayers.findMany({
-      where: eq(participantPlayers.sessionId, session.id),
-    }),
+      db.query.participantPlayers.findMany({
+        where: eq(participantPlayers.sessionId, session.id),
+      }),
 
-    db.query.joinRequests.findMany({
-      where: and(
-        eq(joinRequests.sessionId, session.id),
-        eq(joinRequests.status, "pending"),
-      ),
-    }),
-  ]);
+      db.query.joinRequests.findMany({
+        where: and(
+          eq(joinRequests.sessionId, session.id),
+          eq(joinRequests.status, "pending"),
+        ),
+      }),
+      db.select().from(players).where(eq(players.sessionId, session.id)),
+    ]);
 
   // Map selectedPlayerId vào từng participant
   const participantsWithPlayer = participantList.map((p) => ({
@@ -61,7 +66,7 @@ export async function loader({ params }: Route.LoaderArgs) {
       selections.find((s) => s.participantId === p.id)?.playerId ?? null,
   }));
 
-  return { participantsWithPlayer, pendingRequests };
+  return { participantsWithPlayer, pendingRequests, playerList };
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +132,25 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { ok: true };
   }
 
+  if (intent === "update-players") {
+    const updates = JSON.parse(form.get("updates") as string) as Array<{
+      id: string;
+      name: string;
+      initialScore: number;
+    }>;
+
+    await Promise.all(
+      updates.map((u) =>
+        db
+          .update(players)
+          .set({ name: u.name, initialScore: u.initialScore })
+          .where(eq(players.id, u.id)),
+      ),
+    );
+
+    return { ok: true };
+  }
+
   return { ok: false };
 }
 
@@ -134,14 +158,26 @@ export async function action({ request, params }: Route.ActionArgs) {
 // Component
 // ---------------------------------------------------------------------------
 export default function SettingsPage() {
-  const { participantsWithPlayer, pendingRequests } =
+  const { participantsWithPlayer, pendingRequests, playerList } =
     useLoaderData<typeof loader>();
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [editDrafts, setEditDrafts] = useState<
+    Record<string, { name: string; initialScore: string }>
+  >({});
 
   const session = useSession();
   const players = usePlayers();
   const currentParticipant = useCurrentParticipant();
 
   const fetcher = useFetcher();
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.ok) {
+      setIsEditing(false);
+    }
+  }, [fetcher.state, fetcher.data]);
 
   const isOwner =
     !!session &&
@@ -198,6 +234,32 @@ export default function SettingsPage() {
     );
   };
 
+  const startEdit = () => {
+    const drafts: Record<string, { name: string; initialScore: string }> = {};
+    playerList.forEach((p) => {
+      drafts[p.id] = {
+        name: p.name,
+        initialScore: String(p.initialScore ?? 0),
+      };
+    });
+    setEditDrafts(drafts);
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => setIsEditing(false);
+
+  const saveEdit = () => {
+    const updates = players.map((p) => ({
+      id: p.id,
+      name: editDrafts[p.id]?.name ?? p.name,
+      initialScore: parseInt(editDrafts[p.id]?.initialScore ?? "0", 10) || 0,
+    }));
+    fetcher.submit(
+      { intent: "update-players", updates: JSON.stringify(updates) },
+      { method: "POST" },
+    );
+  };
+
   return (
     <main className="p-4 flex flex-col gap-4">
       {/* Header */}
@@ -213,83 +275,193 @@ export default function SettingsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Chọn nhân vật                                                       */}
       {/* ------------------------------------------------------------------ */}
+      {/* Card Chọn nhân vật */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
-              <Gamepad2 className="size-4" />
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
+                <Gamepad2 className="size-4" />
+              </div>
+              Chọn nhân vật
             </div>
-            Chọn nhân vật
+
+            {isOwner &&
+              (isEditing ? (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs px-3"
+                    onClick={cancelEdit}
+                    disabled={isBusy}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs px-3"
+                    onClick={saveEdit}
+                    disabled={isBusy}
+                  >
+                    Lưu
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs px-3 gap-1"
+                  onClick={startEdit}
+                >
+                  <Pencil className="size-3" />
+                  Chỉnh sửa
+                </Button>
+              ))}
           </CardTitle>
         </CardHeader>
+
         <CardContent className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2">
-            {players.map((player) => {
-              const isSelectedByMe = mySelectedPlayerId === player.id;
-              const isTaken = takenPlayerIds.has(player.id);
-              const takenBy = isTaken
-                ? participantsWithPlayer.find(
-                    (p) => p.selectedPlayerId === player.id,
-                  )
-                : null;
-
-              return (
-                <button
-                  key={player.id}
-                  disabled={!!mySelectedPlayerId || isTaken || isBusy}
-                  onClick={() => handleSelectPlayer(player.id)}
-                  className={[
-                    "relative flex flex-col items-center gap-1 p-3 rounded-lg border text-sm font-medium transition-colors",
-                    isSelectedByMe
-                      ? "bg-primary/10 border-primary text-primary"
-                      : isTaken
-                        ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed opacity-60"
-                        : mySelectedPlayerId
-                          ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed"
-                          : "bg-muted border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
-                  ].join(" ")}
-                >
-                  {isSelectedByMe && (
-                    <CheckCircle2 className="absolute top-2 right-2 size-4 text-primary" />
-                  )}
-
-                  <div
-                    className={[
-                      "flex items-center justify-center size-10 rounded-full text-base font-bold",
-                      isSelectedByMe
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background text-foreground",
-                    ].join(" ")}
-                  >
-                    {player.name.charAt(0).toUpperCase()}
+          {isEditing ? (
+            /* ---- Chế độ edit ---- */
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 px-3 py-2">
+                <div className="flex flex-1 gap-2">
+                  <div className="flex-1 min-w-0 rounded-md text-sm">
+                    Tên nhân vật
                   </div>
+                  <div className="w-20 shrink-0 rounded-md text-sm text-right">
+                    Giáp
+                  </div>
+                </div>
+              </div>
+              {players.map((player) => {
+                const draft = editDrafts[player.id] ?? {
+                  name: player.name,
+                  initialScore: String(player.initialScore ?? 0),
+                };
+                return (
+                  <div
+                    key={player.id}
+                    className="flex items-center gap-2 p-3 rounded-lg bg-muted"
+                  >
+                    <div className="flex flex-1 gap-2">
+                      <input
+                        type="text"
+                        value={draft.name}
+                        maxLength={100}
+                        placeholder="Tên nhân vật"
+                        onChange={(e) =>
+                          setEditDrafts((prev) => ({
+                            ...prev,
+                            [player.id]: {
+                              ...prev[player.id],
+                              name: e.target.value,
+                            },
+                          }))
+                        }
+                        className="flex-1 min-w-0 rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      <input
+                        type="number"
+                        value={draft.initialScore}
+                        placeholder="Điểm"
+                        onChange={(e) =>
+                          setEditDrafts((prev) => ({
+                            ...prev,
+                            [player.id]: {
+                              ...prev[player.id],
+                              initialScore: e.target.value,
+                            },
+                          }))
+                        }
+                        className="w-20 shrink-0 rounded-md border bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-xs text-muted-foreground text-center">
+                Sửa tên và điểm ban đầu cho từng nhân vật.
+              </p>
+            </div>
+          ) : (
+            /* ---- Chế độ chọn nhân vật (giữ nguyên) ---- */
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                {playerList.map((player) => {
+                  const isSelectedByMe = mySelectedPlayerId === player.id;
+                  const isTaken = takenPlayerIds.has(player.id);
+                  const takenBy = isTaken
+                    ? participantsWithPlayer.find(
+                        (p) => p.selectedPlayerId === player.id,
+                      )
+                    : null;
 
-                  <span>{player.name}</span>
+                  return (
+                    <button
+                      key={player.id}
+                      disabled={!!mySelectedPlayerId || isTaken || isBusy}
+                      onClick={() => handleSelectPlayer(player.id)}
+                      className={[
+                        "relative flex flex-col items-center gap-1 p-3 rounded-lg border text-sm font-medium transition-colors",
+                        isSelectedByMe
+                          ? "bg-primary/10 border-primary text-primary"
+                          : isTaken
+                            ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed opacity-60"
+                            : mySelectedPlayerId
+                              ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed"
+                              : "bg-muted border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
+                      ].join(" ")}
+                    >
+                      {isSelectedByMe && (
+                        <CheckCircle2 className="absolute top-2 right-2 size-4 text-primary" />
+                      )}
+                      <div
+                        className={[
+                          "flex items-center justify-center size-10 rounded-full text-base font-bold",
+                          isSelectedByMe
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background text-foreground",
+                        ].join(" ")}
+                      >
+                        {player.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span>{player.name}</span>
+                      {(player.initialScore ?? 0) !== 0 && (
+                        <div className="relative inline-flex items-center justify-center">
+                          <Shield className="size-8 text-muted-foreground" />
+                          <span className="absolute text-[9px] font-bold text-muted-foreground leading-none">
+                            {player.initialScore}
+                          </span>
+                        </div>
+                      )}
+                      {isTaken && takenBy && (
+                        <span className="text-xs text-muted-foreground">
+                          ← {takenBy.displayName}
+                        </span>
+                      )}
+                      {isSelectedByMe && (
+                        <span className="text-xs text-primary font-normal">
+                          Bạn đang chọn
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-                  {isTaken && takenBy && (
-                    <span className="text-xs text-muted-foreground">
-                      ← {takenBy.displayName}
-                    </span>
-                  )}
-                  {isSelectedByMe && (
-                    <span className="text-xs text-primary font-normal">
-                      Bạn đang chọn
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {!mySelectedPlayerId && (
-            <p className="text-xs text-muted-foreground text-center">
-              Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
-            </p>
-          )}
-          {mySelectedPlayerId && !isOwner && (
-            <p className="text-xs text-muted-foreground text-center">
-              Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại.
-            </p>
+              {!mySelectedPlayerId && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
+                </p>
+              )}
+              {mySelectedPlayerId && !isOwner && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại.
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

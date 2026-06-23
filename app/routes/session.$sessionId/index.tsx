@@ -11,12 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Trophy, Crown, Flame, Spade } from "lucide-react";
+import { Trophy, Crown, Flame, Spade, Shield } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { getRoundMeta } from "~/lib/round.server";
 import { useLoaderData, useFetcher } from "react-router";
 import type { MatchLoaderData } from "./match";
-import { useGameConfig } from "~/stores/useSessionStore";
+import { useGameConfig, usePlayers } from "~/stores/useSessionStore";
 import { useMemo } from "react";
 
 // ---------------------------------------------------------------------------
@@ -63,6 +63,7 @@ type PlayerTotal = {
   playerName: string;
   orderNo: number;
   totalScore: number | null;
+  initialScore: number;
 };
 
 function formatScore(score: number) {
@@ -186,12 +187,12 @@ function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
     >
       <div
         className={cn(
-          "flex size-8 shrink-0 items-center justify-center rounded-xl font-black",
+          "flex size-7 shrink-0 items-center justify-center rounded-xl font-black",
           score > 0
             ? "bg-primary text-primary-foreground"
             : score === 0
               ? "text-muted-foreground bg-muted/40 border-border/70 ring-muted/10"
-              : "bg-destructive text-primary-foreground",
+              : "bg-destructive/80 text-primary-foreground",
         )}
       >
         {rank + 1}
@@ -202,7 +203,14 @@ function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
           {player.playerName}
         </p>
       </div>
-
+      {player.initialScore > 0 && (
+        <div className="relative inline-flex items-center justify-center">
+          <Shield className="size-8 text-muted-foreground" />
+          <span className="absolute text-[9px] font-bold text-muted-foreground leading-none">
+            {player.initialScore}
+          </span>
+        </div>
+      )}
       <ScorePill score={score} />
     </div>
   );
@@ -230,11 +238,19 @@ export default function SessionScoreboard({
   loaderData,
 }: Route.ComponentProps) {
   const config = useGameConfig();
+  const players = usePlayers();
   const { playerTotals, roundMeta } = loaderData;
 
-  const sorted = [...playerTotals].sort(
-    (a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0),
-  );
+  const sorted = [...playerTotals]
+    .map((pt) => {
+      const player = players.find((p) => p.id === pt.playerId);
+      return {
+        ...pt,
+        initialScore: player?.initialScore ?? 0,
+        totalScore: (pt.totalScore ?? 0) + (player?.initialScore ?? 0),
+      };
+    })
+    .sort((a, b) => b.totalScore - a.totalScore);
 
   const leader = sorted[0] ?? null;
   const lowest = sorted[sorted.length - 1] ?? null;

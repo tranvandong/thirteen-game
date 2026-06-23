@@ -16,4 +16,6 @@ export const players = pgTable("players", {
   }).notNull(),
 
   orderNo: integer("order_no").notNull(),
+  
+  initialScore: integer("initial_score").notNull().default(0),
 });

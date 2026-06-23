@@ -159,6 +159,7 @@ export async function loader({
       id: p.id,
       name: p.name,
       orderNo: p.orderNo,
+      initialScore: p.initialScore,
     })),
     currentParticipant: {
       id: currentParticipant.id,

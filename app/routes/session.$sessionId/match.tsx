@@ -787,6 +787,18 @@ export default function MatchPage() {
     setShowChatHeo(false);
   };
 
+  const closeNhotBai = () => {
+    setShowDenBai(false);
+    setExpandBonus(false);
+    setNhotList([]);
+    setNhotForm({ nhotterId: "", victims: [] });
+    setDennerId(null);
+    setDenForIds([]);
+    setShowDenBai(false);
+    setSelectOrder(players.map(() => null));
+    setConfirmNhot(false);
+  };
+
   const handleSave = () => {
     if (!currentParticipant || !rankingComplete || isSaving) return;
 
@@ -1046,7 +1058,7 @@ export default function MatchPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1 font-black text-sm"
-              onClick={() => setExpandBonus((v) => !v)}
+              onClick={() => setExpandBonus(true)}
             >
               <Plus className="size-4" />
               Nhốt bài
@@ -1085,7 +1097,7 @@ export default function MatchPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setExpandBonus((v) => !v)}
+              onClick={() => closeNhotBai()}
               className="h-9 gap-1.5 text-xs font-bold sm:h-10"
               type="submit"
             >
@@ -1397,9 +1409,22 @@ export default function MatchPage() {
                         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                           Người đền bài
                         </p>
-                        <span className="text-xs text-muted-foreground">
+                        {/* <span className="text-xs text-muted-foreground">
                           Chọn 1 trong {dennerCandidates.length}
-                        </span>
+                        </span> */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShowDenBai(false);
+                            setDennerId(null);
+                            setDenForIds([]);
+                          }}
+                          className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+                          type="submit"
+                        >
+                          <X className="size-5" />
+                        </Button>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1">
                         {dennerCandidates.map((pid) => {
@@ -1432,9 +1457,7 @@ export default function MatchPage() {
                           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                             Người được đền
                           </p>
-                          <span className="text-xs text-muted-foreground">
-                            Chọn 1 hoặc nhiều
-                          </span>
+                          
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {denForCandidates.map((pid) => {
@@ -1465,18 +1488,18 @@ export default function MatchPage() {
                   </div>
                 )}
 
-                {nhotFormVictimIds.length > 1 && (
+                {nhotFormVictimIds.length > 1 && !showDenBai && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-10 font-black w-full mt-2"
-                    onClick={() => setShowDenBai((v) => !v)}
+                    onClick={() => setShowDenBai(true)}
                   >
                     <Plus className="size-3.5" />
-                    {showDenBai ? "Hủy đền bài" : "Đền bài"}
+                    Đền bài
                   </Button>
                 )}
-                <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1">
+                <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1 mt-2">
                   {!confirmNhot ? (
                     <>
                       <Button
@@ -1575,7 +1598,7 @@ export default function MatchPage() {
                   return (
                     <div
                       key={c.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-3"
+                      className="flex items-center justify-between gap-1 rounded-2xl border border-red-500/20 bg-red-500/10 p-3"
                     >
                       <div className="flex min-w-0 items-center gap-1.5 flex-wrap">
                         <span className="font-black">
@@ -1584,7 +1607,7 @@ export default function MatchPage() {
                         <Scissors className="size-3.5 text-muted-foreground" />
                         <span className="font-black">{pShort(c.victimId)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         {(c.heo.do ?? 0) > 0 && (
                           <span className="rounded-full bg-red-500 px-2 py-1 text-[10px] font-black text-white">
                             {c.heo.do} Đỏ
@@ -1899,7 +1922,7 @@ export default function MatchPage() {
                     </span>
                   ) : (
                     <span
-                      className={`flex shrink-0 items-center justify-center size-6 rounded-full font-black transition-colors ${
+                      className={`flex shrink-0 items-center justify-center size-4 rounded-full font-black transition-colors ${
                         isSelected
                           ? "bg-primary text-primary-foreground"
                           : "border border-muted-foreground/20 bg-muted text-muted-foreground"

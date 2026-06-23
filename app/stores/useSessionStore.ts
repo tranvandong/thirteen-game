@@ -26,6 +26,7 @@ export interface Player {
   id: string;
   name: string;
   orderNo: number;
+  initialScore: number
 }
 
 export interface SessionParticipant {
