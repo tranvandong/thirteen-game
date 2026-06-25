@@ -15,6 +15,10 @@ export default defineConfig({
         ws: true, // bắt buộc cho WebSocket
         changeOrigin: true,
       },
+       "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

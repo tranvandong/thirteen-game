@@ -9,6 +9,7 @@ import { db } from "~/db/client.server";
 import { playerDevices } from "~/db/schema/player-devices";
 import { participants } from "~/db/schema/participants";
 import { and, eq } from "drizzle-orm";
+import { sessions } from "~/db/schema";
 
 interface DevicePayload {
   participantId: string;
@@ -25,8 +26,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   const sessionId = params.sessionId;
   let body: DevicePayload;
 
+  const rawText = await request.text(); 
   try {
-    body = await request.json();
+    body = JSON.parse(rawText);
   } catch {
     return new Response("Invalid JSON", { status: 400 });
   }

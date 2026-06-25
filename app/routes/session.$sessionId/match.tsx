@@ -249,7 +249,6 @@ export default function MatchPage() {
   }, [playerIdsKey, players.length]);
 
   useEffect(() => {
-    console.log(fetcher.data?.success, sessionCode);
     if (!fetcher.data?.success || sessionCode == null) return;
     finishRound(sessionCode, fetcher.data.roundNo, fetcher.data.round);
   }, [fetcher.data, sessionCode]);
@@ -289,19 +288,15 @@ export default function MatchPage() {
 
   const fetcherDataRef = useRef(fetcher.data);
   useEffect(() => {
-    console.log("useEffect", fetcher.data);
     fetcherDataRef.current = fetcher.data;
   }, [fetcher.data]);
   // ── Socket: nhận round-finished từ người khác ────────────────
   useEffect(() => {
-    console.log("useEffect", session?.code);
     if (!session?.code) return;
 
     const handleRoundFinished = (payload: { round: Round }) => {
       // Bỏ qua nếu chính mình vừa lưu (đã xử lý ở fetcher effect)
-      console.log(handledSaveRoundRef.current, payload.round.roundNo);
       // if (handledSaveRoundRef.current === payload.round.roundNo) return;
-      console.log("handleRoundFinished", fetcherDataRef.current);
       addRound(payload.round);
 
       // Reset form để chuẩn bị ván mới

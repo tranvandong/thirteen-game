@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import { createRequestHandler } from "@react-router/express";
 import express from "express";
+import "dotenv/config";
 import { initSocketServer } from "../app/lib/socket.server";
 
 process.on("uncaughtException", (err) => {

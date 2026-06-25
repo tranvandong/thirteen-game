@@ -17,8 +17,7 @@ export default [
     route("chart", "routes/session.$sessionId/chart.tsx"),
 
     route("history/:roundId", "routes/session.$sessionId/round-detail.tsx"),
-
-    route("devices", "routes/session.$sessionId/devices.ts"),
   ]),
-  route("join/:sessionId", "routes/join/$sessionId.tsx"),
+  route("join/:sessionId", "routes/join/$sessionId.tsx"), 
+  route("api/sessions/:sessionId/devices", "routes/session.$sessionId/devices.ts"),
 ] satisfies RouteConfig;

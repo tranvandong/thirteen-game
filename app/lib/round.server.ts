@@ -100,12 +100,6 @@ export async function getRoundMeta(sessionDbId: string) {
     .limit(1);
 
   const accumulated = nextKhapSanhAccumulated(lastRound, limits);
-  console.log("Calculated next round meta", {
-    sessionDbId,
-    limits,
-    lastRound,
-    accumulated,
-  });
   return {
     currentRoundNo: (lastRound?.roundNo ?? 0) + 1,
     accumulated,
