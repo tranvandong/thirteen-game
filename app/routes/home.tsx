@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { InstallPWA } from "~/components/install-pwa";
@@ -6,6 +6,7 @@ import type { Route } from "./+types/home";
 import { Link, useNavigate } from "react-router";
 import { Plus, Users, ScanLine, X } from "lucide-react";
 import { Input } from "~/components/ui/input";
+import { createFingerprint } from "~/helpers/fingerprint.helper";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -15,6 +16,24 @@ export function meta({}: Route.MetaArgs) {
       content: "Ứng dụng ghi điểm Tiến Lên theo thời gian thực",
     },
   ];
+}
+
+// ── Fingerprint helper ────────────────────────────────────────
+
+/**
+ * Tạo hoặc lấy fingerprint thiết bị từ localStorage.
+ * Dùng làm key nhận diện thiết bị giữa các lần truy cập.
+ */
+async function getOrCreateFingerprint(): Promise<string> {
+  const STORAGE_KEY = "device_fingerprint";
+  const existing = localStorage.getItem(STORAGE_KEY);
+  if (existing) return existing;
+
+  // Tạo fingerprint đơn giản từ các thông tin môi trường
+  const fingerprint = await createFingerprint();
+
+  localStorage.setItem(STORAGE_KEY, fingerprint);
+  return fingerprint;
 }
 
 // ── QR Scanner Modal ──────────────────────────────────────────
@@ -63,9 +82,7 @@ function QRScannerModal({
             <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10">
               <ScanLine className="size-8 text-white/70" />
             </div>
-            <p className="max-w-xs text-sm leading-6 text-white/80">
-              {error}
-            </p>
+            <p className="max-w-xs text-sm leading-6 text-white/80">{error}</p>
             <button
               onClick={onClose}
               className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90"
@@ -87,7 +104,6 @@ function QRScannerModal({
               }}
               constraints={{ facingMode: "environment" }}
               components={{
-                // Dùng viewfinder mặc định của thư viện
                 tracker: undefined,
               }}
               styles={{
@@ -117,7 +133,8 @@ function QRScannerModal({
 
       <div className="border-t border-white/10 bg-black/70 px-6 py-5 text-center">
         <p className="text-xs leading-5 text-white/50">
-          Mã QR phòng chơi có dạng <strong className="text-white">/join/XXXX-XXXX</strong>
+          Mã QR phòng chơi có dạng{" "}
+          <strong className="text-white">/join/XXXX-XXXX</strong>
         </p>
       </div>
     </div>
@@ -133,6 +150,49 @@ export default function Home() {
   const [roomCode, setRoomCode] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [codeError, setCodeError] = useState("");
+  // "checking" trong khi tra fingerprint, "idle" khi xong
+  const [resumeState, setResumeState] = useState<"checking" | "idle">(
+    "checking",
+  );
+
+  // ── Kiểm tra phiên đang diễn ra khi vào Home ────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkActiveSession() {
+      try {
+        const fingerprint = await getOrCreateFingerprint();
+
+        // Gọi API tìm session active theo fingerprint thiết bị
+        const res = await fetch(
+          `/api/sessions/active-by-device?fingerprint=${encodeURIComponent(fingerprint)}`,
+        );
+
+        if (!res.ok) {
+          // 404 = không tìm thấy → bình thường, hiện home
+          setResumeState("idle");
+          return;
+        }
+
+        const data = (await res.json()) as { sessionCode: string };
+
+        if (!cancelled && data.sessionCode) {
+          // Có phiên đang diễn ra → redirect thẳng vào
+          navigate(`/session/${data.sessionCode}`, { replace: true });
+          return;
+        }
+      } catch {
+        // Lỗi mạng / API chưa sẵn sàng → cứ hiện home bình thường
+      }
+
+      if (!cancelled) setResumeState("idle");
+    }
+
+    checkActiveSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   const handleJoin = () => {
     const code = roomCode.trim().toUpperCase();
@@ -151,6 +211,18 @@ export default function Home() {
     setShowScanner(false);
     navigate(`/join/${code}`);
   };
+
+  // Trong khi đang kiểm tra → hiện màn splash mờ để tránh flash UI
+  if (resumeState === "checking") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 text-muted-foreground">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+          <p className="text-sm">Đang kiểm tra phiên chơi…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6">
@@ -239,7 +311,9 @@ export default function Home() {
                   onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                   placeholder="XXXX-XXXX"
                   className={`h-12 rounded-2xl bg-background text-center font-mono text-lg font-black tracking-[0.24em] placeholder:tracking-normal ${
-                    codeError ? "border-destructive focus-visible:ring-destructive/20" : ""
+                    codeError
+                      ? "border-destructive focus-visible:ring-destructive/20"
+                      : ""
                   }`}
                   maxLength={9}
                 />

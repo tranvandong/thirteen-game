@@ -1,4 +1,9 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, pgEnum } from "drizzle-orm/pg-core";
+
+export const sessionStatusEnum = pgEnum("session_status", [
+  "active",    // Phiên đang diễn ra
+  "finished",  // Phiên đã kết thúc
+]);
 
 export const sessions = pgTable("sessions", {
   id: uuid().defaultRandom().primaryKey(),
@@ -14,7 +19,7 @@ export const sessions = pgTable("sessions", {
   status: varchar({
     length: 20,
   })
-    .default("waiting")
+    .default("active")
     .notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),

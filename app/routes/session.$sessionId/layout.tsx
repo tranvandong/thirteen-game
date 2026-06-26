@@ -34,16 +34,16 @@ import {
   type SessionParticipant,
 } from "~/stores/useSessionStore";
 import { useEffect } from "react";
-import {
-  joinSession,
-  leaveSession,
-} from "~/lib/socket.client";
+import { joinSession, leaveSession } from "~/lib/socket.client";
+import { createFingerprint } from "~/helpers/fingerprint.helper";
 
 // ── Helpers cookie ────────────────────────────────────────────
 
 const PARTICIPANT_COOKIE = "participant_id";
 
-function getParticipantIdFromCookie(cookieHeader: string | null): string | null {
+function getParticipantIdFromCookie(
+  cookieHeader: string | null,
+): string | null {
   if (!cookieHeader) return null;
   const match = cookieHeader
     .split(";")
@@ -207,20 +207,7 @@ async function registerDevice(
   if (!fingerprint) {
     // Sinh fingerprint đơn giản từ các thuộc tính trình duyệt
     // Production nên dùng @fingerprintjs/fingerprintjs
-    const raw = [
-      navigator.userAgent,
-      navigator.language,
-      screen.width,
-      screen.height,
-      new Date().getTimezoneOffset(),
-      navigator.hardwareConcurrency ?? "",
-    ].join("|");
-    const msgBuffer = new TextEncoder().encode(raw);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-    fingerprint = Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .slice(0, 64);
+    const fingerprint = await createFingerprint();
     localStorage.setItem("device_fingerprint", fingerprint);
   }
 
@@ -295,7 +282,11 @@ export default function SessionLayout() {
   useEffect(() => {
     if (!sessionId || !currentParticipant?.id) return;
 
-    joinSession(sessionId, currentParticipant.id, currentParticipant.displayName);
+    joinSession(
+      sessionId,
+      currentParticipant.id,
+      currentParticipant.displayName,
+    );
 
     return () => {
       leaveSession(sessionId);
@@ -304,12 +295,27 @@ export default function SessionLayout() {
 
   const leftTabs = [
     { to: `/session/${sessionId}`, label: "Xếp hạng", icon: Home, exact: true },
-    { to: `/session/${sessionId}/history`, label: "Lịch Sử", icon: Clock, exact: false },
+    {
+      to: `/session/${sessionId}/history`,
+      label: "Lịch Sử",
+      icon: Clock,
+      exact: false,
+    },
   ];
 
   const rightTabs = [
-    { to: `/session/${sessionId}/chart`, label: "Thống Kê", icon: BarChart2, exact: false },
-    { to: `/session/${sessionId}/settings`, label: "Cấu Hình", icon: Settings, exact: false },
+    {
+      to: `/session/${sessionId}/chart`,
+      label: "Thống Kê",
+      icon: BarChart2,
+      exact: false,
+    },
+    {
+      to: `/session/${sessionId}/settings`,
+      label: "Cấu Hình",
+      icon: Settings,
+      exact: false,
+    },
   ];
 
   const centerTab = {
@@ -350,7 +356,9 @@ export default function SessionLayout() {
               : "bg-transparent group-hover:bg-background/70"
           }`}
         >
-          <Icon className={`size-5 transition-transform ${active ? "-translate-y-0.5" : ""}`} />
+          <Icon
+            className={`size-5 transition-transform ${active ? "-translate-y-0.5" : ""}`}
+          />
         </span>
         <span className="w-full truncate text-center text-[10px] font-semibold leading-none sm:text-[11px]">
           {tab.label}

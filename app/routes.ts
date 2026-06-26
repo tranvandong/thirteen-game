@@ -18,6 +18,10 @@ export default [
 
     route("history/:roundId", "routes/session.$sessionId/round-detail.tsx"),
   ]),
-  route("join/:sessionId", "routes/join/$sessionId.tsx"), 
-  route("api/sessions/:sessionId/devices", "routes/session.$sessionId/devices.ts"),
+  route("join/:sessionId", "routes/join/$sessionId.tsx"),
+  route(
+    "api/sessions/:sessionId/devices",
+    "routes/session.$sessionId/devices.ts",
+  ),
+  route("api/sessions/active-by-device", "routes/api/sessions/active-by-device.ts"),
 ] satisfies RouteConfig;

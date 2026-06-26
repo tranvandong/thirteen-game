@@ -105,7 +105,7 @@ export async function action({ request }: Route.ActionArgs) {
         .insert(sessions)
         .values({
           code: sessionCode,
-          status: "waiting",
+          status: "active",
         })
         .returning();
 
