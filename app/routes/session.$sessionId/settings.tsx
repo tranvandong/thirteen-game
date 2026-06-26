@@ -1,4 +1,4 @@
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/settings";
 import { db } from "~/db/client.server";
 import { participants } from "~/db/schema/participants";
@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Pencil,
   Shield,
+  LogOut,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
 import {
@@ -31,7 +32,6 @@ import { useEffect, useState } from "react";
 // ---------------------------------------------------------------------------
 export async function loader({ params }: Route.LoaderArgs) {
   const sessionCode = params.sessionId;
-  // 1. Lấy thông tin session
   const [session] = await db
     .select()
     .from(sessions)
@@ -59,7 +59,6 @@ export async function loader({ params }: Route.LoaderArgs) {
       db.select().from(players).where(eq(players.sessionId, session.id)),
     ]);
 
-  // Map selectedPlayerId vào từng participant
   const participantsWithPlayer = participantList.map((p) => ({
     ...p,
     selectedPlayerId:
@@ -151,6 +150,15 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { ok: true };
   }
 
+  if (intent === "finish-session") {
+    await db
+      .update(sessions)
+      .set({ status: "finished", updatedAt: new Date() })
+      .where(eq(sessions.id, session.id));
+
+    return { ok: true, finished: true };
+  }
+
   return { ok: false };
 }
 
@@ -161,7 +169,9 @@ export default function SettingsPage() {
   const { participantsWithPlayer, pendingRequests, playerList } =
     useLoaderData<typeof loader>();
 
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
   const [editDrafts, setEditDrafts] = useState<
     Record<string, { name: string; initialScore: string }>
@@ -175,9 +185,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok) {
+      if (fetcher.data.finished) {
+        navigate("/");
+        return;
+      }
       setIsEditing(false);
+      setShowFinishConfirm(false);
     }
-  }, [fetcher.state, fetcher.data]);
+  }, [fetcher.state, fetcher.data, navigate]);
 
   const isOwner =
     !!session &&
@@ -188,7 +203,6 @@ export default function SettingsPage() {
     participantsWithPlayer.find((p) => p.id === currentParticipant?.id)
       ?.selectedPlayerId ?? null;
 
-  // Player đã bị người khác chọn
   const takenPlayerIds = new Set(
     participantsWithPlayer
       .filter((p) => p.id !== currentParticipant?.id && p.selectedPlayerId)
@@ -196,6 +210,8 @@ export default function SettingsPage() {
   );
 
   const isBusy = fetcher.state !== "idle";
+  const isFinishing =
+    isBusy && (fetcher.formData?.get("intent") as string) === "finish-session";
 
   const handleSelectPlayer = (playerId: string) => {
     if (mySelectedPlayerId || !currentParticipant) return;
@@ -260,6 +276,10 @@ export default function SettingsPage() {
     );
   };
 
+  const handleFinishSession = () => {
+    fetcher.submit({ intent: "finish-session" }, { method: "POST" });
+  };
+
   return (
     <main className="p-4 flex flex-col gap-4">
       {/* Header */}
@@ -275,7 +295,6 @@ export default function SettingsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Chọn nhân vật                                                       */}
       {/* ------------------------------------------------------------------ */}
-      {/* Card Chọn nhân vật */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -323,7 +342,6 @@ export default function SettingsPage() {
 
         <CardContent className="flex flex-col gap-3">
           {isEditing ? (
-            /* ---- Chế độ edit ---- */
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2 px-3 py-2">
                 <div className="flex flex-1 gap-2">
@@ -386,7 +404,6 @@ export default function SettingsPage() {
               </p>
             </div>
           ) : (
-            /* ---- Chế độ chọn nhân vật (giữ nguyên) ---- */
             <>
               <div className="grid grid-cols-2 gap-2">
                 {playerList.map((player) => {
@@ -596,6 +613,55 @@ export default function SettingsPage() {
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Kết thúc phiên (chỉ chủ phòng)                                     */}
+      {/* ------------------------------------------------------------------ */}
+      {isOwner && (
+        <div className="mt-2 mb-4">
+          {!showFinishConfirm ? (
+            <button
+              onClick={() => setShowFinishConfirm(true)}
+              disabled={isBusy}
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl border border-destructive/40 text-destructive text-sm font-semibold hover:bg-destructive/5 transition-colors disabled:opacity-50"
+            >
+              <LogOut className="size-4" />
+              Kết thúc phiên chơi
+            </button>
+          ) : (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 flex flex-col gap-3">
+              <p className="text-sm font-semibold text-destructive text-center">
+                Kết thúc phiên chơi?
+              </p>
+              <p className="text-xs text-muted-foreground text-center leading-5">
+                Toàn bộ người chơi sẽ bị đưa về trang chủ. Hành động này không
+                thể hoàn tác.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowFinishConfirm(false)}
+                  disabled={isBusy}
+                  className="flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleFinishSession}
+                  disabled={isBusy}
+                  className="flex-1 h-10 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isFinishing ? (
+                    <div className="size-4 rounded-full border-2 border-destructive-foreground/30 border-t-destructive-foreground animate-spin" />
+                  ) : (
+                    <LogOut className="size-4" />
+                  )}
+                  Xác nhận kết thúc
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </main>
   );

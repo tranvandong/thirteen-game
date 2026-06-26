@@ -44,11 +44,22 @@ import {
   onScoreUpdated,
 } from "~/lib/socket.client";
 import { finishRound } from "~/lib/socket.client";
+import { players, sessionTotals } from "~/db/schema";
+import { CircularTable } from "~/components/circular-table";
 
-export interface MatchLoaderData {
+interface RoundMeta {
   currentRoundNo: number;
   accumulated: { khap: number; sanh: number };
   roundId: string;
+}
+export interface MatchLoaderData {
+  roundMeta: RoundMeta;
+  playerTotals: Array<{
+    playerId: string;
+    playerName: string;
+    orderNo: number;
+    totalScore: number | null;
+  }>;
 }
 
 export async function loader({
@@ -66,7 +77,22 @@ export async function loader({
     throw redirect("/");
   }
 
-  return getRoundMeta(session.id);
+  const [playerTotals, roundMeta] = await Promise.all([
+    db
+      .select({
+        playerId: players.id,
+        playerName: players.name,
+        orderNo: players.orderNo,
+        totalScore: sessionTotals.totalScore,
+      })
+      .from(players)
+      .leftJoin(sessionTotals, eq(sessionTotals.playerId, players.id))
+      .where(eq(players.sessionId, session.id))
+      .orderBy(players.orderNo),
+    getRoundMeta(session.id),
+  ]);
+
+  return { roundMeta, playerTotals };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -182,13 +208,15 @@ export default function MatchPage() {
   const matchLoaderFetcher = useFetcher<typeof loader>();
   const handledSaveRoundRef = useRef<number | null>(null);
 
-  const accumulated =
-    matchLoaderFetcher.data?.accumulated ?? loaderData.accumulated;
+  const roundMeta = matchLoaderFetcher.data?.roundMeta ?? loaderData.roundMeta;
+  const playerTotals =
+    matchLoaderFetcher.data?.playerTotals ?? loaderData.playerTotals;
 
-  const currentRoundNo =
-    matchLoaderFetcher.data?.currentRoundNo ?? loaderData.currentRoundNo;
+  const accumulated = roundMeta?.accumulated;
 
-  const currentRoundId = matchLoaderFetcher.data?.roundId ?? loaderData.roundId;
+  const currentRoundNo = roundMeta?.currentRoundNo;
+
+  const currentRoundId = roundMeta?.roundId;
 
   const gameConfig = useMemo(
     () => ({
@@ -210,6 +238,17 @@ export default function MatchPage() {
   );
 
   const isReady = Boolean(config && players.length > 0);
+
+  const sorted = [...playerTotals]
+    .map((pt) => {
+      const player = players.find((p) => p.id === pt.playerId);
+      return {
+        ...pt,
+        initialScore: player?.initialScore ?? 0,
+        totalScore: (pt.totalScore ?? 0) + (player?.initialScore ?? 0),
+      };
+    })
+    .sort((a, b) => b.totalScore - a.totalScore);
 
   // ── State ─────────────────────────────────────────────────
   const [selectOrder, setSelectOrder] = useState<(number | null)[]>([]);
@@ -960,15 +999,6 @@ export default function MatchPage() {
                 </Button>
               </div>
             </div>
-
-            <div className="hidden rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-right shadow-sm sm:block">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                Người nhập
-              </p>
-              <p className="mt-0.5 max-w-[160px] truncate text-sm font-bold">
-                {currentParticipant?.displayName ?? "—"}
-              </p>
-            </div>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -1036,8 +1066,59 @@ export default function MatchPage() {
               </div>
             </div>
           </div>
+          <div className="grid grid-cols-4 gap-2 mt-4">
+            {sorted.map((player, index) => {
+              const score = player.totalScore ?? 0;
+              return (
+                <div
+                  key={player.playerId}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-2 text-center transition-colors ${scoreBoxClass(score)}`}
+                >
+                  <span className="text-xs font-black uppercase tracking-wide opacity-70">
+                    {pShort(player.playerId)}
+                  </span>
+                  <span className="text-xl font-black tabular-nums">
+                    {scoreFmt(score)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
+      <Card className="overflow-hidden border-border/70 shadow-sm">
+        <CardContent className="flex flex-col gap-2 pt-0">
+          {/* <div className="flex flex-col items-center gap-3"> */}
+          <CircularTable
+            players={players}
+            selectOrder={selectOrder}
+            toggleSelect={toggleSelect}
+            moveRank={moveRank}
+            selectableIds={selectableIds}
+          />
+
+          {/* Overlay số thứ tự nhỏ */}
+          {/* <div className="flex gap-1">
+          {players.map((player, idx) => {
+            const order = selectOrder[idx];
+            const isSelected = order !== null;
+            return (
+              <div
+                key={player.id}
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {isSelected ? order : ""}
+              </div>
+            );
+          })}
+        </div>
+      </div> */}
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-between gap-2 w-full">
@@ -1452,7 +1533,6 @@ export default function MatchPage() {
                           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                             Người được đền
                           </p>
-                          
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {denForCandidates.map((pid) => {
@@ -1917,7 +1997,7 @@ export default function MatchPage() {
                     </span>
                   ) : (
                     <span
-                      className={`flex shrink-0 items-center justify-center size-4 rounded-full font-black transition-colors ${
+                      className={`flex shrink-0 items-center justify-center size-4 p-4 rounded-full font-black transition-colors ${
                         isSelected
                           ? "bg-primary text-primary-foreground"
                           : "border border-muted-foreground/20 bg-muted text-muted-foreground"
@@ -2138,7 +2218,7 @@ export default function MatchPage() {
               return (
                 <div
                   key={player.id}
-                  className={`flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
                 >
                   <span className="text-xs font-black uppercase tracking-wide opacity-70">
                     {pShort(player.id)}
