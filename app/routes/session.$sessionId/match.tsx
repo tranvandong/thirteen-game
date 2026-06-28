@@ -19,6 +19,8 @@ import {
   Crown,
   Trash,
   Spade,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { redirect } from "react-router";
@@ -275,6 +277,7 @@ export default function MatchPage() {
   const [showChatHeo, setShowChatHeo] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
+  const [rankViewMode, setRankViewMode] = useState<"list" | "table">("list");
 
   const playerIdsKey = useMemo(
     () => players.map((p) => p.id).join(","),
@@ -1086,40 +1089,6 @@ export default function MatchPage() {
           </div>
         </div>
       </section>
-      <Card className="overflow-hidden border-border/70 shadow-sm">
-        <CardContent className="flex flex-col gap-2 pt-0">
-          {/* <div className="flex flex-col items-center gap-3"> */}
-          <CircularTable
-            players={players}
-            selectOrder={selectOrder}
-            toggleSelect={toggleSelect}
-            moveRank={moveRank}
-            selectableIds={selectableIds}
-          />
-
-          {/* Overlay số thứ tự nhỏ */}
-          {/* <div className="flex gap-1">
-          {players.map((player, idx) => {
-            const order = selectOrder[idx];
-            const isSelected = order !== null;
-            return (
-              <div
-                key={player.id}
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                  isSelected
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {isSelected ? order : ""}
-              </div>
-            );
-          })}
-        </div>
-      </div> */}
-        </CardContent>
-      </Card>
-
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-between gap-2 w-full">
           <div className="flex gap-2 items-center">
@@ -1874,15 +1843,71 @@ export default function MatchPage() {
                 </div>
               </CardTitle>
             </div>
-            {activeNhot && (
-              <span className="rounded-full bg-chart-3/10 px-3 py-1 text-xs font-black text-chart-3 ring-1 ring-chart-3/20">
-                {selectCounter}/{requiredSelections}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {activeNhot && rankViewMode === "list" && (
+                <span className="rounded-full bg-chart-3/10 px-3 py-1 text-xs font-black text-chart-3 ring-1 ring-chart-3/20">
+                  {selectCounter}/{requiredSelections}
+                </span>
+              )}
+              <div className="flex rounded-xl border border-border/70 bg-muted/30 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setRankViewMode("list")}
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                    rankViewMode === "list"
+                      ? "bg-background text-primary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-label="Danh sách xếp hạng"
+                >
+                  <List className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRankViewMode("table")}
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                    rankViewMode === "table"
+                      ? "bg-background text-primary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-label="Bàn tròn"
+                >
+                  <LayoutGrid className="size-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 pt-0">
-          {ranking.map((playerId, rankIndex) => {
+          {rankViewMode === "table" ? (
+            <CircularTable
+              players={players}
+              ranking={ranking}
+              selectOrder={selectOrder}
+              toggleSelect={toggleSelect}
+              moveRank={moveRank}
+              selectableIds={selectableIds}
+              selectCounter={selectCounter}
+              requiredSelections={requiredSelections}
+              computedScores={computedScores}
+              activeNhot={activeNhot}
+              nhotCount={nhotCount}
+              nhotterId={nhotterId}
+              nhotVictimIds={nhotVictimIds}
+              denForIds={denForIds}
+              khapWinner={khapWinner}
+              khapCount={khapCount}
+              sanhWinner={sanhWinner}
+              toggleKhapPlayer={toggleKhapPlayer}
+              updateKhapCount={updateKhapCount}
+              toggleSanhPlayer={toggleSanhPlayer}
+              chatHeoList={chatHeoList}
+              accumulated={accumulated}
+              gameConfig={gameConfig}
+              getRowMeta={getRowMeta}
+            />
+          ) : (
+            ranking.map((playerId, rankIndex) => {
             const player = players.find((p) => p.id === playerId)!;
             const pIdx = players.findIndex((p) => p.id === playerId);
             const order = selectOrder[pIdx];
@@ -2197,7 +2222,8 @@ export default function MatchPage() {
                 )}
               </div>
             );
-          })}
+          })
+          )}
         </CardContent>
       </Card>
 
