@@ -1,9 +1,4 @@
-import {
-  Crown,
-  Flame,
-  Scissors,
-  Spade,
-} from "lucide-react";
+import { Crown, Flame, Scissors, Spade } from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
 
 interface ChatHeo {
@@ -34,14 +29,14 @@ interface GameConfigSlice {
 const SEAT_CONFIGS = [
   {
     // Top seat: sits centered on top edge, "reads" downward (outer edge = top)
-    wrapStyle: { left: "50%", top: "-8px", transform: "translateX(-50%)" },
+    wrapStyle: { left: "50%", top: "0px", transform: "translateX(-50%)" },
     innerRotation: "0deg",
   },
   {
     // Right seat: SVG rotated 90deg CW, content counter-rotated -90deg
     wrapStyle: {
-      right: "-22px",
-      top: "48%",
+      right: "-58px",
+      top: "50%",
       transform: "translateY(-50%) rotate(90deg)",
     },
     innerRotation: "270deg",
@@ -49,8 +44,8 @@ const SEAT_CONFIGS = [
   {
     // Bottom seat: SVG rotated 180deg, content counter-rotated 180deg
     wrapStyle: {
-      left: "41%",
-      bottom: "34px",
+      left: "50%",
+      bottom: "0px",
       transform: "translateX(-50%) rotate(180deg)",
     },
     innerRotation: "180deg",
@@ -58,8 +53,8 @@ const SEAT_CONFIGS = [
   {
     // Left seat: SVG rotated -90deg, content counter-rotated 90deg
     wrapStyle: {
-      left: "-51px",
-      top: "39%",
+      left: "-58px",
+      top: "50%",
       transform: "translateY(-50%) rotate(-90deg)",
     },
     innerRotation: "-270deg",
@@ -132,7 +127,7 @@ export function CircularTable({
 }) {
   return (
     <div className="relative mx-auto w-full max-w-[380px] px-2 py-6">
-      <div className="relative mx-auto aspect-square w-[300px] sm:w-[320px]">
+      <div className="relative mx-auto aspect-square w-[360px]">
         {/* Center hub */}
         <div
           className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 bg-card shadow-sm"
@@ -209,18 +204,6 @@ export function CircularTable({
               c.victimId === playerId && !nhotVictimIds.includes(c.victimId),
           );
 
-          const fillColor = isSelected
-            ? "#7F77DD"
-            : isFixed
-              ? playerId === nhotterId
-                ? "#534AB7"
-                : nhotVictimIds.includes(playerId)
-                  ? "#C45C5C"
-                  : "#A8A6A0"
-              : isSelectable
-                ? "#CECBF6"
-                : "#D3D1C7";
-
           // The foreignObject covers the main area of the trapezoid path.
           // viewBox is 0 0 170 105; path occupies x=[0,151], y=[0,75].
           // We place content in the upper-middle zone to avoid the curved edges.
@@ -239,7 +222,6 @@ export function CircularTable({
             gap: 2,
             transform: `rotate(${config.innerRotation})`,
             transformOrigin: "center center",
-            pointerEvents: "none",
           };
 
           return (
@@ -247,296 +229,300 @@ export function CircularTable({
               key={playerId}
               className="absolute z-20"
               style={config.wrapStyle as React.CSSProperties}
+              onClick={() => {
+                toggleSelect(playerId);
+              }}
             >
-           
-                <svg
-                  viewBox="0 0 170 105"
-                  style={{ width: 260, height: "auto", display: "block" }}
-                >
-                  {/* Background shape */}
-                  <path
-                    d={HEX_PATH}
-                    fill={fillColor}
-                    stroke={isSelected || isFixed ? "#534AB7" : "#B8B5AD"}
-                    strokeWidth={2}
-                    strokeOpacity={0.5}
-                    style={{ pointerEvents: "none" }}
-                  />
+              <svg
+                viewBox="-1 -1 153 77"
+                style={{ width: 229, height: 115, display: "block" }}
+              >
+                {/* Background shape */}
+                <path
+                  d={HEX_PATH}
+                  fill={"transparent"}
+                  stroke={isSelected || isFixed ? "#FE7F2D" : "#B8B5AD"}
+                  strokeWidth={0.5}
+                  strokeOpacity={0.5}
+                  style={{ pointerEvents: "all", width: 229, height: 115 }}
+                  className={`${labelColor} border-2 border-solid border-current`}
+                />
 
-                  {/* Main player info - name, label, score/badge */}
+                <foreignObject
+                  x={46}
+                  y={48}
+                  width={60}
+                  height={20}
+                  style={{ pointerEvents: "all" }}
+                >
+                  <div style={foContentStyle}>
+                    <span
+                      className={`max-w-[88px] truncate text-xs font-bold leading-tight text-card-foreground`}
+                      style={{ transform: `rotate(${config.innerRotation})` }}
+                    >
+                      {player.name}
+                    </span>
+                  </div>
+                </foreignObject>
+
+                {/* Main player info - name, label, score/badge */}
+                <foreignObject
+                  x={52}
+                  y={26}
+                  width={52}
+                  height={26}
+                  style={{ pointerEvents: "all" }}
+                >
+                  <div style={foContentStyle}>
+                    <div
+                      className="flex items-center gap-1"
+                      style={{ transform: `rotate(${config.innerRotation})` }}
+                    >
+                      {isFixed ? (
+                        <span
+                          className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black ${
+                            playerId === nhotterId
+                              ? "bg-white/20 text-white"
+                              : nhotVictimIds.includes(playerId)
+                                ? "bg-white/20 text-white"
+                                : "bg-white/20 text-white"
+                          }`}
+                        >
+                          {playerId === nhotterId ? (
+                            <Crown className="size-3" />
+                          ) : denForIds.includes(playerId) ? (
+                            "—"
+                          ) : nhotVictimIds.includes(playerId) ? (
+                            "✕"
+                          ) : (
+                            "3"
+                          )}
+                        </span>
+                      ) : (
+                        isSelected && (
+                          <span
+                            className={`flex size-5 items-center justify-center rounded-full text-[12px] font-black text-card-foreground border border-card-foreground/30`}
+                          >
+                            {order}
+                          </span>
+                        )
+                      )}
+
+                      {showAsActive && (
+                        <span
+                          className={`text-xs tabular-nums leading-none ${scoreColor(
+                            score,
+                          )}`}
+                        >
+                          {scoreFmt(score)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </foreignObject>
+
+                {/* Chat heo info row - bottom strip inside path */}
+                {(chatHeoAsChatter.length > 0 ||
+                  chatHeoAsVictim.length > 0) && (
                   <foreignObject
-                    x={foX}
-                    y={foY}
-                    width={foW}
-                    height={foH}
+                    x={22}
+                    y={58}
+                    width={110}
+                    height={18}
                     style={{ pointerEvents: "none" }}
                   >
-                    <div style={foContentStyle}>
-                      {/* {showAsActive && (
-                        <span
-                          className={`text-[9px] font-black uppercase leading-none ${labelColor}`}
-                        >
-                          {label}
-                        </span>
-                      )} */}
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 3,
 
-                      <span
-                        className={`max-w-[88px] truncate text-xs font-bold leading-tight ${isSelected || isFixed ? "text-white" : "text-[#534AB7]"
-                          }`}
-                      >
-                        {player.name}
-                      </span>
-
-                      <div className="flex items-center gap-1" >
-                        {isFixed ? (
-                          <span
-                            className={`flex size-5 items-center justify-center rounded-full text-[10px] font-black ${playerId === nhotterId
-                                ? "bg-white/20 text-white"
-                                : nhotVictimIds.includes(playerId)
-                                  ? "bg-white/20 text-white"
-                                  : "bg-white/20 text-white"
-                              }`}
+                        transformOrigin: "center center",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {chatHeoAsChatter.map((c) => {
+                        const pts =
+                          (c.heo.do ?? 0) * gameConfig.heoDoPoints +
+                          (c.heo.den ?? 0) * gameConfig.heodenPoints;
+                        return (
+                          <div
+                            key={c.id}
+                            className="flex items-center gap-0.5 rounded border border-chart-2/30 bg-chart-2/15 px-1 py-0.5 text-[8px] text-chart-2"
                           >
-                            {playerId === nhotterId ? (
-                              <Crown className="size-3" />
-                            ) : denForIds.includes(playerId) ? (
-                              "—"
-                            ) : nhotVictimIds.includes(playerId) ? (
-                              "✕"
-                            ) : (
-                              "3"
+                            <Scissors className="size-2 shrink-0" />
+                            {(c.heo.do ?? 0) > 0 && (
+                              <span className="rounded-full bg-red-500 px-1 font-black text-white">
+                                {c.heo.do}
+                              </span>
                             )}
-                          </span>
-                        ) : (
-                          <span
-                            className={`flex size-5 items-center justify-center rounded-full text-[10px] font-black ${isSelected
-                                ? "bg-white text-[#534AB7]"
-                                : "border border-[#534AB7]/30 bg-white/80 text-[#534AB7]"
-                              }`}
+                            {(c.heo.den ?? 0) > 0 && (
+                              <span className="rounded-full bg-foreground px-1 font-black text-background">
+                                {c.heo.den}
+                              </span>
+                            )}
+                            <span className="font-black">+{pts}</span>
+                          </div>
+                        );
+                      })}
+                      {chatHeoAsVictim.map((c) => {
+                        const pts =
+                          (c.heo.do ?? 0) * gameConfig.heoDoPoints +
+                          (c.heo.den ?? 0) * gameConfig.heodenPoints;
+                        return (
+                          <div
+                            key={c.id}
+                            className="flex items-center gap-0.5 rounded border border-destructive/20 bg-destructive/10 px-1 py-0.5 text-[8px] text-destructive"
                           >
-                            {isSelected ? order : "·"}
-                          </span>
-                        )}
-
-                        {showAsActive && (
-                          <span
-                            className={`text-xs font-black tabular-nums leading-none ${isSelected || isFixed
-                                ? "text-white"
-                                : scoreColor(score)
-                              }`}
-                          >
-                            {scoreFmt(score)}
-                          </span>
-                        )}
-                      </div>
+                            <Scissors className="size-2 shrink-0" />
+                            {(c.heo.do ?? 0) > 0 && (
+                              <span className="rounded-full bg-red-500 px-1 font-black text-white">
+                                {c.heo.do}
+                              </span>
+                            )}
+                            {(c.heo.den ?? 0) > 0 && (
+                              <span className="rounded-full bg-foreground px-1 font-black text-background">
+                                {c.heo.den}
+                              </span>
+                            )}
+                            <span className="font-black">-{pts}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </foreignObject>
+                )}
 
-                  {/* Chat heo info row - bottom strip inside path */}
-                  {(chatHeoAsChatter.length > 0 || chatHeoAsVictim.length > 0) && (
-                    <foreignObject
-                      x={30}
-                      y={55}
-                      width={110}
-                      height={18}
-                      style={{ pointerEvents: "none" }}
+                {/* Transparent hit layer — above display content, below interactive buttons */}
+                <path
+                  d={HEX_PATH}
+                  fill="transparent"
+                  style={{
+                    pointerEvents: "all",
+                    cursor:
+                      isSelectable && !isFixed
+                        ? "pointer"
+                        : isFixed
+                          ? "default"
+                          : "not-allowed",
+                  }}
+                />
+
+                {/* Khap + Sanh buttons — rendered last so they stay clickable */}
+                {showBonus && (
+                  <foreignObject
+                    x={0}
+                    y={0}
+                    width={150}
+                    height={30}
+                    style={{ pointerEvents: "none" }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4,
+                        transform: `rotate(${config.innerRotation}deg)`,
+                        transformOrigin: "center center",
+                        pointerEvents: "none",
+                      }}
                     >
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 3,
-                          transform: `rotate(${config.innerRotation})`,
-                          transformOrigin: "center center",
-                          pointerEvents: "none",
+                      {/* Khap button */}
+                      <button
+                        type="button"
+                        style={{ pointerEvents: "auto" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleKhapPlayer(playerId);
                         }}
+                        disabled={nhotVictimIds.includes(playerId)}
+                        className={`flex items-center gap-0.5 rounded-lg border px-1 py-0.5 text-[9px] font-black disabled:opacity-40 ${
+                          isKhapWinner
+                            ? "border-chart-4/50 bg-chart-4/20 text-chart-4"
+                            : khapTaken
+                              ? "border-destructive/20 bg-destructive/10 text-destructive"
+                              : "border-border/70 bg-background/90 text-muted-foreground"
+                        }`}
                       >
-                        {chatHeoAsChatter.map((c) => {
-                          const pts =
-                            (c.heo.do ?? 0) * gameConfig.heoDoPoints +
-                            (c.heo.den ?? 0) * gameConfig.heodenPoints;
-                          return (
-                            <div
-                              key={c.id}
-                              className="flex items-center gap-0.5 rounded border border-chart-2/30 bg-chart-2/15 px-1 py-0.5 text-[8px] text-chart-2"
-                            >
-                              <Scissors className="size-2 shrink-0" />
-                              {(c.heo.do ?? 0) > 0 && (
-                                <span className="rounded bg-red-500 px-0.5 font-black text-white">
-                                  {c.heo.do}Đ
-                                </span>
-                              )}
-                              {(c.heo.den ?? 0) > 0 && (
-                                <span className="rounded bg-foreground px-0.5 font-black text-background">
-                                  {c.heo.den}Đ
-                                </span>
-                              )}
-                              <span className="font-black">+{pts}</span>
-                            </div>
-                          );
-                        })}
-                        {chatHeoAsVictim.map((c) => {
-                          const pts =
-                            (c.heo.do ?? 0) * gameConfig.heoDoPoints +
-                            (c.heo.den ?? 0) * gameConfig.heodenPoints;
-                          return (
-                            <div
-                              key={c.id}
-                              className="flex items-center gap-0.5 rounded border border-destructive/20 bg-destructive/10 px-1 py-0.5 text-[8px] text-destructive"
-                            >
-                              <Scissors className="size-2 shrink-0" />
-                              {(c.heo.do ?? 0) > 0 && (
-                                <span className="rounded bg-red-500 px-0.5 font-black text-white">
-                                  {c.heo.do}Đ
-                                </span>
-                              )}
-                              {(c.heo.den ?? 0) > 0 && (
-                                <span className="rounded bg-foreground px-0.5 font-black text-background">
-                                  {c.heo.den}Đ
-                                </span>
-                              )}
-                              <span className="font-black">-{pts}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </foreignObject>
-                  )}
-
-                  {/* Transparent hit layer — above display content, below interactive buttons */}
-                  <path
-                    d={HEX_PATH}
-                    fill="transparent"
-                    style={{
-                      pointerEvents: "all",
-                      cursor:
-                        isSelectable && !isFixed
-                          ? "pointer"
-                          : isFixed
-                            ? "default"
-                            : "not-allowed",
-                    }}
-                    onClick={() => {
-                      if (isSelectable && !isFixed) {
-                        toggleSelect(playerId);
-                      }
-                    }}
-                  />
-
-                  {/* Khap + Sanh buttons — rendered last so they stay clickable */}
-                  {showBonus && (
-                    <foreignObject
-                      x={0}
-                      y={0}
-                      width={150}
-                      height={30}
-                      style={{ pointerEvents: "none" }}
-                    >
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 4,
-                          transform: `rotate(${config.innerRotation}deg)`,
-                          transformOrigin: "center center",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        {/* Khap button */}
-                        <button
-                          type="button"
-                          style={{ pointerEvents: "auto" }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleKhapPlayer(playerId);
-                          }}
-                          disabled={nhotVictimIds.includes(playerId)}
-                          className={`flex items-center gap-0.5 rounded-lg border px-1.5 py-0.5 text-[9px] font-black disabled:opacity-40 ${isKhapWinner
-                              ? "border-chart-4/50 bg-chart-4/20 text-chart-4"
-                              : khapTaken
-                                ? "border-destructive/20 bg-destructive/10 text-destructive"
-                                : "border-border/70 bg-background/90 text-muted-foreground"
-                            }`}
-                        >
-                          <Flame className="size-2.5 shrink-0" />
-                          Khạp
-                          {isKhapWinner && khapPtsDisplay > 0 && (
-                            <span>+{khapPtsDisplay}</span>
-                          )}
-                          {!isKhapWinner && khapPtsLoss > 0 && (
-                            <span>-{khapPtsLoss}</span>
-                          )}
-                        </button>
-
-                        {/* Khap count +/- (only when winner) */}
-                        {isKhapWinner && (
-                          <>
-                            <button
-                              type="button"
-                              style={{ pointerEvents: "auto" }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateKhapCount(-1);
-                              }}
-                              disabled={khapCount <= 1}
-                              className="flex size-4 items-center justify-center rounded-full bg-background/90 text-[10px] font-black shadow-sm disabled:opacity-30"
-                            >
-                              −
-                            </button>
-                            <span className="min-w-[12px] text-center text-[9px] font-black text-white">
-                              {khapCount}
-                            </span>
-                            <button
-                              type="button"
-                              style={{ pointerEvents: "auto" }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateKhapCount(1);
-                              }}
-                              disabled={khapCount >= gameConfig.maxKhapAccumulate}
-                              className="flex size-4 items-center justify-center rounded-full bg-background/90 text-[10px] font-black shadow-sm disabled:opacity-30"
-                            >
-                              +
-                            </button>
-                          </>
+                        <Flame className="size-2.5 shrink-0" />
+                        Khạp
+                        {isKhapWinner && khapPtsDisplay > 0 && (
+                          <span>+{khapPtsDisplay}</span>
                         )}
+                        {!isKhapWinner && khapPtsLoss > 0 && (
+                          <span>-{khapPtsLoss}</span>
+                        )}
+                      </button>
 
-                        {/* Sanh button */}
-                        <button
-                          type="button"
-                          style={{ pointerEvents: "auto" }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSanhPlayer(playerId);
-                          }}
-                          disabled={nhotVictimIds.includes(playerId)}
-                          className={`flex items-center gap-0.5 rounded-lg border px-1.5 py-0.5 text-[9px] font-black disabled:opacity-40 ${isSanhWinner
-                              ? "border-chart-1/50 bg-chart-1/20 text-chart-1"
-                              : sanhTaken
-                                ? "border-destructive/20 bg-destructive/10 text-destructive"
-                                : "border-border/70 bg-background/90 text-muted-foreground"
-                            }`}
-                        >
-                          <Spade className="size-2.5 shrink-0" />
-                          Sảnh
-                          {isSanhWinner && sanhPtsDisplay > 0 && (
-                            <span>+{sanhPtsDisplay}</span>
-                          )}
-                          {!isSanhWinner && sanhPtsLoss > 0 && (
-                            <span>-{sanhPtsLoss}</span>
-                          )}
-                        </button>
-                      </div>
-                    </foreignObject>
-                  )}
-                </svg>
- 
+                      {/* Khap count +/- (only when winner) */}
+                      {isKhapWinner && (
+                        <>
+                          <button
+                            type="button"
+                            style={{ pointerEvents: "auto" }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateKhapCount(-1);
+                            }}
+                            disabled={khapCount <= 1}
+                            className="flex size-3 items-center justify-center px-1 rounded-full bg-background/90 text-[10px] font-black shadow-sm disabled:opacity-30"
+                          >
+                            −
+                          </button>
+                          <span className="min-w-[12px] text-center text-[10px] font-black text-foreground">
+                            {khapCount}
+                          </span>
+                          <button
+                            type="button"
+                            style={{ pointerEvents: "auto" }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateKhapCount(1);
+                            }}
+                            disabled={khapCount >= gameConfig.maxKhapAccumulate}
+                            className="flex size-3 items-center px-1 justify-center rounded-full bg-background/90 text-[10px] font-black shadow-sm disabled:opacity-30"
+                          >
+                            +
+                          </button>
+                        </>
+                      )}
+
+                      {/* Sanh button */}
+                      <button
+                        type="button"
+                        style={{ pointerEvents: "auto" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSanhPlayer(playerId);
+                        }}
+                        disabled={nhotVictimIds.includes(playerId)}
+                        className={`flex items-center gap-0.5 rounded-lg border px-1 py-0.5 text-[9px] font-black disabled:opacity-40 ${
+                          isSanhWinner
+                            ? "border-chart-1/50 bg-chart-1/20 text-chart-1"
+                            : sanhTaken
+                              ? "border-destructive/20 bg-destructive/10 text-destructive"
+                              : "border-border/70 bg-background/90 text-muted-foreground"
+                        }`}
+                      >
+                        <Spade className="size-2.5 shrink-0" />
+                        Sảnh
+                        {isSanhWinner && sanhPtsDisplay > 0 && (
+                          <span>+{sanhPtsDisplay}</span>
+                        )}
+                        {!isSanhWinner && sanhPtsLoss > 0 && (
+                          <span>-{sanhPtsLoss}</span>
+                        )}
+                      </button>
+                    </div>
+                  </foreignObject>
+                )}
+              </svg>
             </div>
           );
         })}
