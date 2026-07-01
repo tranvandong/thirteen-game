@@ -36,6 +36,7 @@ import {
 import { useEffect } from "react";
 import { joinSession, leaveSession } from "~/lib/socket.client";
 import { createFingerprint } from "~/helpers/fingerprint.helper";
+import { Background } from "~/components/background";
 
 // ── Helpers cookie ────────────────────────────────────────────
 
@@ -370,10 +371,12 @@ export default function SessionLayout() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <div className="relative min-h-dvh overflow-hidden bg-background pb-[calc(6.25rem_+_env(safe-area-inset-bottom))]">
+        {/* <div className="bg-fixed"></div> */}
+        <Background />
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-48 bg-gradient-to-b from-primary/10 to-transparent" />
 
         {/* Header */}
-        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/88 backdrop-blur-xl">
+        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/10 backdrop-blur-xl">
           <div className="mx-auto flex min-h-16 max-w-[430px] items-center justify-between gap-2 px-3 py-2 sm:max-w-lg sm:px-4">
             <Link
               to="/"

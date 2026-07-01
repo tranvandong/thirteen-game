@@ -972,7 +972,7 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 px-3 pb-28 pt-4 sm:px-4">
+    <main className="relative mx-auto flex max-w-3xl flex-col gap-4 px-3 pb-28 pt-4 sm:px-4">
       {/* Header */}
       <section className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm">
         <div className="relative p-5">
@@ -997,7 +997,7 @@ export default function MatchPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleReset}
-                      className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+                      className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
                       type="submit"
                     >
                       <Trash className="size-3.5" />
@@ -1008,7 +1008,7 @@ export default function MatchPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleReset}
-                  className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+                  className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10 z-10"
                 >
                   <RotateCcw className="size-3.5" />
                 </Button>
@@ -1101,7 +1101,7 @@ export default function MatchPage() {
           </div>
         </div>
       </section>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
         <div className="flex items-center justify-between gap-2 w-full">
           <div className="flex gap-2 items-center">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -1155,7 +1155,7 @@ export default function MatchPage() {
               variant="ghost"
               size="sm"
               onClick={() => closeNhotBai()}
-              className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+              className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
               type="submit"
             >
               <X className="size-5" />
@@ -1343,7 +1343,7 @@ export default function MatchPage() {
                     </div>
 
                     <Button
-                      className="h-10 w-full text-xs font-black"
+                      className="relative z-20 h-10 w-full text-xs font-black"
                       onClick={() => resetNhot()}
                     >
                       Chọn lại
@@ -1371,10 +1371,10 @@ export default function MatchPage() {
                             ),
                           }))
                         }
-                        className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
+                        className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
                           nhotForm.nhotterId === p.id
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-background text-foreground hover:border-primary/40"
+                            ? "border-2 border-primary bg-chart-1/10 text-chart-1"
+                            : "border-border bg-background/10 text-foreground hover:border-primary/40"
                         }`}
                       >
                         {pShort(p.id)}
@@ -1409,7 +1409,7 @@ export default function MatchPage() {
                             }`}
                           >
                             <div
-                              className={`flex-1 font-black  ${isVictim ? "text-destructive" : "text-foreground"}`}
+                              className={`relative z-10 flex-1 font-black  ${isVictim ? "text-destructive" : "text-foreground"}`}
                               onClick={() => toggleNhotVictim(p.id)}
                             >
                               {pShort(p.id)}
@@ -1434,7 +1434,7 @@ export default function MatchPage() {
                                       onClick={() =>
                                         updateVictimHeo(p.id, t, -1)
                                       }
-                                      className="size-6 rounded-full bg-muted/70 font-black"
+                                      className="relative z-10 size-6 rounded-full bg-muted/70 font-black"
                                     >
                                       −
                                     </button>
@@ -1445,7 +1445,7 @@ export default function MatchPage() {
                                       onClick={() =>
                                         updateVictimHeo(p.id, t, 1)
                                       }
-                                      className="size-6 rounded-full bg-muted/70 font-black"
+                                      className="relative z-10 size-6 rounded-full bg-muted/70 font-black"
                                     >
                                       +
                                     </button>
@@ -1477,7 +1477,7 @@ export default function MatchPage() {
                             setDennerId(null);
                             setDenForIds([]);
                           }}
-                          className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+                          className="h-9 gap-1.5 text-xs font-bold sm:h-10 relative z-10"
                           type="submit"
                         >
                           <X className="size-5" />
@@ -1495,7 +1495,7 @@ export default function MatchPage() {
                                   denForCandidates.filter((id) => id !== pid),
                                 );
                               }}
-                              className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
+                              className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
                                 selected
                                   ? "border-destructive bg-destructive/10 text-destructive"
                                   : "border-border bg-background text-foreground hover:border-destructive/30"
@@ -1528,7 +1528,7 @@ export default function MatchPage() {
                                       : [...prev, pid],
                                   )
                                 }
-                                className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
+                                className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
                                   selected
                                     ? "border-chart-1 bg-chart-1/20 text-chart-1"
                                     : "border-border bg-background text-foreground hover:border-chart-1/30"
@@ -1548,19 +1548,19 @@ export default function MatchPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-10 font-black w-full mt-2"
+                    className="relative z-10 h-10 font-black w-full mt-2"
                     onClick={() => setShowDenBai(true)}
                   >
                     <Plus className="size-3.5" />
                     Đền bài
                   </Button>
                 )}
-                <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1 mt-2">
+                <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1 mt-2 relative z-20 ">
                   {!confirmNhot ? (
                     <>
                       <Button
                         size="sm"
-                        className="h-10 font-black"
+                        className="relative z-10 h-10 font-black"
                         onClick={addNhot}
                         disabled={
                           !nhotForm.nhotterId || nhotForm.victims.length === 0
@@ -1571,7 +1571,7 @@ export default function MatchPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-10 font-black"
+                        className="relative z-10 h-10 font-black"
                         onClick={() => removeNhot()}
                       >
                         Hủy
@@ -1581,7 +1581,7 @@ export default function MatchPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-10 font-black"
+                      className="relative z-10 h-10 font-black"
                       onClick={() => resetNhot()}
                     >
                       Chọn lại
@@ -1630,7 +1630,7 @@ export default function MatchPage() {
                   heo: { do: 0, den: 0 },
                 });
               }}
-              className="h-9 gap-1.5 text-xs font-bold sm:h-10"
+              className="h-9 gap-1.5 text-xs font-bold sm:h-10 relative z-10"
               type="submit"
             >
               <X className="size-5" />
@@ -1682,7 +1682,7 @@ export default function MatchPage() {
                         </span>
                         <button
                           onClick={() => removeChatHeo(c.id)}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         >
                           <X className="size-3.5" />
                         </button>
@@ -1713,10 +1713,10 @@ export default function MatchPage() {
                                     : f.victimId,
                               }))
                             }
-                            className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
+                            className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
                               chatForm.chatterId === p.id
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-foreground hover:border-primary/40"
+                                ? "border-2 border-primary bg-chart-1/10 text-chart-1"
+                                : "border-border bg-background/10 text-foreground hover:border-primary/40"
                             }`}
                           >
                             {pShort(p.id)}
@@ -1729,7 +1729,7 @@ export default function MatchPage() {
                     <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                       Người bị chặt
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    <div className="mt-2 flex flex-wrap gap-1 relative z-10">
                       {players
                         .filter(
                           (p) =>
@@ -1742,10 +1742,10 @@ export default function MatchPage() {
                             onClick={() =>
                               setChatForm((f) => ({ ...f, victimId: p.id }))
                             }
-                            className={`rounded-2xl border px-3 py-2 font-black transition-colors ${
+                            className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
                               chatForm.victimId === p.id
                                 ? "border-destructive bg-destructive/10 text-destructive"
-                                : "border-border bg-background text-foreground hover:border-destructive/30"
+                                : "border-border bg-background/10 text-foreground hover:border-destructive/30"
                             }`}
                           >
                             {pShort(p.id)}
@@ -1775,7 +1775,7 @@ export default function MatchPage() {
                           </span>
                           <button
                             onClick={() => updateChatFormHeo(t, -1)}
-                            className="size-7 rounded-full bg-muted/70 font-black"
+                            className="size-7 rounded-full bg-muted/70 font-black relative z-10"
                           >
                             −
                           </button>
@@ -1784,7 +1784,7 @@ export default function MatchPage() {
                           </span>
                           <button
                             onClick={() => updateChatFormHeo(t, 1)}
-                            className="size-7 rounded-full bg-muted/70 font-black"
+                            className="size-7 rounded-full bg-muted/70 font-black relative z-10"
                           >
                             +
                           </button>
@@ -1793,10 +1793,10 @@ export default function MatchPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1">
+                  <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1 relative z-10">
                     <Button
                       size="sm"
-                      className="h-10 font-black"
+                      className="h-10 font-black opacity-80"
                       onClick={addChatHeo}
                       disabled={
                         !chatForm.chatterId ||
@@ -1820,7 +1820,7 @@ export default function MatchPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1 font-black"
+                  className="relative z-10 h-9 gap-1 font-black"
                   onClick={() => setShowChatHeoForm((v) => !v)}
                 >
                   <Plus className="size-3.5" />
@@ -1865,7 +1865,7 @@ export default function MatchPage() {
                 <button
                   type="button"
                   onClick={() => setViewMode("list")}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                  className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
                     rankViewMode === "list"
                       ? "bg-background text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -1877,7 +1877,7 @@ export default function MatchPage() {
                 <button
                   type="button"
                   onClick={() => setViewMode("table")}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                  className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
                     rankViewMode === "table"
                       ? "bg-background text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -1916,6 +1916,13 @@ export default function MatchPage() {
               accumulated={accumulated}
               gameConfig={gameConfig}
               getRowMeta={getRowMeta}
+              save={handleSave}
+              disabledSaveButton={
+                isSaving ||
+                (submitted && fetcher.data?.success) ||
+                !rankingComplete ||
+                !currentParticipant
+              }
             />
           ) : (
             ranking.map((playerId, rankIndex) => {
@@ -1996,7 +2003,7 @@ export default function MatchPage() {
               return (
                 <div
                   key={playerId}
-                  className={`overflow-hidden rounded-3xl border transition-all ${
+                  className={`relative z-10 overflow-hidden rounded-3xl border transition-all ${
                     showAsActive
                       ? "border-border/70 bg-card shadow-sm"
                       : "border-border/30 bg-muted/20 opacity-75"
@@ -2006,7 +2013,7 @@ export default function MatchPage() {
                     onClick={() =>
                       isSelectable && !isFixed && toggleSelect(playerId)
                     }
-                    className={`flex w-full items-center gap-2 px-3 py-3 text-left transition-colors ${
+                    className={`relative z-10 flex w-full items-center gap-2 px-3 py-3 text-left transition-colors ${
                       isSelectable && !isFixed
                         ? "cursor-pointer hover:bg-background/60"
                         : "cursor-default"
@@ -2035,7 +2042,7 @@ export default function MatchPage() {
                       </span>
                     ) : (
                       <span
-                        className={`flex shrink-0 items-center justify-center size-4 p-4 rounded-full font-black transition-colors ${
+                        className={`relative z-10 flex shrink-0 items-center justify-center size-4 p-4 rounded-full font-black transition-colors ${
                           isSelected
                             ? "bg-primary text-primary-foreground"
                             : "border border-muted-foreground/20 bg-muted text-muted-foreground"
@@ -2068,20 +2075,20 @@ export default function MatchPage() {
 
                     {isSelected && !isFixed && (
                       <div
-                        className="ml-1 flex shrink-0 flex-col gap-0.5"
+                        className="relative z-10 ml-1 flex shrink-0 flex-col gap-0.5"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => moveRank(playerId, "up")}
                           disabled={!canMoveUp}
-                          className="flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
+                          className="relative z-10 flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
                         >
                           <ChevronUp className="size-3.5" />
                         </button>
                         <button
                           onClick={() => moveRank(playerId, "down")}
                           disabled={!canMoveDown}
-                          className="flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
+                          className="relative z-10 flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
                         >
                           <ChevronDown className="size-3.5" />
                         </button>
@@ -2104,7 +2111,7 @@ export default function MatchPage() {
                       >
                         <button
                           onClick={() => toggleKhapPlayer(playerId)}
-                          className="flex items-center gap-1 font-black hover:opacity-80"
+                          className="relative z-10 flex items-center gap-1 font-black hover:opacity-80"
                           disabled={nhotVictimIds.includes(playerId)}
                         >
                           <Flame className="size-3.5" />
@@ -2116,7 +2123,7 @@ export default function MatchPage() {
                             <button
                               onClick={() => updateKhapCount(-1)}
                               disabled={khapCount <= 1}
-                              className="size-5 rounded-full bg-background font-black disabled:opacity-30"
+                              className="relative z-10 size-5 rounded-full bg-background font-black disabled:opacity-30"
                             >
                               −
                             </button>
@@ -2128,7 +2135,7 @@ export default function MatchPage() {
                               disabled={
                                 khapCount >= gameConfig.maxKhapAccumulate
                               }
-                              className="size-5 rounded-full bg-background font-black disabled:opacity-30"
+                              className="relative z-10 size-5 rounded-full bg-background font-black disabled:opacity-30"
                             >
                               +
                             </button>
@@ -2153,7 +2160,7 @@ export default function MatchPage() {
                       <button
                         onClick={() => toggleSanhPlayer(playerId)}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed ${
+                        className={`relative z-10 inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed ${
                           isSanhWinner
                             ? "border-chart-1/40 bg-chart-1/10 text-chart-1"
                             : sanhTaken

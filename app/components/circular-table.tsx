@@ -1,5 +1,6 @@
 import { Crown, Flame, Scissors, Spade } from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
+import { Button } from "./ui/button";
 
 interface ChatHeo {
   id: string;
@@ -100,6 +101,8 @@ export function CircularTable({
   accumulated,
   gameConfig,
   getRowMeta,
+  save,
+  disabledSaveButton,
 }: {
   players: Player[];
   ranking: string[];
@@ -124,18 +127,24 @@ export function CircularTable({
   accumulated: { khap: number; sanh: number };
   gameConfig: GameConfigSlice;
   getRowMeta: (playerId: string, rankIndex: number) => RowMeta;
+  save: () => void;
+  disabledSaveButton: boolean;
 }) {
   return (
-    <div className="relative mx-auto w-full max-w-[380px] px-2 py-6">
-      <div className="relative mx-auto aspect-square w-[360px]">
+    <div className="relative mx-auto w-full max-w-[360px] px-2 py-6">
+      <div className="relative mx-auto aspect-square w-[320px]">
         {/* Center hub */}
-        <div
-          className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 bg-card shadow-sm"
-          style={{ width: 108, height: 108 }}
+        <Button
+          className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 shadow-xl shadow-primary/20"
+          style={{ width: 110, height: 110 }}
+          onClick={() => {
+            save();
+          }}
+          disabled={disabledSaveButton}
         >
           {activeNhot ? (
             <>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              <span className="text-[10px] font-bold uppercase tracking-wide">
                 Nhốt {nhotCount}
               </span>
               <span className="text-lg font-black tabular-nums text-primary">
@@ -144,15 +153,15 @@ export function CircularTable({
             </>
           ) : (
             <>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                Xếp hạng
+              <span className="text-[10px] font-bold uppercase tracking-wide">
+                Xác nhận
               </span>
-              <span className="text-lg font-black tabular-nums text-primary">
+              <span className="text-lg font-black tabular-nums">
                 {selectCounter}/{players.length}
               </span>
             </>
           )}
-        </div>
+        </Button>
 
         {players.map((player, idx) => {
           const playerId = player.id;
@@ -208,10 +217,6 @@ export function CircularTable({
           // viewBox is 0 0 170 105; path occupies x=[0,151], y=[0,75].
           // We place content in the upper-middle zone to avoid the curved edges.
           // innerRotation counter-rotates content so it reads from the outer edge.
-          const foX = 12;
-          const foY = 12;
-          const foW = 140;
-          const foH = 66;
           const foContentStyle: React.CSSProperties = {
             width: "100%",
             height: "100%",
@@ -230,7 +235,7 @@ export function CircularTable({
               className="absolute z-20"
               style={config.wrapStyle as React.CSSProperties}
               onClick={() => {
-                toggleSelect(playerId);
+                isSelectable && !isFixed && toggleSelect(playerId);
               }}
             >
               <svg
@@ -325,11 +330,14 @@ export function CircularTable({
                 {(chatHeoAsChatter.length > 0 ||
                   chatHeoAsVictim.length > 0) && (
                   <foreignObject
-                    x={22}
-                    y={58}
+                    x={5}
+                    y={4}
                     width={110}
                     height={18}
-                    style={{ pointerEvents: "none" }}
+                    style={{
+                      pointerEvents: "none",
+                      transform: "rotate(45deg)",
+                    }}
                   >
                     <div
                       style={{
