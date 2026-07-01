@@ -3,7 +3,7 @@ import { useSessionStore } from "~/stores/useSessionStore";
 
 export function Background() {
   const { config } = useSessionStore();
-  const bgs = useMemo(() => ["bg", "bg1", "bg2", "bg3"], []);
+  const bgs = useMemo(() => ["bg", "bg1", "bg2", "bg3", "bg4"], []);
   const [bg, setBg] = useState(bgs[0]);
   let i = 0;
 
@@ -11,7 +11,7 @@ export function Background() {
     const interval = setInterval(() => {
       setBg(bgs[(i + 1) % bgs.length]);
       i++;
-    }, 60000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [bgs]);
 

@@ -131,7 +131,7 @@ export function CircularTable({
   disabledSaveButton: boolean;
 }) {
   return (
-    <div className="relative mx-auto w-full px-2 py-6">
+    <div className="relative mx-auto w-full py-6">
       <div className="relative mx-auto aspect-square w-[320px]">
         {/* Center hub */}
         <Button
