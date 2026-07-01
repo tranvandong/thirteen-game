@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSessionStore } from "~/stores/useSessionStore";
 
 export function Background() {
-  const ref = useRef<HTMLDivElement>(null);
-  const bgs = useMemo(() => ["bg-layout", "bg-layout-1"], []);
+  const { config } = useSessionStore();
+  const bgs = useMemo(() => ["bg", "bg1", "bg2", "bg3"], []);
   const [bg, setBg] = useState(bgs[0]);
   let i = 0;
 
@@ -10,16 +11,24 @@ export function Background() {
     const interval = setInterval(() => {
       setBg(bgs[(i + 1) % bgs.length]);
       i++;
-    }, 10000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [bgs]);
 
-  return (
+  return config?.showBackground ? (
     <div
       className="bg-fixed"
       style={{
         background: `url('/images/${bg}.jpg') center center / cover no-repeat`,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 1,
+        opacity: 0.13,
+        paddingTop: "220px",
       }}
     />
-  );
+  ) : null;
 }

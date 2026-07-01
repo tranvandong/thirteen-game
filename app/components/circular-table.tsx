@@ -131,7 +131,7 @@ export function CircularTable({
   disabledSaveButton: boolean;
 }) {
   return (
-    <div className="relative mx-auto w-full max-w-[360px] px-2 py-6">
+    <div className="relative mx-auto w-full px-2 py-6">
       <div className="relative mx-auto aspect-square w-[320px]">
         {/* Center hub */}
         <Button
@@ -145,9 +145,12 @@ export function CircularTable({
           {activeNhot ? (
             <>
               <span className="text-[10px] font-bold uppercase tracking-wide">
-                Nhốt {nhotCount}
+               Xác nhận
               </span>
-              <span className="text-lg font-black tabular-nums text-primary">
+               <span className="text-[9px] uppercase tracking-wide">
+               Nhốt {nhotCount}
+              </span>
+              <span className="text-lg font-black tabular-nums">
                 {selectCounter}/{requiredSelections}
               </span>
             </>
@@ -247,8 +250,8 @@ export function CircularTable({
                   d={HEX_PATH}
                   fill={"transparent"}
                   stroke={isSelected || isFixed ? "#FE7F2D" : "#B8B5AD"}
-                  strokeWidth={0.5}
-                  strokeOpacity={0.5}
+                  strokeWidth={isSelected || isFixed ? 0.7 : 0.1}
+                  strokeOpacity={isSelected || isFixed ? 1 : 0.3}
                   style={{ pointerEvents: "all", width: 229, height: 115 }}
                   className={`${labelColor} border-2 border-solid border-current`}
                 />

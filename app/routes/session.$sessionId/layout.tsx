@@ -188,7 +188,10 @@ export async function clientLoader({
   serverLoader,
 }: Route.ClientLoaderArgs): Promise<SessionLoaderData> {
   const data = await serverLoader();
-  useSessionStore.getState().hydrate(data);
+  const showBackground = localStorage.getItem("showBackground") === "true";
+  useSessionStore
+    .getState()
+    .hydrate({ ...data, config: { ...data.config, showBackground } });
   return data;
 }
 

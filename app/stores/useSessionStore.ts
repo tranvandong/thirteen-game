@@ -20,6 +20,7 @@ export interface GameConfig {
   khapLimit: number;
   sanhScore: number;
   sanhLimit: number;
+  showBackground?: boolean;
 }
 
 export interface Player {
@@ -120,7 +121,7 @@ interface SessionState {
 
 export const useSessionStore = create<SessionState>()(
   devtools(
-    persist(
+    persist( 
       (set) => ({
         session: null,
         config: null,

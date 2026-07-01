@@ -116,7 +116,7 @@ export function SessionQRCode() {
         <div className="grid w-full grid-cols-2 gap-2 sm:max-w-xs">
           <Button
             variant="outline"
-            className="gap-2 rounded-2xl"
+            className="gap-2 rounded-2xl relative z-10"
             onClick={handleCopy}
           >
             {copied ? (
@@ -132,7 +132,7 @@ export function SessionQRCode() {
             )}
           </Button>
 
-          <Button className="gap-2 rounded-2xl" onClick={handleShare}>
+          <Button className="gap-2 rounded-2xl relative z-10" onClick={handleShare}>
             <Share2 className="size-4" />
             Chia sẻ
           </Button>

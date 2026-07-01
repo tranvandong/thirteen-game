@@ -656,6 +656,7 @@ export default function MatchPage() {
     setSelectOrder(players.map(() => null));
     setConfirmNhot(false);
     setExpandBonus(true);
+    setNhotList([]);
   };
   const toggleNhotVictim = (pid: string) => {
     setNhotForm((prev) => {
@@ -2009,7 +2010,7 @@ export default function MatchPage() {
                       : "border-border/30 bg-muted/20 opacity-75"
                   } ${showAsActive ? style : ""}`}
                 >
-                  <button
+                  <div
                     onClick={() =>
                       isSelectable && !isFixed && toggleSelect(playerId)
                     }
@@ -2094,7 +2095,7 @@ export default function MatchPage() {
                         </button>
                       </div>
                     )}
-                  </button>
+                  </div>
 
                   {/* ── Khạp + Sảnh ── */}
                   {showBonus && (

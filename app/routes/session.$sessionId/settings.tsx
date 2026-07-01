@@ -7,6 +7,7 @@ import { participantPlayers } from "~/db/schema/participant-players";
 import { and, eq } from "drizzle-orm";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Switch } from "~/components/ui/switch";
 import {
   Users,
   UserPlus,
@@ -23,9 +24,18 @@ import {
   useSession,
   usePlayers,
   useCurrentParticipant,
+  useGameConfig,
+  useSessionStore,
 } from "~/stores/useSessionStore";
 import { players, sessions } from "~/db/schema";
 import { useEffect, useState } from "react";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from "~/components/ui/field";
 
 // ---------------------------------------------------------------------------
 // Loader — chỉ fetch những gì store không có
@@ -178,6 +188,8 @@ export default function SettingsPage() {
   >({});
 
   const session = useSession();
+  const gameConfig = useGameConfig();
+  const { updateConfig } = useSessionStore();
   const players = usePlayers();
   const currentParticipant = useCurrentParticipant();
 
@@ -280,6 +292,11 @@ export default function SettingsPage() {
     fetcher.submit({ intent: "finish-session" }, { method: "POST" });
   };
 
+  const toggleBackground = (value: boolean) => {
+    localStorage.setItem("showBackground", value.toString());
+    updateConfig({ showBackground: value });
+  };
+
   return (
     <main className="p-4 flex flex-col gap-4">
       {/* Header */}
@@ -311,7 +328,7 @@ export default function SettingsPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-xs px-3"
+                    className="h-7 text-xs px-3 relative z-10"
                     onClick={cancelEdit}
                     disabled={isBusy}
                   >
@@ -319,7 +336,7 @@ export default function SettingsPage() {
                   </Button>
                   <Button
                     size="sm"
-                    className="h-7 text-xs px-3"
+                    className="h-7 text-xs px-3 relative z-10"
                     onClick={saveEdit}
                     disabled={isBusy}
                   >
@@ -330,7 +347,7 @@ export default function SettingsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 text-xs px-3 gap-1"
+                  className="h-7 text-xs px-3 gap-1 relative z-10"
                   onClick={startEdit}
                 >
                   <Pencil className="size-3" />
@@ -378,7 +395,7 @@ export default function SettingsPage() {
                             },
                           }))
                         }
-                        className="flex-1 min-w-0 rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        className="relative z-10 flex-1 min-w-0 rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                       />
                       <input
                         type="number"
@@ -393,7 +410,7 @@ export default function SettingsPage() {
                             },
                           }))
                         }
-                        className="w-20 shrink-0 rounded-md border bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        className="relative z-10 w-20 shrink-0 rounded-md border bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/40"
                       />
                     </div>
                   </div>
@@ -614,6 +631,24 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <FieldLabel htmlFor="switch-share">
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldTitle>Cho phép hiển thị hình nền</FieldTitle>
+            <FieldDescription>
+              Hình nền sẽ được hiển thị và tự động thay đổi sau một thời gian
+              trên màn hình của người chơi.
+            </FieldDescription>
+          </FieldContent>
+          <Switch
+            id="switch-enable-background"
+            checked={gameConfig?.showBackground}
+            onCheckedChange={toggleBackground}
+            className="relative z-10"
+          />
+        </Field>
+      </FieldLabel>
 
       {/* ------------------------------------------------------------------ */}
       {/* Kết thúc phiên (chỉ chủ phòng)                                     */}
