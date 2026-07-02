@@ -145,10 +145,10 @@ export function CircularTable({
           {activeNhot ? (
             <>
               <span className="text-[10px] font-bold uppercase tracking-wide">
-               Xác nhận
+                Xác nhận
               </span>
-               <span className="text-[9px] uppercase tracking-wide">
-               Nhốt {nhotCount}
+              <span className="text-[9px] uppercase tracking-wide">
+                Nhốt {nhotCount}
               </span>
               <span className="text-lg font-black tabular-nums">
                 {selectCounter}/{requiredSelections}
@@ -257,16 +257,19 @@ export function CircularTable({
                 />
 
                 <foreignObject
-                  x={46}
-                  y={48}
+            
                   width={60}
                   height={20}
-                  style={{ pointerEvents: "all" }}
+                  style={{
+                    pointerEvents: "all",
+                    transform:
+                      "translateX(calc(50% - 30px)) translateY(calc(100% - 30px))",
+                  }}
                   xmlns="http://www.w3.org/1999/xhtml"
                 >
                   <div style={foContentStyle}>
                     <span
-                      className={`truncate text-xs font-bold leading-tight text-card-foreground`}
+                      className={`truncate font-bold leading-tight text-card-foreground`}
                       style={{ transform: `rotate(${config.innerRotation})` }}
                     >
                       {player.name}
