@@ -329,7 +329,7 @@ export function CircularTable({
 
                 {/* Chat heo info row - bottom strip inside path */}
                 {(chatHeoAsChatter.length > 0 ||
-                  chatHeoAsVictim.length > 0) && (
+                  chatHeoAsVictim.length > 0) && showAsActive && (
                   <foreignObject
                     x={5}
                     y={4}
@@ -421,7 +421,7 @@ export function CircularTable({
                 />
 
                 {/* Khap + Sanh buttons — rendered last so they stay clickable */}
-                {showBonus && (
+                {showAsActive && (
                   <foreignObject
                     x={0}
                     y={0}

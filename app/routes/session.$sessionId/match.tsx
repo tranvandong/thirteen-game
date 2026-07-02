@@ -1374,7 +1374,7 @@ export default function MatchPage() {
                         }
                         className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
                           nhotForm.nhotterId === p.id
-                            ? "border-2 border-primary bg-chart-1/10 text-chart-1"
+                            ? "border border-primary bg-chart-1/10 text-chart-1"
                             : "border-border bg-background/10 text-foreground hover:border-primary/40"
                         }`}
                       >
@@ -1716,7 +1716,7 @@ export default function MatchPage() {
                             }
                             className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
                               chatForm.chatterId === p.id
-                                ? "border-2 border-primary bg-chart-1/10 text-chart-1"
+                                ? "border border-primary bg-chart-1/10 text-chart-1"
                                 : "border-border bg-background/10 text-foreground hover:border-primary/40"
                             }`}
                           >

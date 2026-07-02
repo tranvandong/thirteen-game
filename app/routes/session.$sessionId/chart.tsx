@@ -303,7 +303,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
             </div>
             <div className="flex items-center gap-1 text-destructive text-sm">
               <TrendingDown className="size-4" />
-              {topRank2.name} dẫn đầu số lần về tư ({topRank2.nhat} lần)
+              {topRank2.name} dẫn đầu số lần về tư ({topRank2.tu} lần)
             </div>
           </CardFooter>
         )}
