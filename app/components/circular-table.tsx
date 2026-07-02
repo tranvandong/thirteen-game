@@ -257,15 +257,15 @@ export function CircularTable({
                 />
 
                 <foreignObject
-                  x={46}
-                  y={48}
+                  x={0}
+                  y={0}
                   width={60}
                   height={20}
-                  style={{ pointerEvents: "all" }}
+                  style={{ pointerEvents: "all", transform: "translate(46px, 48px)" }}
                 >
                   <div style={foContentStyle}>
                     <span
-                      className={`max-w-[88px] truncate text-xs font-bold leading-tight text-card-foreground`}
+                      className={`truncate text-xs font-bold leading-tight text-card-foreground`}
                       style={{ transform: `rotate(${config.innerRotation})` }}
                     >
                       {player.name}
