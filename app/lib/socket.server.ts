@@ -41,7 +41,6 @@ export function initSocketServer(httpServer: HttpServer) {
     console.log(`[Socket] Connected: ${socket.id}`);
 
     socket.on("join-session", ({ sessionCode, participantId, displayName }) => {
-      console.log("Received join-session event from client", { sessionCode, participantId, displayName });
       const room = sessionRoom(sessionCode);
 
       socket.join(room);

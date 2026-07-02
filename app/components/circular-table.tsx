@@ -255,36 +255,34 @@ export function CircularTable({
                   style={{ pointerEvents: "all", width: 229, height: 115 }}
                   className={`${labelColor} border-2 border-solid border-current`}
                 />
-                <g transform={`translate(${45},${47})`}>
+                
                   <foreignObject
-                    x={0}
-                    y={0}
+                    x={45}
+                    y={45}
                     width={60}
                     height={20}
-                    style={{ pointerEvents: "all" }}
+                    className="text-center"
                   >
-                    <div style={foContentStyle}>
+                    <div>
                       <span
                         className={`truncate text-xs font-bold leading-tight text-card-foreground`}
-                        style={{ transform: `rotate(${config.innerRotation})` }}
+                       
                       >
                         {player.name}
                       </span>
                     </div>
                   </foreignObject>
-                </g>
+             
                 {/* Main player info - name, label, score/badge */}
                 <foreignObject
                   x={52}
                   y={26}
                   width={52}
                   height={26}
-                  style={{ pointerEvents: "all" }}
                 >
-                  <div style={foContentStyle}>
+                  <div>
                     <div
                       className="flex items-center gap-1"
-                      style={{ transform: `rotate(${config.innerRotation})` }}
                     >
                       {isFixed ? (
                         <span
