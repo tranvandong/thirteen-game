@@ -257,11 +257,12 @@ export function CircularTable({
                 />
 
                 <foreignObject
-                  x={0}
-                  y={0}
+                  x={46}
+                  y={48}
                   width={60}
                   height={20}
-                  style={{ pointerEvents: "all", transform: "translate(46px, 48px)" }}
+                  style={{ pointerEvents: "all" }}
+                  xmlns="http://www.w3.org/1999/xhtml"
                 >
                   <div style={foContentStyle}>
                     <span
