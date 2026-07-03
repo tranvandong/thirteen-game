@@ -15,3 +15,12 @@ export const createFingerprint = async () => {
     .slice(0, 64);
   return fingerprint;
 };
+
+export async function getOrCreateFingerprint(): Promise<string> {
+  const STORAGE_KEY = "device_fingerprint";
+  const existing = localStorage.getItem(STORAGE_KEY);
+  if (existing) return existing;
+  const fingerprint = await createFingerprint();
+  localStorage.setItem(STORAGE_KEY, fingerprint);
+  return fingerprint;
+}

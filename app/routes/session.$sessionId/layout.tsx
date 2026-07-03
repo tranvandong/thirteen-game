@@ -10,8 +10,7 @@ import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import { gameConfigs } from "~/db/schema/game-configs";
 import { players as playersSchema } from "~/db/schema/players";
-import { participants } from "~/db/schema/participants";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { redirect } from "react-router";
 import { ModeToggle } from "~/components/mode-toggle";
 import { ThemeProvider } from "~/components/theme-provider";
@@ -23,6 +22,10 @@ import {
   BarChart2,
   Swords,
   LucideLogOut,
+  LogOut,
+  Power,
+  CornerDownLeft,
+  IterationCw,
 } from "lucide-react";
 import {
   useCurrentParticipant,
@@ -33,47 +36,39 @@ import {
   type Player,
   type SessionParticipant,
 } from "~/stores/useSessionStore";
+import { useState } from "react";
 import { useEffect } from "react";
 import { joinSession, leaveSession } from "~/lib/socket.client";
 import { createFingerprint } from "~/helpers/fingerprint.helper";
 import { Background } from "~/components/background";
+import { Button } from "~/components/ui/button";
 
-// ── Helpers cookie ────────────────────────────────────────────
-
-const PARTICIPANT_COOKIE = "participant_id";
-
-function getParticipantIdFromCookie(
-  cookieHeader: string | null,
-): string | null {
-  if (!cookieHeader) return null;
-  const match = cookieHeader
-    .split(";")
-    .find((c) => c.trim().startsWith(`${PARTICIPANT_COOKIE}=`));
-  return match ? decodeURIComponent(match.trim().split("=")[1]) : null;
-}
-
-function setParticipantCookie(participantId: string): string {
-  return `${PARTICIPANT_COOKIE}=${encodeURIComponent(participantId)}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-}
+const FINGERPRINT_KEY = "device_fingerprint";
 
 // ── Types ─────────────────────────────────────────────────────
 
-export interface SessionLoaderData {
+/** Dữ liệu chung của session — không phụ thuộc participant/thiết bị */
+interface SessionBaseData {
   session: ActiveSession;
   config: GameConfig;
   players: Player[];
+}
+
+/** Dữ liệu đầy đủ trả về cho component, giống hệt shape khi còn dùng cookie */
+export interface SessionLoaderData extends SessionBaseData {
   currentParticipant: SessionParticipant;
 }
 
 // ── Server Loader ─────────────────────────────────────────────
+//
+// Không dùng cookie nữa. Loader chỉ trả về dữ liệu chung của session
+// (không phụ thuộc thiết bị). currentParticipant được resolve ở clientLoader
+// dựa trên device fingerprint (chỉ tồn tại ở client/localStorage).
 
 export async function loader({
   params,
-  request,
-}: Route.LoaderArgs): Promise<Response | SessionLoaderData> {
+}: Route.LoaderArgs): Promise<SessionBaseData> {
   const { sessionId } = params;
-  const cookieHeader = request.headers.get("Cookie");
-  const participantIdFromCookie = getParticipantIdFromCookie(cookieHeader);
 
   // 1. Tìm session theo code
   const [session] = await db
@@ -100,41 +95,7 @@ export async function loader({
     .where(eq(playersSchema.sessionId, session.id))
     .orderBy(asc(playersSchema.orderNo));
 
-  // 4. Resolve currentParticipant từ cookie
-  //    Không có cookie hoặc participant không thuộc session → redirect sang /join
-  let currentParticipant: typeof participants.$inferSelect | undefined;
-
-  if (participantIdFromCookie) {
-    const [found] = await db
-      .select()
-      .from(participants)
-      .where(
-        and(
-          eq(participants.id, participantIdFromCookie),
-          eq(participants.sessionId, session.id),
-        ),
-      )
-      .limit(1);
-    currentParticipant = found;
-  }
-
-  // Exception: nếu chưa có cookie nhưng đây là owner (vừa tạo phòng,
-  // action tạo phòng chưa set cookie) → dùng owner làm mặc định 1 lần
-  // và set cookie ngay. Production nên set cookie ngay tại action tạo phòng.
-  if (!currentParticipant && session.ownerParticipantId) {
-    const [owner] = await db
-      .select()
-      .from(participants)
-      .where(eq(participants.id, session.ownerParticipantId))
-      .limit(1);
-    currentParticipant = owner;
-  }
-
-  if (!currentParticipant) {
-    throw redirect(`/session/${sessionId}/join`);
-  }
-
-  const loaderData: SessionLoaderData = {
+  return {
     session: {
       id: session.id,
       code: session.code,
@@ -162,40 +123,104 @@ export async function loader({
       orderNo: p.orderNo,
       initialScore: p.initialScore,
     })),
-    currentParticipant: {
-      id: currentParticipant.id,
-      displayName: currentParticipant.displayName,
-      role: currentParticipant.role as SessionParticipant["role"],
-    },
+  };
+}
+
+export async function action({ request }: Route.ActionArgs) {}
+
+// ── Fingerprint helper ──────────────────────────────────────
+//
+// Giống pattern ở home.tsx: lấy hoặc tạo fingerprint từ localStorage.
+
+async function getOrCreateFingerprint(): Promise<string> {
+  const existing = localStorage.getItem(FINGERPRINT_KEY);
+  if (existing) return existing;
+
+  const fingerprint = await createFingerprint();
+  localStorage.setItem(FINGERPRINT_KEY, fingerprint);
+  return fingerprint;
+}
+
+// ── Client Loader ─────────────────────────────────────────────
+//
+// 1. Lấy dữ liệu chung của session từ server loader.
+// 2. Session đã 'finished' -> redirect về trang chủ.
+// 3. Không có fingerprint (thiết bị lạ, chưa từng vào phòng) -> /join/:sessionCode
+// 4. Có fingerprint nhưng không resolve được participant đang active trong
+//    session này (chưa join / đã left) -> /join/:sessionCode
+// 5. Thành công -> hydrate store & trả về currentParticipant đầy đủ, giống
+//    hệt shape dữ liệu khi còn dùng cookie.
+
+export async function clientLoader({
+  params,
+  serverLoader,
+}: Route.ClientLoaderArgs): Promise<SessionLoaderData> {
+  const data = await serverLoader();
+  const sessionCode = params.sessionId!;
+
+  if (data.session.status === "finished") {
+    throw redirect("/");
+  }
+
+  const fingerprint = await getOrCreateFingerprint();
+
+  const currentParticipant = await resolveParticipant(sessionCode, fingerprint);
+  if (!currentParticipant) {
+    throw redirect(`/join/${sessionCode}`);
+  }
+
+  const showBackground = localStorage.getItem("showBackground") === "true";
+
+  const loaderData: SessionLoaderData = {
+    ...data,
+    config: { ...data.config, showBackground },
+    currentParticipant,
   };
 
-  // Set cookie nếu chưa có hoặc khác participant hiện tại
-  if (participantIdFromCookie !== currentParticipant.id) {
-    return new Response(JSON.stringify(loaderData), {
-      headers: {
-        "Content-Type": "application/json",
-        "Set-Cookie": setParticipantCookie(currentParticipant.id),
-      },
-    });
-  }
+  useSessionStore.getState().hydrate(loaderData);
 
   return loaderData;
 }
 
-// ── Client Loader ─────────────────────────────────────────────
+clientLoader.hydrate = true as const;
 
-export async function clientLoader({
-  serverLoader,
-}: Route.ClientLoaderArgs): Promise<SessionLoaderData> {
-  const data = await serverLoader();
-  const showBackground = localStorage.getItem("showBackground") === "true";
-  useSessionStore
-    .getState()
-    .hydrate({ ...data, config: { ...data.config, showBackground } });
-  return data;
+/**
+ * Resolve currentParticipant theo fingerprint trong đúng session này.
+ * Trả về null nếu thiết bị chưa join / đã "left" khỏi session.
+ */
+async function resolveParticipant(
+  sessionCode: string,
+  fingerprint: string,
+): Promise<SessionParticipant | null> {
+  try {
+    const res = await fetch(
+      `/api/sessions/${sessionCode}/devices/active?fingerprint=${encodeURIComponent(
+        fingerprint,
+      )}`,
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { participant: SessionParticipant };
+    return data.participant ?? null;
+  } catch {
+    return null;
+  }
 }
 
-clientLoader.hydrate = true as const;
+// ── Hydrate Fallback ──────────────────────────────────────────
+//
+// Hiện trong lúc clientLoader đang chạy (lần load đầu tiên) — thay cho
+// việc chặn render server-side như bản dùng cookie trước đây.
+
+export function HydrateFallback() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4 text-muted-foreground">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <p className="text-sm">Đang xác thực thiết bị…</p>
+      </div>
+    </div>
+  );
+}
 
 // ── Client Action — đăng ký thiết bị ─────────────────────────
 //
@@ -206,16 +231,9 @@ async function registerDevice(
   sessionId: string,
   participantId: string,
 ): Promise<void> {
-  // 1. Lấy hoặc tạo fingerprint
-  let fingerprint = localStorage.getItem("device_fingerprint");
-  if (!fingerprint) {
-    // Sinh fingerprint đơn giản từ các thuộc tính trình duyệt
-    // Production nên dùng @fingerprintjs/fingerprintjs
-    const fingerprint = await createFingerprint();
-    localStorage.setItem("device_fingerprint", fingerprint);
-  }
+  const fingerprint = await getOrCreateFingerprint();
 
-  // 2. Nhận diện platform
+  // 1. Nhận diện platform
   const ua = navigator.userAgent.toLowerCase();
   const platform = /iphone|ipad|ipod/.test(ua)
     ? "ios"
@@ -223,7 +241,7 @@ async function registerDevice(
       ? "android"
       : "web";
 
-  // 3. Gọi API upsert device (không block UI nếu lỗi)
+  // 2. Gọi API upsert device (không block UI nếu lỗi)
   try {
     await fetch(`/api/sessions/${sessionId}/devices`, {
       method: "POST",
@@ -234,7 +252,7 @@ async function registerDevice(
     // Không critical — bỏ qua lỗi network
   }
 
-  // 4. Request push permission & lấy token (nếu browser hỗ trợ)
+  // 3. Request push permission & lấy token (nếu browser hỗ trợ)
   if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
 
   const permission = await Notification.requestPermission();
@@ -259,6 +277,26 @@ async function registerDevice(
   }
 }
 
+/**
+ * Đánh dấu thiết bị hiện tại đã "thoát khỏi phòng":
+ * cập nhật player_devices.status = 'left' cho fingerprint này trong session.
+ */
+async function markDeviceLeft(sessionCode: string): Promise<void> {
+  const fingerprint = await getOrCreateFingerprint();
+
+  try {
+    await fetch(`/api/sessions/${sessionCode}/devices/leave`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fingerprint }),
+      // Đảm bảo request có cơ hội hoàn tất dù đang điều hướng đi
+      keepalive: true,
+    });
+  } catch {
+    // Không critical — bỏ qua lỗi network
+  }
+}
+
 // ── Meta ──────────────────────────────────────────────────────
 
 export function meta({ data }: Route.MetaArgs) {
@@ -272,6 +310,8 @@ export default function SessionLayout() {
   const { sessionId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   const session = useSession();
   const currentParticipant = useCurrentParticipant();
@@ -296,6 +336,14 @@ export default function SessionLayout() {
       leaveSession(sessionId);
     };
   }, [sessionId, currentParticipant?.id]);
+
+  // Thoát phòng: cập nhật trạng thái thiết bị (status = 'left') rồi điều hướng về trang chủ
+  const handleLeaveRoom = async () => {
+    if (!sessionId || isLeaving) return;
+    setIsLeaving(true);
+    await markDeviceLeft(sessionId);
+    navigate("/");
+  };
 
   const leftTabs = [
     { to: `/session/${sessionId}`, label: "Xếp hạng", icon: Home, exact: true },
@@ -379,8 +427,8 @@ export default function SessionLayout() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-48 bg-gradient-to-b from-primary/10 to-transparent" />
 
         {/* Header */}
-        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/10 backdrop-blur-xl">
-          <div className="mx-auto flex min-h-16 max-w-[430px] items-center justify-between gap-2 px-3 py-2 sm:max-w-lg sm:px-4">
+        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/10 backdrop-blur-xs">
+          <div className="mx-auto flex min-h-16 max-w-[430px] items-center bg-background/50 justify-between gap-2 px-3 py-2 sm:max-w-lg sm:px-4">
             <Link
               to="/"
               className="group flex min-w-0 items-center gap-3 rounded-2xl px-2 py-2 transition hover:bg-primary/5"
@@ -399,14 +447,33 @@ export default function SessionLayout() {
             </Link>
 
             <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-border/70 bg-card/70 p-1 shadow-sm">
-              <ModeToggle />
-              <button
-                onClick={() => navigate("/")}
-                className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-                title="Thoát phòng"
-              >
-                <LucideLogOut className="size-5" />
-              </button>
+              {!confirmLeave ? (
+                <>
+                  <ModeToggle />
+                  <button
+                    // onClick={handleLeaveRoom}
+                    onClick={() => setConfirmLeave(true)}
+                    disabled={isLeaving}
+                    className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    title="Thoát phòng"
+                  >
+                    <LucideLogOut className="size-5" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmLeave(false)}
+                  >
+                    <IterationCw /> Hủy
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={handleLeaveRoom}>
+                    Thoát <Power />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </header>

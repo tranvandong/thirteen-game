@@ -1,15 +1,33 @@
-import { pgTable, uuid, varchar, timestamp, unique } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  varchar,
+  timestamp,
+  unique,
+  uniqueIndex,
+  pgEnum,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { sessions } from "./sessions";
 import { participants } from "./participants";
+
+/** Trạng thái tham gia session của thiết bị */
+export const playerDeviceStatusEnum = pgEnum("player_device_status", [
+  "active", // Đang tham gia session
+  "left", // Đã thoát khỏi session
+]);
 
 /**
  * Lưu thông tin thiết bị của participant trong một session.
  * - fingerprint: nhận diện thiết bị (không đổi giữa các lần vào)
  * - pushToken:   FCM/APNs token để gửi push notification (có thể null nếu user từ chối)
  * - platform:    'ios' | 'android' | 'web'
+ * - status:      'active' | 'left' — trạng thái tham gia session hiện tại
  *
- * Mỗi thiết bị (fingerprint) chỉ có 1 bản ghi per session.
+ * Mỗi thiết bị (fingerprint) chỉ có 1 bản ghi per session, và tại một thời điểm
+ * chỉ được ở trạng thái 'active' trong DUY NHẤT 1 session (đảm bảo bởi
+ * partial unique index bên dưới).
  */
 export const playerDevices = pgTable(
   "player_devices",
@@ -32,6 +50,9 @@ export const playerDevices = pgTable(
 
     /** 'ios' | 'android' | 'web' */
     platform: varchar("platform", { length: 20 }).notNull(),
+
+    /** Trạng thái tham gia session: 'active' (đang tham gia) | 'left' (đã thoát) */
+    status: playerDeviceStatusEnum("status").default("active").notNull(),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Route } from "./+types/session.create";
 import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
@@ -37,6 +37,8 @@ import {
   Zap,
   Target,
 } from "lucide-react";
+import { getOrCreateFingerprint } from "~/helpers/fingerprint.helper";
+import { playerDevices } from "~/db/schema";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -140,6 +142,13 @@ export async function action({ request }: Route.ActionArgs) {
         })),
       );
 
+      await tx.insert(playerDevices).values({
+        sessionId: session.id,
+        participantId: owner.id,
+        fingerprint: data.get("fingerprint") as string,
+        platform: "anonymous",
+      });
+
       return {
         sessionCode: session.code,
         sessionId: session.id,
@@ -195,10 +204,15 @@ function ScoreInput({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={id} className="text-xs font-semibold text-muted-foreground">
+        <Label
+          htmlFor={id}
+          className="text-xs font-semibold text-muted-foreground"
+        >
           {label}
         </Label>
-        {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+        {hint && (
+          <span className="text-[11px] text-muted-foreground">{hint}</span>
+        )}
       </div>
       <div className="flex items-center rounded-2xl border border-input bg-card p-1 shadow-sm">
         <button
@@ -292,6 +306,7 @@ export default function CreateSession() {
     sanhScore: 1,
     sanhLimit: 10,
     nhotPenalty: 2,
+    fingerprint: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -304,10 +319,10 @@ export default function CreateSession() {
   const validateForm = () => {
     const errs: Record<string, string> = {};
     if (!formData.ownerName.trim())
-      errs.ownerName = "Vui long nhap ten chu phong";
+      errs.ownerName = "Vui lòng nhập tên chủ phòng";
     for (let i = 1; i <= 4; i++) {
       const v = formData[`player${i}` as keyof typeof formData] as string;
-      if (!v?.trim()) errs[`player${i}`] = `Vui long nhap ten nguoi choi ${i}`;
+      if (!v?.trim()) errs[`player${i}`] = `Vui lòng nhập tên người chơi ${i}`;
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -321,6 +336,14 @@ export default function CreateSession() {
     // Nếu valid → để form submit bình thường → action() chạy trên server
   };
 
+  useEffect(() => {
+    async function checkFingerprint() {
+      const fingerprint = await getOrCreateFingerprint();
+      setFormData((p) => ({ ...p, fingerprint }));
+    }
+    checkFingerprint();
+  }, []);
+
   const rankScores = [
     formData.firstPlaceScore,
     formData.secondPlaceScore,
@@ -333,7 +356,10 @@ export default function CreateSession() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <Link to="/" className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
+          <Link
+            to="/"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+          >
             <ChevronLeft className="size-5" />
           </Link>
           <div className="flex min-w-0 items-center gap-3">
@@ -398,7 +424,10 @@ export default function CreateSession() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="ownerName" className="text-xs font-semibold text-muted-foreground">
+                <Label
+                  htmlFor="ownerName"
+                  className="text-xs font-semibold text-muted-foreground"
+                >
                   Tên của bạn
                 </Label>
                 <Input
@@ -428,7 +457,10 @@ export default function CreateSession() {
                   <Users className="size-4" />
                 </div>
                 <CardTitle className="text-base">Người chơi</CardTitle>
-                <Badge variant="secondary" className="ml-auto rounded-full text-xs">
+                <Badge
+                  variant="secondary"
+                  className="ml-auto rounded-full text-xs"
+                >
                   4 người
                 </Badge>
               </div>
@@ -438,7 +470,11 @@ export default function CreateSession() {
                 <PlayerRow
                   key={i}
                   index={i}
-                  value={formData[`player${i + 1}` as keyof typeof formData] as string}
+                  value={
+                    formData[
+                      `player${i + 1}` as keyof typeof formData
+                    ] as string
+                  }
                   error={errors[`player${i + 1}`]}
                   onChange={(value) => {
                     set(`player${i + 1}` as keyof typeof formData, value);
@@ -474,7 +510,9 @@ export default function CreateSession() {
                     <span className="text-[10px] font-bold uppercase tracking-wide opacity-75">
                       Hạng {RANK_LABELS[i]}
                     </span>
-                    <span className="mt-1 text-xl font-black">{score > 0 ? `+${score}` : score}</span>
+                    <span className="mt-1 text-xl font-black">
+                      {score > 0 ? `+${score}` : score}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -690,6 +728,11 @@ export default function CreateSession() {
               </CollapsibleContent>
             </Card>
           </Collapsible>
+          <input
+            type="hidden"
+            name="fingerprint"
+            value={formData.fingerprint}
+          />
         </form>
       </main>
 

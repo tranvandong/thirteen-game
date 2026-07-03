@@ -4,7 +4,22 @@ import { useSessionStore } from "~/stores/useSessionStore";
 export function Background() {
   const { config } = useSessionStore();
   const bgs = useMemo(
-    () => ["bg", "bg1", "bg2", "bg3", "bg4", "bg5", "bg6", "bg7", "bg8", "bg9", "bg10"],
+    () => [
+      "bg1",
+      "bg2",
+      "bg3",
+      "bg4",
+      "bg5",
+      "bg6",
+      "bg7",
+      "bg8",
+      "bg9",
+      "bg10",
+      "bg11",
+      "bg12",
+      "bg13",
+      "bg15",
+    ],
     [],
   );
   const [bg, setBg] = useState(bgs[0]);
@@ -29,7 +44,7 @@ export function Background() {
         width: "100vw",
         height: "100vh",
         zIndex: 1,
-        opacity: 0.12,
+        opacity: 0.14,
       }}
     />
   ) : null;

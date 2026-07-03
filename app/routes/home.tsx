@@ -167,7 +167,7 @@ export default function Home() {
         const res = await fetch(
           `/api/sessions/active-by-device?fingerprint=${encodeURIComponent(fingerprint)}`,
         );
-        console.log(res);
+
         if (!res.ok) {
           // 404 = không tìm thấy → bình thường, hiện home
           setResumeState("idle");

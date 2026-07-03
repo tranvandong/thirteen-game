@@ -27,7 +27,7 @@ import {
   useGameConfig,
   useSessionStore,
 } from "~/stores/useSessionStore";
-import { players, sessions } from "~/db/schema";
+import { playerDevices, players, sessions } from "~/db/schema";
 import { useEffect, useState } from "react";
 import {
   Field,
@@ -161,6 +161,33 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   if (intent === "finish-session") {
+    const fingerprint = form.get("fingerprint") as string;
+    if (!fingerprint) {
+      return { error: "not found device" };
+    }
+    const [playerDevice] = await db
+      .select({ participantId: playerDevices.participantId })
+      .from(playerDevices)
+      .where(
+        and(
+          eq(playerDevices.sessionId, session.id),
+          eq(playerDevices.fingerprint, fingerprint),
+        ),
+      );
+    if (!playerDevice) {
+      return { error: "not found device in session" };
+    }
+    const [participant] = await db
+      .select({ role: participants.role })
+      .from(participants)
+      .where(eq(participants.id, playerDevice.participantId));
+
+    if (!participant) {
+      return { error: "not found participant" };
+    }
+    if (participant.role !== "owner") {
+      return { error: "not owner" };
+    }
     await db
       .update(sessions)
       .set({ status: "finished", updatedAt: new Date() })
@@ -289,7 +316,12 @@ export default function SettingsPage() {
   };
 
   const handleFinishSession = () => {
-    fetcher.submit({ intent: "finish-session" }, { method: "POST" });
+    const fingerprint = localStorage.getItem("device_fingerprint");
+    console.log("fingerprint", fingerprint);
+    fetcher.submit(
+      { intent: "finish-session", fingerprint },
+      { method: "POST" },
+    );
   };
 
   const toggleBackground = (value: boolean) => {
@@ -637,8 +669,7 @@ export default function SettingsPage() {
           <FieldContent>
             <FieldTitle>Cho phép hiển thị hình nền</FieldTitle>
             <FieldDescription>
-              Hình nền sẽ được hiển thị và tự động thay đổi sau một thời gian
-              trên màn hình của người chơi.
+              Hình nền hiển thị và tự động thay đổi sau một thời gian.
             </FieldDescription>
           </FieldContent>
           <Switch

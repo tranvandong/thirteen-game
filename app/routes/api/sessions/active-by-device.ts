@@ -23,7 +23,10 @@ export async function loader({ request }: { request: Request }) {
   }
 
   // Tìm bản ghi player_devices theo fingerprint, join với sessions
-  // để lọc chỉ lấy session có status = 'active'
+  // để lọc chỉ lấy session có status = 'active'.
+  // Đồng thời chỉ xét player_devices.status = 'active' — nếu thiết bị đã
+  // "leave" khỏi session đó thì không được tự động kéo về nữa, dù session
+  // vẫn còn đang diễn ra.
   const result = await db
     .select({
       sessionCode: sessions.code,
@@ -36,8 +39,14 @@ export async function loader({ request }: { request: Request }) {
         eq(sessions.status, "active"),
       ),
     )
-    .where(eq(playerDevices.fingerprint, fingerprint))
-    // Lấy session active gần nhất nếu có nhiều hơn 1 (trường hợp hiếm)
+    .where(
+      and(
+        eq(playerDevices.fingerprint, fingerprint),
+        eq(playerDevices.status, "active"),
+      ),
+    )
+    // Nhờ partial unique index (fingerprint, status='active') nên tối đa
+    // chỉ có 1 bản ghi thỏa điều kiện — limit(1) chỉ để an toàn.
     .limit(1);
 
   if (!result.length) {
