@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionStore } from "~/stores/useSessionStore";
+
+const opacity = 0.132;
 
 export function Background() {
   const { config } = useSessionStore();
+
   const bgs = useMemo(
     () => [
       "bg1",
@@ -18,34 +21,44 @@ export function Background() {
       "bg11",
       "bg12",
       "bg13",
+      "bg14",
       "bg15",
+      "bg16",
     ],
     [],
   );
-  const [bg, setBg] = useState(bgs[0]);
-  let i = 0;
+
+  const [current, setCurrent] = useState(0);
+  const [visible, setVisible] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setBg(bgs[(i + 1) % bgs.length]);
-      i++;
+      setCurrent((prev) => (prev + 1) % bgs.length);
+      setVisible((prev) => (prev === 0 ? 1 : 0));
     }, 30000);
+
     return () => clearInterval(interval);
-  }, [bgs]);
+  }, [bgs.length]);
 
   return config?.showBackground ? (
-    <div
-      className="bg-fixed"
-      style={{
-        background: `url('/images/${bg}.jpg') center center / cover no-repeat`,
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: 1,
-        opacity: 0.14,
-      }}
-    />
+    <>
+      <div
+        className="fixed inset-0 transition-opacity duration-2000"
+        style={{
+          background: `url('/images/${bgs[visible === 0 ? current : (current + bgs.length - 1) % bgs.length]}.jpg') center/cover no-repeat`,
+          opacity: visible === 0 ? opacity : 0,
+          zIndex: 1,
+        }}
+      />
+
+      <div
+        className="fixed inset-0 transition-opacity duration-2000"
+        style={{
+          background: `url('/images/${bgs[visible === 1 ? current : (current + bgs.length - 1) % bgs.length]}.jpg') center/cover no-repeat`,
+          opacity: visible === 1 ? opacity : 0,
+          zIndex: 1,
+        }}
+      />
+    </>
   ) : null;
 }
