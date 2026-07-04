@@ -8,6 +8,7 @@ export function Background() {
 
   const bgs = useMemo(
     () => [
+      "bg",
       "bg1",
       "bg2",
       "bg3",
@@ -23,7 +24,6 @@ export function Background() {
       "bg13",
       "bg14",
       "bg15",
-      "bg16",
     ],
     [],
   );

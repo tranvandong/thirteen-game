@@ -173,7 +173,7 @@ function RoundTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <div className="max-h-[60vh] overflow-y-auto">
+      <div className="max-h-[calc(100vh-245px)] overflow-y-auto relative z-10">
         <table className="w-full table-fixed caption-bottom text-sm">
           <thead>
             <tr className="border-b border-border/70 bg-muted/70">
@@ -258,7 +258,7 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden h-full">
           {players.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
               <div className="flex size-14 items-center justify-center rounded-3xl bg-muted text-muted-foreground">
