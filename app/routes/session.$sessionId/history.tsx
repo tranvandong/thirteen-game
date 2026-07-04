@@ -173,7 +173,7 @@ function RoundTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <div className="max-h-[calc(100vh-245px)] overflow-y-auto relative z-10">
+      <div className="max-h-[calc(100vh-258px)] overflow-y-auto relative z-10">
         <table className="w-full table-fixed caption-bottom text-sm">
           <thead>
             <tr className="border-b border-border/70 bg-muted/70">
@@ -186,7 +186,7 @@ function RoundTable({
                   key={player.id}
                   className="sticky top-0 z-20 bg-muted/70 p-2 text-center backdrop-blur-sm"
                 >
-                  <span className="max-w-full truncate text-[10px] font-black text-foreground">
+                  <span className="max-w-full truncate font-black text-foreground">
                     {player.shortName}
                   </span>
                 </th>
@@ -240,7 +240,7 @@ export default function HistoryPage() {
   const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
 
   return (
-    <main className="flex h-[calc(100dvh-3.5rem-5rem)] min-h-0 box-border overflow-hidden p-3 sm:p-4">
+    <main className="flex h-[calc(100dvh-180px)] min-h-0 box-border overflow-hidden p-3 sm:p-4">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden">
         <div className="shrink-0 pb-3">
           <div className="flex items-center gap-2">

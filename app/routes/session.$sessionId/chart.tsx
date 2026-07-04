@@ -231,7 +231,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           <CardDescription>Điểm cộng dồn qua từng ván đấu</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={lineChartConfig}>
+          <ChartContainer config={lineChartConfig} className="relative z-10">
             <LineChart data={roundScores} margin={{ left: 4, right: 4 }}>
               <CartesianGrid vertical={false} />
               <XAxis
@@ -276,7 +276,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           <CardDescription>Số lần đạt hạng 1 và hạng 4</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={rankChartConfig}>
+          <ChartContainer config={rankChartConfig}  className="relative z-10">
             <BarChart data={rankData}>
               <CartesianGrid vertical={false} />
               <XAxis
@@ -318,7 +318,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={bonusChartConfig}>
+          <ChartContainer config={bonusChartConfig}  className="relative z-10">
             <BarChart data={bonusData}>
               <CartesianGrid vertical={false} />
               <XAxis
