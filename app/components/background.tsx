@@ -24,6 +24,11 @@ export function Background() {
       "bg13",
       "bg14",
       "bg15",
+      "bg16",
+      "bg17",
+      "bg18",
+      "bg19",
+      "bg20",
     ],
     [],
   );
