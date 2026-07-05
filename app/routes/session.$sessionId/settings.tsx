@@ -690,7 +690,7 @@ export default function SettingsPage() {
             <button
               onClick={() => setShowFinishConfirm(true)}
               disabled={isBusy}
-              className="w-full flex items-center justify-center gap-2 h-11 rounded-2xl border border-destructive/40 text-destructive text-sm font-semibold hover:bg-destructive/5 transition-colors disabled:opacity-50"
+              className="relative z-10 w-full flex items-center justify-center gap-2 h-11 rounded-2xl border border-destructive/40 text-destructive text-sm font-semibold hover:bg-destructive/5 transition-colors disabled:opacity-50"
             >
               <LogOut className="size-4" />
               Kết thúc phiên chơi
@@ -708,14 +708,14 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setShowFinishConfirm(false)}
                   disabled={isBusy}
-                  className="flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                  className="relative z-10 flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={handleFinishSession}
                   disabled={isBusy}
-                  className="flex-1 h-10 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="relative z-10 flex-1 h-10 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isFinishing ? (
                     <div className="size-4 rounded-full border-2 border-destructive-foreground/30 border-t-destructive-foreground animate-spin" />
