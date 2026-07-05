@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSessionStore } from "~/stores/useSessionStore";
 
-const opacity = 0.167;
+const opacity = 0.18;
 
 export function Background() {
   const { config } = useSessionStore();
