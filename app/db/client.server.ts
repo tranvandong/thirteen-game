@@ -3,7 +3,7 @@ import pg from "pg";
 import * as schema from "./schema/index";
 
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: "",
 });
 
 export const db = drizzle(pool, { schema });
