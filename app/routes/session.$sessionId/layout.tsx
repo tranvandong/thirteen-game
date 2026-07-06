@@ -10,7 +10,7 @@ import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import { gameConfigs } from "~/db/schema/game-configs";
 import { players as playersSchema } from "~/db/schema/players";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { redirect } from "react-router";
 import { ModeToggle } from "~/components/mode-toggle";
 import { ThemeProvider } from "~/components/theme-provider";
@@ -74,7 +74,7 @@ export async function loader({
   const [session] = await db
     .select()
     .from(sessions)
-    .where(eq(sessions.code, sessionId))
+    .where(and(eq(sessions.code, sessionId), eq(sessions.status, "active")))
     .limit(1);
 
   if (!session) throw redirect("/");
@@ -469,7 +469,11 @@ export default function SessionLayout() {
                   >
                     <IterationCw /> Hủy
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={handleLeaveRoom}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleLeaveRoom}
+                  >
                     Thoát <Power />
                   </Button>
                 </>
