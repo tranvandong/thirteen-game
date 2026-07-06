@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-
 import type { Route } from "./+types/home";
 import { Link, useNavigate } from "react-router";
 import {
@@ -10,10 +9,12 @@ import {
   X,
   ArrowRight,
   Play,
-  Moon,
-  Sun,
+  Trophy,
+  Zap,
+  ShieldCheck,
+  Smartphone,
+  CheckCircle2,
 } from "lucide-react";
-
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
@@ -58,7 +59,6 @@ function QRScannerModal({
           <span className="text-sm font-semibold text-white">Quét mã QR phòng</span>
           <span className="text-xs text-white/50">Đưa QR vào khung để vào nhanh</span>
         </div>
-
         <button
           onClick={onClose}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20"
@@ -118,6 +118,76 @@ function QRScannerModal({
   );
 
   return createPortal(modal, document.body);
+}
+
+// ── Step Guide Component ───────────────────────────────────
+function StepGuide() {
+  const steps = [
+    {
+      icon: <Plus className="size-5" />,
+      title: "Tạo phòng",
+      desc: "Thiết lập luật chơi và người tham gia",
+    },
+    {
+      icon: <Users className="size-5" />,
+      title: "Mời bạn bè",
+      desc: "Chia sẻ mã phòng hoặc quét QR",
+    },
+    {
+      icon: <Trophy className="size-5" />,
+      title: "Ghi điểm",
+      desc: "Cập nhật kết quả realtime cho tất cả",
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {steps.map((step, i) => (
+        <div key={i} className="flex items-start gap-3 sm:flex-col sm:text-center">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            {step.icon}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">{step.title}</p>
+            <p className="text-xs text-muted-foreground sm:text-center">{step.desc}</p>
+          </div>
+          {i < steps.length - 1 && (
+            <div className="ml-12 hidden h-px w-full bg-border sm:ml-0 sm:mt-2 sm:mb-0 sm:h-px sm:w-auto sm:flex-1" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Feature Card ────────────────────────────────────────────
+function FeatureCard({
+  icon,
+  title,
+  desc,
+  accent,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  accent: "primary" | "chart2" | "chart4";
+}) {
+  const colors = {
+    primary: "bg-primary/10 text-primary border-primary/20",
+    chart2: "bg-chart-2/10 text-chart-2 border-chart-2/20",
+    chart4: "bg-chart-4/10 text-chart-4 border-chart-4/20",
+  };
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/80 p-4 backdrop-blur-sm transition hover:bg-card/100 hover:shadow-md">
+      <div className={`flex size-10 items-center justify-center rounded-2xl border ${colors[accent]}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="font-semibold text-foreground">{title}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+      </div>
+    </div>
+  );
 }
 
 // ── Home Page ───────────────────────────────────────────────
@@ -201,120 +271,159 @@ export default function Home() {
       {/* Header with dark‑mode toggle */}
       <header className="sticky top-0 z-20 flex items-center justify-between px-4 py-3 bg-background/90 backdrop-blur-md border-b border-border/30">
         <Link to="/" className="flex items-center gap-2">
-          <Play className="size-6 text-primary" />
-          <span className="text-lg font-bold text-foreground">Thirteen Game</span>
+          <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-lg shadow-primary/20">
+            <Play className="size-4" />
+          </div>
+          <span className="text-base font-bold text-foreground">Thirteen Game</span>
         </Link>
         <ModeToggle />
       </header>
 
-      {/* Hero section */}
-      <section className="mx-auto max-w-4xl py-12 text-center">
-        <h1 className="text-4xl font-black tracking-tight text-foreground sm:text-5xl">
-          Ghi điểm Tiến Lên
-          <br />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-chart-4">
-            theo thời gian thực
-          </span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-lg text-sm text-muted-foreground">
-          Tạo phòng, mời bạn bè và theo dõi bảng điểm ngay trên điện thoại.
-        </p>
-      </section>
+      <main className="mx-auto max-w-2xl px-4 pb-12 sm:px-6">
+        {/* ── Hero ─────────────────────────────────────── */}
+        <section className="relative py-10 text-center sm:py-14">
+          {/* Logo bubble */}
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] border border-border/40 bg-card p-1.5 shadow-2xl shadow-primary/15 ring-1 ring-border">
+            <div className="flex h-full w-full items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-primary to-chart-4">
+              <Trophy className="size-9 text-white" />
+            </div>
+          </div>
 
-      {/* Action cards */}
-      <section className="mx-auto max-w-4xl gap-6 px-4 md:grid md:grid-cols-2">
-        {/* Create Session */}
-        <Card className="group border-border/70 bg-card/90 shadow-lg transition hover:shadow-xl">
-          <CardHeader className="space-y-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+            Ghi điểm Tiến Lên
+            <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-chart-4">
+              theo thời gian thực
+            </span>
+          </h1>
+
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Tạo phòng, mời bạn bè và theo dõi bảng điểm ngay trên điện thoại.
+          </p>
+        </section>
+
+        {/* ── Step Guide ──────────────────────────────── */}
+        <section className="mb-8 rounded-3xl border border-border/70 bg-card/70 p-5 shadow-sm backdrop-blur-sm">
+          <StepGuide />
+        </section>
+
+        {/* ── Action Cards ────────────────────────────── */}
+        <section className="grid gap-4 sm:grid-cols-2">
+          {/* Create Session */}
+          <div className="group relative overflow-hidden rounded-3xl border border-border/70 bg-card/90 p-5 shadow-md transition hover:shadow-lg hover:-translate-y-0.5">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-chart-4 to-chart-2 opacity-80 transition-all group-hover:h-1.5" />
+            <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Plus className="size-6" />
             </div>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Plus className="size-5" />
-              Tạo phòng mới
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link to="/session/create" className="flex items-center justify-center gap-2">
-                <Play className="size-4" />
-                Bắt đầu
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <h3 className="mb-1 text-lg font-bold text-foreground">Tạo phòng mới</h3>
+            <p className="mb-4 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Thiết lập luật chơi, thêm người chơi và bắt đầu ván đầu tiên
+            </p>
+            <Link
+              to="/session/create"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            >
+              <Play className="size-4" />
+              Bắt đầu ngay
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
 
-        {/* Join Session */}
-        <Card className="group border-border/70 bg-card/90 shadow-lg transition hover:shadow-xl">
-          <CardHeader className="space-y-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
+          {/* Join Session */}
+          <div className="group relative overflow-hidden rounded-3xl border border-border/70 bg-card/90 p-5 shadow-md transition hover:shadow-lg hover:-translate-y-0.5">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-chart-2 via-chart-1 to-chart-3 opacity-80 transition-all group-hover:h-1.5" />
+            <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
               <Users className="size-6" />
             </div>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Users className="size-5" />
-              Tham gia nhanh
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-2">
-              <Input
-                value={roomCode}
-                onChange={(e) => {
-                  setRoomCode(e.target.value.toUpperCase());
-                  setCodeError("");
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-                placeholder="XXXX-XXXX"
-                className={`h-11 rounded-2xl bg-background text-center font-mono text-base font-black tracking-[0.24em] placeholder:tracking-normal ${
-                  codeError ? "border-destructive focus-visible:ring-destructive/20" : ""
-                }`}
-                maxLength={9}
-              />
+            <h3 className="mb-1 text-lg font-bold text-foreground">Tham gia phòng</h3>
+            <p className="mb-4 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Nhập mã phòng hoặc quét mã QR để vào bàn chơi
+            </p>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={roomCode}
+                  onChange={(e) => {
+                    setRoomCode(e.target.value.toUpperCase());
+                    setCodeError("");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+                  placeholder="XXXX-XXXX"
+                  className={`h-11 flex-1 rounded-2xl bg-background/80 text-center font-mono text-base font-black tracking-[0.2em] placeholder:tracking-normal placeholder:font-normal placeholder:text-muted-foreground/50 ${
+                    codeError ? "border-destructive focus-visible:ring-destructive/20" : ""
+                  }`}
+                  maxLength={9}
+                />
+                <button
+                  onClick={() => setShowScanner(true)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2 transition hover:bg-chart-2/20 active:scale-95"
+                  title="Quét mã QR"
+                >
+                  <ScanLine className="size-5" />
+                </button>
+              </div>
+              {codeError && (
+                <p className="text-left text-xs text-destructive pl-1">{codeError}</p>
+              )}
               <button
-                onClick={() => setShowScanner(true)}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2 hover:bg-chart-2/20 active:scale-95"
-                title="Quét QR"
+                onClick={handleJoin}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3 text-sm font-bold text-background transition hover:bg-foreground/90 active:scale-[0.98]"
               >
-                <ScanLine className="size-5" />
+                <Users className="size-4" />
+                Vào phòng
               </button>
             </div>
-            {codeError && <p className="text-xs text-destructive">{codeError}</p>}
-            <Button onClick={handleJoin} className="w-full">
-              <Users className="size-4 mr-1" />
-              Vào phòng
-            </Button>
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </section>
 
-      {/* Feature grid */}
-      <section className="mx-auto mt-12 max-w-4xl px-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <FeatureItem icon={<Users className="size-5 text-primary" />} text="Realtime" />
-          <FeatureItem icon={<ScanLine className="size-5 text-chart-2" />} text="Quét QR" />
-          <FeatureItem icon={<Plus className="size-5 text-chart-4" />} text="Dễ dùng" />
-        </div>
-      </section>
+        {/* ── Features ─────────────────────────────────── */}
+        <section className="mt-8 grid gap-3 sm:grid-cols-3">
+          <FeatureCard
+            accent="primary"
+            icon={<Zap className="size-5" />}
+            title="Realtime"
+            desc="Cập nhật điểm tức thì cho tất cả người chơi"
+          />
+          <FeatureCard
+            accent="chart2"
+            icon={<ScanLine className="size-5" />}
+            title="Quét QR"
+            desc="Vào phòng nhanh chóng bằng camera"
+          />
+          <FeatureCard
+            accent="chart4"
+            icon={<Smartphone className="size-5" />}
+            title="Di động"
+            desc="Sử dụng mượt mà trên mọi thiết bị"
+          />
+        </section>
 
-      {/* PWA install */}
-      <section className="mx-auto mt-8 max-w-4xl px-4">
-        <InstallPWA />
-      </section>
+        {/* ── Trust Badges ────────────────────────────── */}
+        <section className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="size-3.5 text-chart-2" />
+            Bảo mật cao
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground">
+            <CheckCircle2 className="size-3.5 text-primary" />
+            Không cần tài khoản
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground">
+            <Zap className="size-3.5 text-chart-4" />
+            Miễn phí sử dụng
+          </div>
+        </section>
+
+        {/* ── PWA Install ─────────────────────────────── */}
+        <section className="mx-auto mt-8 max-w-xs">
+          <InstallPWA />
+        </section>
+      </main>
 
       {/* QR Modal */}
       {showScanner && (
         <QRScannerModal onClose={() => setShowScanner(false)} onDetected={handleQRDetected} />
       )}
-    </div>
-  );
-}
-
-// ── Small reusable feature item ───────────────────────
-function FeatureItem({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-card/60 p-4 text-center backdrop-blur-sm">
-      {icon}
-      <span className="text-xs font-medium">{text}</span>
     </div>
   );
 }
