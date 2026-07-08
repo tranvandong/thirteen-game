@@ -21,6 +21,7 @@ import {
   Spade,
   LayoutGrid,
   List,
+  TableCellsSplit,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { redirect } from "react-router";
@@ -48,6 +49,7 @@ import {
 import { finishRound } from "~/lib/socket.client";
 import { players, sessionTotals } from "~/db/schema";
 import { CircularTable } from "~/components/circular-table";
+import { CircularTable2 } from "~/components/circular-table2";
 
 interface RoundMeta {
   currentRoundNo: number;
@@ -153,7 +155,9 @@ type HeoType = "do" | "den";
 interface ChatHeo {
   id: string;
   chatterId: string;
+  chatterName: string;
   victimId: string;
+  victimName: string;
   heo: { do: number; den: number };
 }
 interface VictimHeo {
@@ -277,7 +281,9 @@ export default function MatchPage() {
   const [showChatHeo, setShowChatHeo] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
-  const [rankViewMode, setRankViewMode] = useState<"list" | "table">("list");
+  const [rankViewMode, setRankViewMode] = useState<"list" | "table" | "table2">(
+    "list",
+  );
 
   const playerIdsKey = useMemo(
     () => players.map((p) => p.id).join(","),
@@ -594,7 +600,10 @@ export default function MatchPage() {
       {
         id: `ch-${Date.now()}`,
         chatterId: chatForm.chatterId,
+        chatterName:
+          players.find((p) => p.id === chatForm.chatterId)?.name ?? "",
         victimId: chatForm.victimId,
+        victimName: players.find((p) => p.id === chatForm.victimId)?.name ?? "",
         heo: { ...chatForm.heo },
       },
     ]);
@@ -610,7 +619,7 @@ export default function MatchPage() {
   const removeChatHeo = (id: string) =>
     setChatHeoList((p) => p.filter((c) => c.id !== id));
 
-  const setViewMode = (mode: "list" | "table") => {
+  const setViewMode = (mode: "list" | "table" | "table2") => {
     setRankViewMode(() => {
       localStorage.setItem("rankViewMode", mode);
       return mode;
@@ -1887,6 +1896,18 @@ export default function MatchPage() {
                 >
                   <LayoutGrid className="size-4" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table2")}
+                  className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                    rankViewMode === "table2"
+                      ? "bg-background text-primary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-label="Bàn tròn"
+                >
+                  <TableCellsSplit className="size-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -1894,6 +1915,39 @@ export default function MatchPage() {
         <CardContent className="flex flex-col gap-2 pt-0">
           {rankViewMode === "table" ? (
             <CircularTable
+              players={players}
+              ranking={ranking}
+              selectOrder={selectOrder}
+              toggleSelect={toggleSelect}
+              selectableIds={selectableIds}
+              selectCounter={selectCounter}
+              requiredSelections={requiredSelections}
+              computedScores={computedScores}
+              activeNhot={activeNhot}
+              nhotCount={nhotCount}
+              nhotterId={nhotterId}
+              nhotVictimIds={nhotVictimIds}
+              denForIds={denForIds}
+              khapWinner={khapWinner}
+              khapCount={khapCount}
+              sanhWinner={sanhWinner}
+              toggleKhapPlayer={toggleKhapPlayer}
+              updateKhapCount={updateKhapCount}
+              toggleSanhPlayer={toggleSanhPlayer}
+              chatHeoList={chatHeoList}
+              accumulated={accumulated}
+              gameConfig={gameConfig}
+              getRowMeta={getRowMeta}
+              save={handleSave}
+              disabledSaveButton={
+                isSaving ||
+                (submitted && fetcher.data?.success) ||
+                !rankingComplete ||
+                !currentParticipant
+              }
+            />
+          ) : rankViewMode === "table2" ? (
+            <CircularTable2
               players={players}
               ranking={ranking}
               selectOrder={selectOrder}

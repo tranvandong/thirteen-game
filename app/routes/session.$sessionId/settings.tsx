@@ -8,6 +8,7 @@ import { and, eq } from "drizzle-orm";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Switch } from "~/components/ui/switch";
+import Image from "@rc-component/image";
 import {
   Users,
   UserPlus,
@@ -18,6 +19,18 @@ import {
   Pencil,
   Shield,
   LogOut,
+  ArrowLeft,
+  ArrowRight,
+  ZoomInIcon,
+  ZoomOutIcon,
+  X,
+  RotateCw,
+  ZoomIn,
+  ZoomOut,
+  ChevronLeft,
+  ChevronRight,
+  FlipHorizontal2,
+  FlipVertical2,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
 import {
@@ -36,6 +49,22 @@ import {
   FieldLabel,
   FieldTitle,
 } from "~/components/ui/field";
+
+import "@rc-component/image/assets/index.css";
+import type { PreviewProps } from "@rc-component/image/lib/Preview";
+import { IMAGE_NAMES } from "~/components/background";
+
+export const defaultIcons: PreviewProps["icons"] = {
+  rotateLeft: <RotateCcw />,
+  rotateRight: <RotateCw />,
+  zoomIn: <ZoomIn />,
+  zoomOut: <ZoomOut />,
+  close: <X />,
+  left: <ChevronLeft />,
+  right: <ChevronRight />,
+  flipX: <FlipHorizontal2 />,
+  flipY: <FlipVertical2 />,
+};
 
 // ---------------------------------------------------------------------------
 // Loader — chỉ fetch những gì store không có
@@ -219,6 +248,7 @@ export default function SettingsPage() {
   const { updateConfig } = useSessionStore();
   const players = usePlayers();
   const currentParticipant = useCurrentParticipant();
+  const [visible, setVisible] = useState(false);
 
   const fetcher = useFetcher();
 
@@ -671,6 +701,12 @@ export default function SettingsPage() {
             <FieldDescription>
               Hình nền hiển thị và tự động thay đổi sau một thời gian.
             </FieldDescription>
+            <Button
+              variant="secondary"
+              onClick={() => setVisible(true)}
+            >
+              Xem trước
+            </Button>
           </FieldContent>
           <Switch
             id="switch-enable-background"
@@ -729,6 +765,26 @@ export default function SettingsPage() {
           )}
         </div>
       )}
+      <div style={{ display: "none" }}>
+        <Image.PreviewGroup
+          preview={{
+            countRender: (cur, total) => `${cur} / ${total}`,
+            open: visible,
+            onOpenChange: setVisible,
+            movable: true,
+            icons: defaultIcons,
+            maskClosable: false,
+          }}
+        >
+          {IMAGE_NAMES.map((name, i) => (
+            <Image
+              key={name}
+              src={`/images/${name}.jpg`}
+              style={{ width: "100%" }}
+            />
+          ))}
+        </Image.PreviewGroup>
+      </div>
     </main>
   );
 }
