@@ -8,7 +8,6 @@ import { and, eq } from "drizzle-orm";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Switch } from "~/components/ui/switch";
-import Image from "@rc-component/image";
 import {
   Users,
   UserPlus,
@@ -19,10 +18,6 @@ import {
   Pencil,
   Shield,
   LogOut,
-  ArrowLeft,
-  ArrowRight,
-  ZoomInIcon,
-  ZoomOutIcon,
   X,
   RotateCw,
   ZoomIn,
@@ -50,9 +45,11 @@ import {
   FieldTitle,
 } from "~/components/ui/field";
 
-import "@rc-component/image/assets/index.css";
 import type { PreviewProps } from "@rc-component/image/lib/Preview";
 import { IMAGE_NAMES } from "~/components/background";
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
 
 export const defaultIcons: PreviewProps["icons"] = {
   rotateLeft: <RotateCcw />,
@@ -766,26 +763,29 @@ export default function SettingsPage() {
           )}
         </div>
       )}
-      <div style={{ display: "none" }}>
-        <Image.PreviewGroup
-          preview={{
-            countRender: (cur, total) => `${cur} / ${total}`,
-            open: visible,
-            onOpenChange: setVisible,
-            movable: true,
-            icons: defaultIcons,
-            maskClosable: false,
-          }}
-        >
-          {IMAGE_NAMES.map((name, i) => (
-            <Image
-              key={name}
-              src={`/images/${name}.jpg`}
-              style={{ width: "100%" }}
-            />
-          ))}
-        </Image.PreviewGroup>
-      </div>
+
+      <Lightbox
+        open={visible}
+        close={() => setVisible(false)}
+        slides={IMAGE_NAMES.map((name) => ({
+          src: `/images/${name}.jpg`,
+          width: 1000,
+          height: 1000,
+        }))}
+        plugins={[Zoom]}
+        animation={{ zoom: 500 }}
+        zoom={{
+          maxZoomPixelRatio: 1,
+          zoomInMultiplier: 2,
+          doubleTapDelay: 300,
+          doubleClickDelay: 300,
+          doubleClickMaxStops: 2,
+          keyboardMoveDistance: 50,
+          wheelZoomDistanceFactor: 100,
+          pinchZoomDistanceFactor: 100,
+          scrollToZoom: true,
+        }}
+      />
     </main>
   );
 }
