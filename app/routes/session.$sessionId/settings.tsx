@@ -18,14 +18,6 @@ import {
   Pencil,
   Shield,
   LogOut,
-  X,
-  RotateCw,
-  ZoomIn,
-  ZoomOut,
-  ChevronLeft,
-  ChevronRight,
-  FlipHorizontal2,
-  FlipVertical2,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
 import {
@@ -44,24 +36,10 @@ import {
   FieldLabel,
   FieldTitle,
 } from "~/components/ui/field";
-
-import type { PreviewProps } from "@rc-component/image/lib/Preview";
 import { IMAGE_NAMES } from "~/components/background";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
-
-export const defaultIcons: PreviewProps["icons"] = {
-  rotateLeft: <RotateCcw />,
-  rotateRight: <RotateCw />,
-  zoomIn: <ZoomIn />,
-  zoomOut: <ZoomOut />,
-  close: <X />,
-  left: <ChevronLeft />,
-  right: <ChevronRight />,
-  flipX: <FlipHorizontal2 />,
-  flipY: <FlipVertical2 />,
-};
 
 // ---------------------------------------------------------------------------
 // Loader — chỉ fetch những gì store không có
