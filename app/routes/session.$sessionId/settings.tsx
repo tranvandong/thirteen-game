@@ -747,8 +747,7 @@ export default function SettingsPage() {
         close={() => setVisible(false)}
         slides={IMAGE_NAMES.map((name) => ({
           src: `/images/${name}.jpg`,
-          width: 1000,
-          height: 1000,
+          imageFit: "cover",
         }))}
         plugins={[Zoom]}
         animation={{ zoom: 500 }}
