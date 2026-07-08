@@ -700,13 +700,14 @@ export default function SettingsPage() {
             <FieldTitle>Cho phép hiển thị hình nền</FieldTitle>
             <FieldDescription>
               Hình nền hiển thị và tự động thay đổi sau một thời gian.
+              <Button
+                variant="ghost"
+                onClick={() => setVisible(true)}
+                className="relative z-10"
+              >
+                Xem trước
+              </Button>
             </FieldDescription>
-            <Button
-              variant="secondary"
-              onClick={() => setVisible(true)}
-            >
-              Xem trước
-            </Button>
           </FieldContent>
           <Switch
             id="switch-enable-background"
