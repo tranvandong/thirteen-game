@@ -749,11 +749,12 @@ export default function SettingsPage() {
           src: `/images/${name}.jpg`,
           imageFit: "cover",
         }))}
+        styles={{ slide: { padding: 0 } }}
         plugins={[Zoom]}
         animation={{ zoom: 500 }}
         zoom={{
-          maxZoomPixelRatio: 1,
-          zoomInMultiplier: 2,
+          maxZoomPixelRatio: 2,
+          zoomInMultiplier: 4,
           doubleTapDelay: 300,
           doubleClickDelay: 300,
           doubleClickMaxStops: 2,
@@ -761,6 +762,10 @@ export default function SettingsPage() {
           wheelZoomDistanceFactor: 100,
           pinchZoomDistanceFactor: 100,
           scrollToZoom: true,
+
+        }}
+        toolbar={{
+          buttons: ["close"],
         }}
       />
     </main>
