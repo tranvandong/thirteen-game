@@ -197,7 +197,6 @@ function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
       >
         {rank + 1}
       </div>
-
       <div className="min-w-0 flex-1">
         <p className="truncate font-black text-foreground text-base">
           {player.playerName}
@@ -211,6 +210,7 @@ function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
           </span>
         </div>
       )}
+      <span className="text-gray-500">{score * 3}</span>
       <ScorePill score={score} />
     </div>
   );

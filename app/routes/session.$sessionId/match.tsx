@@ -50,6 +50,7 @@ import { finishRound } from "~/lib/socket.client";
 import { players, sessionTotals } from "~/db/schema";
 import { CircularTable } from "~/components/circular-table";
 import { CircularTable2 } from "~/components/circular-table2";
+import { CircularTable3 } from "~/components/circular-table3";
 
 interface RoundMeta {
   currentRoundNo: number;
@@ -1914,7 +1915,7 @@ export default function MatchPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-2 pt-0">
           {rankViewMode === "table" ? (
-            <CircularTable
+            <CircularTable3
               players={players}
               ranking={ranking}
               selectOrder={selectOrder}
@@ -2309,36 +2310,38 @@ export default function MatchPage() {
       </Card>
 
       {/* Kết quả tạm tính */}
-      <Card className="overflow-hidden border-border/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
-              <CheckCircle2 className="size-4" />
+      {rankViewMode === "list" && (
+        <Card className="overflow-hidden border-border/70 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
+                <CheckCircle2 className="size-4" />
+              </div>
+              Kết quả tạm tính
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-2">
+              {players.map((player) => {
+                const sc = computedScores[player.id];
+                return (
+                  <div
+                    key={player.id}
+                    className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
+                  >
+                    <span className="text-xs font-black uppercase tracking-wide opacity-70">
+                      {pShort(player.id)}
+                    </span>
+                    <span className="text-xl font-black tabular-nums">
+                      {scoreFmt(sc)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            Kết quả tạm tính
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-2">
-            {players.map((player) => {
-              const sc = computedScores[player.id];
-              return (
-                <div
-                  key={player.id}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
-                >
-                  <span className="text-xs font-black uppercase tracking-wide opacity-70">
-                    {pShort(player.id)}
-                  </span>
-                  <span className="text-xl font-black tabular-nums">
-                    {scoreFmt(sc)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {fetcher.data?.error && (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-3 text-center text-sm font-semibold text-destructive">
@@ -2347,6 +2350,7 @@ export default function MatchPage() {
       )}
 
       {/* Submit */}
+       {rankViewMode === "list" && (
       <Button
         size="lg"
         className="sticky bottom-24 z-20 h-14 w-full gap-2 rounded-2xl text-sm font-black shadow-xl shadow-primary/20"
@@ -2382,6 +2386,7 @@ export default function MatchPage() {
           </>
         )}
       </Button>
+       )} 
     </main>
   );
 }
