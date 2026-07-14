@@ -37,7 +37,7 @@ export function Background() {
     const interval = setInterval(() => {
       setCurrent((prev) => (prev + 1) % IMAGE_NAMES.length);
       setVisible((prev) => (prev === 0 ? 1 : 0));
-    }, 30000);
+    }, 20000);
 
     return () => clearInterval(interval);
   }, [IMAGE_NAMES.length]);

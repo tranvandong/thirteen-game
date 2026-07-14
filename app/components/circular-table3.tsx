@@ -301,7 +301,7 @@ export function CircularTable3({
                       }`}
                     >
                       <Flame className="size-3 shrink-0" />
-                      Khap
+                      Khạp
                       {isKhapWinner && khapPtsDisplay > 0 && (
                         <>
                           <span className="opacity-30">|</span>
@@ -363,8 +363,8 @@ export function CircularTable3({
                             : "border-border/70 bg-background/90 text-muted-foreground"
                       }`}
                     >
-                      <Spade className="size-2.5 shrink-0" />
-                      Sanh
+                      <Spade className="size-3 shrink-0" />
+                      Sảnh
                       {isSanhWinner && sanhPtsDisplay > 0 && (
                         <>
                           <span className="opacity-30">|</span>
@@ -412,7 +412,7 @@ export function CircularTable3({
                   )}
 
                   <span
-                    className={`truncate font-bold leading-tight text-card-foreground ${isSelected ? "text-base" : "mt-8 text-xl"}`}
+                    className={`truncate font-bold leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
                   >
                     {player.name}
                   </span>
