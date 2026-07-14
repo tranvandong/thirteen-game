@@ -170,6 +170,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 export default function ChartPage({ loaderData }: Route.ComponentProps) {
   const { players, roundCount, roundScores, rankData, bonusData, totalScores } =
     loaderData;
+    
 
   // Tạo chart config động từ danh sách players
   const CHART_COLORS = [
@@ -276,8 +277,16 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           <CardDescription>Số lần đạt hạng 1 và hạng 4</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={rankChartConfig}  className="relative z-10">
-            <BarChart data={rankData}>
+          <ChartContainer config={rankChartConfig} className="relative z-10">
+            <BarChart
+              data={rankData}
+              margin={{
+                top: 30,
+                right: 0,
+                left: 0,
+                bottom: 5,
+              }}
+            >
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="name"
@@ -290,8 +299,22 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 content={<ChartTooltipContent indicator="dashed" />}
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="nhat" fill="var(--color-nhat)" radius={4} />
-              <Bar dataKey="tu" fill="var(--color-tu)" radius={4} />
+              <Bar dataKey="nhat" fill="var(--color-nhat)" radius={4}>
+                <LabelList
+                  dataKey="nhat"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+              <Bar dataKey="tu" fill="var(--color-tu)" radius={4}>
+                <LabelList
+                  dataKey="tu"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
             </BarChart>
           </ChartContainer>
         </CardContent>
@@ -318,8 +341,16 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={bonusChartConfig}  className="relative z-10">
-            <BarChart data={bonusData}>
+          <ChartContainer config={bonusChartConfig} className="relative z-10">
+            <BarChart
+              data={bonusData}
+              margin={{
+                top: 30,
+                right: 0,
+                left: 0,
+                bottom: 5,
+              }}
+            >
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="name"
@@ -332,8 +363,27 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 content={<ChartTooltipContent indicator="dashed" />}
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="sanh" fill="var(--color-sanh)" radius={4} />
-              <Bar dataKey="khap" fill="var(--color-khap)" radius={4} />
+              <Bar dataKey="sanh" fill="var(--color-sanh)" radius={4}>
+                <LabelList
+                  dataKey="sanh"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+              <Bar
+                dataKey="khap"
+                fill="var(--color-khap)"
+                radius={4}
+                className="mt-8"
+              >
+                <LabelList
+                  dataKey="khap"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
             </BarChart>
           </ChartContainer>
         </CardContent>
