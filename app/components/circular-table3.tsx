@@ -159,7 +159,7 @@ export function CircularTable3({
   disabledSaveButton: boolean;
 }) {
   return (
-    <div className="relative mx-auto w-full py-6">
+    <div className="relative z-10 mx-auto w-full py-6">
       <div className="relative mx-auto aspect-square w-[320px]">
         {/* Center hub */}
 
@@ -172,10 +172,17 @@ export function CircularTable3({
           }}
           disabled={disabledSaveButton}
         >
-          <span className="text-[18px] font-bold uppercase tracking-wide">
-            OK
+          <span className="text-[16px] font-bold uppercase tracking-wide">
+            chốt
           </span>
         </Button>
+
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
+          <div className="w-full h-px bg-gray-400/20 transform rotate-45"></div>
+        </div>
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+          <div className="w-full h-px bg-gray-400/20 transform rotate-135"></div>
+        </div>
 
         {players.map((player, idx) => {
           const playerId = player.id;
@@ -382,13 +389,13 @@ export function CircularTable3({
                     </span>
                   ) : (
                     isSelected && (
-                      <span className="flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[14px] font-black text-card-foreground">
+                      <span className="flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[14px] font-black bg-primary text-primary-foreground">
                         {order}
                       </span>
                     )
                   )}
 
-                  <span className="truncate font-bold leading-tight text-card-foreground">
+                  <span className={`truncate font-bold leading-tight text-card-foreground ${isSelected ? "text-base" : "mt-8 text-xl"}`}>
                     {player.name}
                   </span>
 
