@@ -18,6 +18,8 @@ import {
   Pencil,
   Shield,
   LogOut,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
 import {
@@ -26,6 +28,7 @@ import {
   useCurrentParticipant,
   useGameConfig,
   useSessionStore,
+  type Player,
 } from "~/stores/useSessionStore";
 import { playerDevices, players, sessions } from "~/db/schema";
 import { useEffect, useState } from "react";
@@ -40,6 +43,7 @@ import { IMAGE_NAMES } from "~/components/background";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import { Move } from "~/components/settings/move";
 
 // ---------------------------------------------------------------------------
 // Loader — chỉ fetch những gì store không có
@@ -150,13 +154,17 @@ export async function action({ request, params }: Route.ActionArgs) {
       id: string;
       name: string;
       initialScore: number;
+      orderNo: number;
     }>;
-
     await Promise.all(
       updates.map((u) =>
         db
           .update(players)
-          .set({ name: u.name, initialScore: u.initialScore })
+          .set({
+            name: u.name,
+            initialScore: u.initialScore,
+            orderNo: u.orderNo,
+          })
           .where(eq(players.id, u.id)),
       ),
     );
@@ -206,6 +214,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
+const postion = ["Trên", "Phải", "Dưới", "Trái"];
 export default function SettingsPage() {
   const { participantsWithPlayer, pendingRequests, playerList } =
     useLoaderData<typeof loader>();
@@ -220,7 +229,7 @@ export default function SettingsPage() {
 
   const session = useSession();
   const gameConfig = useGameConfig();
-  const { updateConfig } = useSessionStore();
+  const { updateConfig, sortPlayers } = useSessionStore();
   const players = usePlayers();
   const currentParticipant = useCurrentParticipant();
   const [visible, setVisible] = useState(false);
@@ -313,6 +322,7 @@ export default function SettingsPage() {
       id: p.id,
       name: editDrafts[p.id]?.name ?? p.name,
       initialScore: parseInt(editDrafts[p.id]?.initialScore ?? "0", 10) || 0,
+      orderNo: p.orderNo,
     }));
     fetcher.submit(
       { intent: "update-players", updates: JSON.stringify(updates) },
@@ -333,7 +343,10 @@ export default function SettingsPage() {
     localStorage.setItem("showBackground", value.toString());
     updateConfig({ showBackground: value });
   };
-
+  const movePlayers = (players: Player[]) => {
+    console.log("movePlayers", players);
+    sortPlayers(players);
+  };
   return (
     <main className="p-4 flex flex-col gap-4">
       {/* Header */}
@@ -363,17 +376,15 @@ export default function SettingsPage() {
               (isEditing ? (
                 <div className="flex gap-2">
                   <Button
-                    size="sm"
                     variant="ghost"
-                    className="h-7 text-xs px-3 relative z-10"
+                    className="text-xs px-3 relative z-10"
                     onClick={cancelEdit}
                     disabled={isBusy}
                   >
                     Hủy
                   </Button>
                   <Button
-                    size="sm"
-                    className="h-7 text-xs px-3 relative z-10"
+                    className="text-xs px-3 relative z-10"
                     onClick={saveEdit}
                     disabled={isBusy}
                   >
@@ -382,9 +393,8 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <Button
-                  size="sm"
                   variant="outline"
-                  className="h-7 text-xs px-3 gap-1 relative z-10"
+                  className="text-xs px-3 gap-1 relative z-10"
                   onClick={startEdit}
                 >
                   <Pencil className="size-3" />
@@ -407,7 +417,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              {players.map((player) => {
+              {players.map((player, idx) => {
                 const draft = editDrafts[player.id] ?? {
                   name: player.name,
                   initialScore: String(player.initialScore ?? 0),
@@ -417,7 +427,9 @@ export default function SettingsPage() {
                     key={player.id}
                     className="flex items-center gap-2 p-3 rounded-lg bg-muted"
                   >
-                    <div className="flex flex-1 gap-2">
+                    <div className="flex flex-1 gap-2 items-center">
+                      <span className="text-[11px]">{postion[idx]}</span>
+                      <Move move={movePlayers} player={player} />
                       <input
                         type="text"
                         value={draft.name}
@@ -498,7 +510,9 @@ export default function SettingsPage() {
                       >
                         {player.name.charAt(0).toUpperCase()}
                       </div>
-                      <span>{player.name}</span>
+                      <span>
+                        {player.name} <strong className="text-xs">({postion[player.orderNo - 1]})</strong>
+                      </span>
                       {(player.initialScore ?? 0) !== 0 && (
                         <div className="relative inline-flex items-center justify-center">
                           <Shield className="size-8 text-muted-foreground" />
@@ -762,7 +776,6 @@ export default function SettingsPage() {
           wheelZoomDistanceFactor: 100,
           pinchZoomDistanceFactor: 100,
           scrollToZoom: true,
-
         }}
         toolbar={{
           buttons: ["close"],

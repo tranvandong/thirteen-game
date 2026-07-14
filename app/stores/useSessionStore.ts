@@ -27,7 +27,7 @@ export interface Player {
   id: string;
   name: string;
   orderNo: number;
-  initialScore: number
+  initialScore: number;
 }
 
 export interface SessionParticipant {
@@ -87,6 +87,9 @@ interface SessionState {
   /** Ván hiện tại đang hiển thị (để navigate realtime) */
   currentRoundNo: number;
 
+  /** Sắp xếp danh sách người chơi theo orderNo */
+  sortPlayers: (players: Player[]) => void;
+
   // ── Actions ────────────────────────────────────────────────
 
   hydrate: (payload: {
@@ -121,7 +124,7 @@ interface SessionState {
 
 export const useSessionStore = create<SessionState>()(
   devtools(
-    persist( 
+    persist(
       (set) => ({
         session: null,
         config: null,
@@ -181,6 +184,13 @@ export const useSessionStore = create<SessionState>()(
             },
             false,
             "session/upsertPlayer",
+          ),
+
+        sortPlayers: (players) =>
+          set(
+            { players: players.sort((a, b) => a.orderNo - b.orderNo) },
+            false,
+            "session/sortPlayers",
           ),
 
         addRound: (round) =>
