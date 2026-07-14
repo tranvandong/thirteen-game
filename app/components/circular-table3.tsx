@@ -1,4 +1,4 @@
-import { Crown, Flame, Scissors, Spade } from "lucide-react";
+import { Crown, Flame, Scissors, Spade, Swords } from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
 import { Button } from "./ui/button";
 
@@ -159,7 +159,7 @@ export function CircularTable3({
   disabledSaveButton: boolean;
 }) {
   return (
-    <div className="relative z-10 mx-auto w-full py-6">
+    <div className="relative z-10 mx-auto w-full pb-6">
       <div className="relative mx-auto aspect-square w-[320px]">
         {/* Center hub */}
 
@@ -176,12 +176,28 @@ export function CircularTable3({
             chốt
           </span>
         </Button>
-
+<div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
+          <Swords className="size-full text-gray-200/[0.012]" />
+          </div>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
-          <div className="w-full h-px bg-gray-400/20 transform rotate-45"></div>
+          <div
+            className="w-full h-px rotate-45"
+            style={{
+              border: 0,
+              backgroundImage:
+                " linear-gradient(to left, rgba(145, 145, 145, 0.2), rgba(0, 0, 0, 0))",
+            }}
+          ></div>
         </div>
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-          <div className="w-full h-px bg-gray-400/20 transform rotate-135"></div>
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+          <div
+            className="w-full h-px rotate-135"
+            style={{
+              border: 0,
+              backgroundImage:
+                " linear-gradient(to left,rgba(145, 145, 145, 0.2  ),  rgba(0, 0, 0, 0))",
+            }}
+          ></div>
         </div>
 
         {players.map((player, idx) => {
@@ -395,7 +411,9 @@ export function CircularTable3({
                     )
                   )}
 
-                  <span className={`truncate font-bold leading-tight text-card-foreground ${isSelected ? "text-base" : "mt-8 text-xl"}`}>
+                  <span
+                    className={`truncate font-bold leading-tight text-card-foreground ${isSelected ? "text-base" : "mt-8 text-xl"}`}
+                  >
                     {player.name}
                   </span>
 
