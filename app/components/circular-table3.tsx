@@ -132,6 +132,7 @@ export function CircularTable3({
   getRowMeta,
   save,
   disabledSaveButton,
+  isLoading,
 }: {
   players: Player[];
   ranking: string[];
@@ -158,6 +159,7 @@ export function CircularTable3({
   getRowMeta: (playerId: string, rankIndex: number) => RowMeta;
   save: () => void;
   disabledSaveButton: boolean;
+  isLoading: boolean;
 }) {
   const getBackgroundImage = (score: number, active: boolean) => {
     if (!active) return undefined;
@@ -198,14 +200,29 @@ export function CircularTable3({
           disabled={disabledSaveButton}
         >
           {!disabledSaveButton && (
-            <div className="absolute -inset-3 rounded-full animate-spin">
+            <div className="absolute inset-1 rounded-full animate-spin">
               <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
             </div>
           )}
-          
+
+          {isLoading && (
+            <div className="absolute inset-1 rounded-full animate-spin">
+              <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
+            </div>
+          )}
+
           <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
             <Swords className="size-14 text-white/50" />
           </div>
+          {(!disabledSaveButton || isLoading) && (
+            <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
+              <img
+                src="/icons/swords.gif"
+                alt="swords"
+                className="size-full text-primary/3 rounded-full"
+              />
+            </div>
+          )}
           <span className="text-[16px] font-bold uppercase tracking-wide">
             {/* chốt */}
           </span>
@@ -227,6 +244,7 @@ export function CircularTable3({
             }}
           ></div>
         </div>
+
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           <div
             className="w-full h-px rotate-135"

@@ -1156,48 +1156,46 @@ export default function MatchPage() {
                 !rankingComplete ||
                 !currentParticipant
               }
+              isLoading={isSaving || (submitted && Boolean(fetcher.data?.success))}
             />
           </div>
         </section>
-       
-    
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div className="flex gap-2 items-center">
-                  {/* <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex gap-2 items-center">
+              {/* <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Swords className="size-4" />
             </div> */}
 
-                  <p className="text-sm font-black text-foreground">
-                   
-                  </p>
-                </div>
-                <div className="flex gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1 font-black text-sm"
-                    onClick={() => setExpandBonus(true)}
-                  >
-                    <Plus className="size-4" />
-                    Nhốt bài
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1 font-black text-sm"
-                    onClick={() => {
-                      setShowChatHeo((v) => !v);
-                      setShowChatHeoForm(true);
-                    }}
-                  >
-                    <Plus className="size-4" />
-                    Chặt heo
-                  </Button>
-                </div>
-              </div>
+              <p className="text-sm font-black text-foreground"></p>
             </div>
-        
+            <div className="flex gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1 font-black text-sm"
+                onClick={() => setExpandBonus(true)}
+              >
+                <Plus className="size-4" />
+                Nhốt bài
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1 font-black text-sm"
+                onClick={() => {
+                  setShowChatHeo((v) => !v);
+                  setShowChatHeoForm(true);
+                }}
+              >
+                <Plus className="size-4" />
+                Chặt heo
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* ── Nhốt bài ─────────────────────────── */}
         {expandBonus && (
           <Card className="overflow-hidden border-border/70 shadow-sm">
