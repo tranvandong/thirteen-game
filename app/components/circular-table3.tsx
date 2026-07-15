@@ -2,6 +2,7 @@ import { Crown, Flame, Scissors, Spade, Swords } from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
 import { Button } from "./ui/button";
 import { cn } from "~/lib/utils";
+import { useEffect, useRef } from "react";
 
 interface ChatHeo {
   id: string;
@@ -161,6 +162,15 @@ export function CircularTable3({
   disabledSaveButton: boolean;
   isLoading: boolean;
 }) {
+  const successAudioRef = useRef(new Audio("/sounds/success.mp3"));
+  const tapAudioRef = useRef(new Audio("/sounds/tap.mp3"));
+
+  const handleTap = () => {
+    const audio = tapAudioRef.current.cloneNode(true) as HTMLAudioElement;
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+  };
+
   const getBackgroundImage = (score: number, active: boolean) => {
     if (!active) return undefined;
 
@@ -196,6 +206,8 @@ export function CircularTable3({
           onClick={(e) => {
             e.stopPropagation();
             save();
+            successAudioRef.current.currentTime = 0;
+            successAudioRef.current.play();
           }}
           disabled={disabledSaveButton}
         >
@@ -211,10 +223,7 @@ export function CircularTable3({
             </div>
           )}
 
-          <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
-            <Swords className="size-14 text-white/50" />
-          </div>
-          {(!disabledSaveButton || isLoading) && (
+          {!disabledSaveButton || isLoading ? (
             <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
               <img
                 src="/icons/swords.gif"
@@ -222,10 +231,11 @@ export function CircularTable3({
                 className="size-full text-primary/3 rounded-full"
               />
             </div>
+          ) : (
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
+              <Swords className="size-14 text-white/50" />
+            </div>
           )}
-          <span className="text-[16px] font-bold uppercase tracking-wide">
-            {/* chốt */}
-          </span>
         </Button>
         <div
           className="absolute pointer-events-none left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 bg-card"
@@ -313,7 +323,12 @@ export function CircularTable3({
               <button
                 type="button"
                 aria-label={`Chon huong ${section.label}`}
-                onClick={() => isSelectable && toggleSelect(playerId)}
+                onClick={() => {
+                  handleTap();
+                  if (isSelectable) {
+                    toggleSelect(playerId);
+                  }
+                }}
                 disabled={!isSelectable}
                 className={cn(
                   "pointer-events-auto absolute inset-0 border-solid border-transparent transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
@@ -349,6 +364,7 @@ export function CircularTable3({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        handleTap();
                         toggleKhapPlayer(playerId);
                       }}
                       disabled={nhotVictimIds.includes(playerId)}
@@ -412,6 +428,7 @@ export function CircularTable3({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        handleTap();
                         toggleSanhPlayer(playerId);
                       }}
                       disabled={nhotVictimIds.includes(playerId)}

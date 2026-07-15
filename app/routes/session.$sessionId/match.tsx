@@ -1156,7 +1156,7 @@ export default function MatchPage() {
                 !rankingComplete ||
                 !currentParticipant
               }
-              isLoading={isSaving || (submitted && Boolean(fetcher.data?.success))}
+              isLoading={isSaving}
             />
           </div>
         </section>
