@@ -1160,8 +1160,7 @@ export default function MatchPage() {
           </div>
         </section>
        
-        <Card className="overflow-hidden border-border/70 shadow-sm">
-          <CardContent className="flex flex-col gap-2 pt-0">
+    
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
               <div className="flex items-center justify-between gap-2 w-full">
                 <div className="flex gap-2 items-center">
@@ -1170,7 +1169,7 @@ export default function MatchPage() {
             </div> */}
 
                   <p className="text-sm font-black text-foreground">
-                    Thêm nhốt & chặt
+                   
                   </p>
                 </div>
                 <div className="flex gap-1.5">
@@ -1198,8 +1197,7 @@ export default function MatchPage() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+        
         {/* ── Nhốt bài ─────────────────────────── */}
         {expandBonus && (
           <Card className="overflow-hidden border-border/70 shadow-sm">

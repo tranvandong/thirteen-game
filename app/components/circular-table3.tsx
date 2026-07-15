@@ -186,7 +186,10 @@ export function CircularTable3({
         {/* Center hub */}
 
         <Button
-          className="absolute pointer-events-auto left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 shadow-xl shadow-primary/20"
+          className={cn(
+            "absolute pointer-events-auto left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 shadow-xl shadow-primary/20",
+            !disabledSaveButton && "animate-holy-glow",
+          )}
           style={{ width: 80, height: 80 }}
           onClick={(e) => {
             e.stopPropagation();
@@ -194,11 +197,17 @@ export function CircularTable3({
           }}
           disabled={disabledSaveButton}
         >
+          {!disabledSaveButton && (
+            <div className="absolute -inset-3 rounded-full animate-spin">
+              <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
+            </div>
+          )}
+          
           <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
-            <Swords className="size-14 text-white/5" />
+            <Swords className="size-14 text-white/50" />
           </div>
           <span className="text-[16px] font-bold uppercase tracking-wide">
-            chốt
+            {/* chốt */}
           </span>
         </Button>
         <div
