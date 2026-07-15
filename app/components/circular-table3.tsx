@@ -1,6 +1,7 @@
 import { Crown, Flame, Scissors, Spade, Swords } from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
 import { Button } from "./ui/button";
+import { cn } from "~/lib/utils";
 
 interface ChatHeo {
   id: string;
@@ -176,9 +177,9 @@ export function CircularTable3({
             chốt
           </span>
         </Button>
-<div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
           <Swords className="size-full text-gray-200/[0.012]" />
-          </div>
+        </div>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
           <div
             className="w-full h-px rotate-45"
@@ -259,11 +260,13 @@ export function CircularTable3({
                 aria-label={`Chon huong ${section.label}`}
                 onClick={() => isSelectable && toggleSelect(playerId)}
                 disabled={!isSelectable}
-                className={`pointer-events-auto absolute inset-0 border-solid border-transparent transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 ${
+                className={cn(
+                  "pointer-events-auto absolute inset-0 border-solid border-transparent transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
                   isSelectable
                     ? "cursor-pointer bg-gray-300/10"
-                    : "cursor-default bg-transparent"
-                }`}
+                    : "cursor-default bg-transparent",
+                  // score > 20 && isSelected ? "border border-chart-1/20 bg-chart-1/10" : "",
+                )}
                 style={{
                   borderWidth: BORDER,
                   borderRadius: RADIUS,
@@ -272,6 +275,18 @@ export function CircularTable3({
                   ...(section.side === "Bottom" && { borderTopWidth: 0 }),
                   ...(section.side === "Right" && { borderLeftWidth: 0 }),
                   ...(section.side === "Left" && { borderRightWidth: 0 }),
+                  ...(showAsActive ? { border: "4px solid #02bc7d" } : {}),
+                  ...(showAsActive && score < 0
+                    ? {
+                        backgroundImage:
+                          "radial-gradient(rgba(255, 0, 0, 0.6), rgba(255, 255, 255, 0))",
+                      }
+                    : showAsActive && score > 0
+                      ? {
+                          backgroundImage:
+                            "radial-gradient(rgb(0 255 0 / 35%), rgba(255, 255, 255, 0))",
+                        }
+                      : {}),
                 }}
               />
 
@@ -412,7 +427,7 @@ export function CircularTable3({
                   )}
 
                   <span
-                    className={`truncate font-bold leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
+                    className={`truncate font-bold uppercase leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
                   >
                     {player.name}
                   </span>

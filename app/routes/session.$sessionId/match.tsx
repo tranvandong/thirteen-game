@@ -1115,7 +1115,7 @@ export default function MatchPage() {
                     key={player.playerId}
                     className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-2 text-center transition-colors ${scoreBoxClass(score)}`}
                   >
-                    <span className="text-xs font-black uppercase tracking-wide opacity-70">
+                    <span className="text-xs font-black uppercase tracking-wide opacity-70 text-card-foreground">
                       {pShort(player.playerId)}
                     </span>
                     <span className="text-xl font-black tabular-nums">
