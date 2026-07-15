@@ -159,6 +159,27 @@ export function CircularTable3({
   save: () => void;
   disabledSaveButton: boolean;
 }) {
+  const getBackgroundImage = (score: number, active: boolean) => {
+    if (!active) return undefined;
+
+    if (score <= -10) {
+      return "radial-gradient(rgba(255, 0, 0, 0.9), rgba(255,255,255,0))";
+    }
+
+    if (score >= 10) {
+      return "radial-gradient(rgb(0 255 0 / 0.7), rgba(255,255,255,0))";
+    }
+
+    if (score < 0) {
+      return "radial-gradient(rgba(255, 0, 0, 0.6), rgba(255,255,255,0))";
+    }
+
+    if (score > 0) {
+      return "radial-gradient(rgba(0,255,0,.35), rgba(255,255,255,0))";
+    }
+
+    return undefined;
+  };
   return (
     <div className="relative z-10 mx-auto w-full pb-6">
       <div className="relative mx-auto aspect-square w-[320px]">
@@ -173,10 +194,17 @@ export function CircularTable3({
           }}
           disabled={disabledSaveButton}
         >
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
+            <Swords className="size-14 text-white/5" />
+          </div>
           <span className="text-[16px] font-bold uppercase tracking-wide">
             chốt
           </span>
         </Button>
+        <div
+          className="absolute pointer-events-none left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 bg-card"
+          style={{ width: 78, height: 78 }}
+        ></div>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
           <Swords className="size-full text-gray-200/[0.012]" />
         </div>
@@ -276,17 +304,7 @@ export function CircularTable3({
                   ...(section.side === "Right" && { borderLeftWidth: 0 }),
                   ...(section.side === "Left" && { borderRightWidth: 0 }),
                   ...(showAsActive ? { border: "4px solid #02bc7d" } : {}),
-                  ...(showAsActive && score < 0
-                    ? {
-                        backgroundImage:
-                          "radial-gradient(rgba(255, 0, 0, 0.6), rgba(255, 255, 255, 0))",
-                      }
-                    : showAsActive && score > 0
-                      ? {
-                          backgroundImage:
-                            "radial-gradient(rgb(0 255 0 / 35%), rgba(255, 255, 255, 0))",
-                        }
-                      : {}),
+                  backgroundImage: getBackgroundImage(score, showAsActive),
                 }}
               />
 
@@ -443,7 +461,7 @@ export function CircularTable3({
 
                   {showAsActive && (
                     <span
-                      className={`tabular-nums leading-none font-bold text-xl ${scoreColor(
+                      className={`tabular-nums leading-none font-bold text-xl text-shadow-sm ${scoreColor(
                         score,
                       )}`}
                     >
