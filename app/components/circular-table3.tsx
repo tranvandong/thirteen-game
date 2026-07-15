@@ -3,6 +3,7 @@ import type { Player } from "~/stores/useSessionStore";
 import { Button } from "./ui/button";
 import { cn } from "~/lib/utils";
 import { useEffect, useRef } from "react";
+import { useAudio } from "~/hooks/useAudio";
 
 interface ChatHeo {
   id: string;
@@ -163,12 +164,10 @@ export function CircularTable3({
   isLoading: boolean;
 }) {
   const successAudioRef = useRef(new Audio("/sounds/success.mp3"));
-  const tapAudioRef = useRef(new Audio("/sounds/tap.mp3"));
+  const tapSound = useAudio("/sounds/tap.mp3", 0.5);
 
   const handleTap = () => {
-    const audio = tapAudioRef.current.cloneNode(true) as HTMLAudioElement;
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
+    tapSound.play();
   };
 
   const getBackgroundImage = (score: number, active: boolean) => {
