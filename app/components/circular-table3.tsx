@@ -181,8 +181,8 @@ export function CircularTable3({
     return undefined;
   };
   return (
-    <div className="relative z-10 mx-auto w-full pb-6">
-      <div className="relative mx-auto aspect-square w-[320px]">
+    <div className="relative z-10 mx-auto w-full">
+      <div className="relative mx-auto w-full aspect-square">
         {/* Center hub */}
 
         <Button
@@ -206,7 +206,7 @@ export function CircularTable3({
           style={{ width: 78, height: 78 }}
         ></div>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
-          <Swords className="size-full text-gray-200/[0.012]" />
+          <Swords className="size-full text-primary/3" />
         </div>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
           <div

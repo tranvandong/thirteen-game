@@ -1107,7 +1107,7 @@ export default function MatchPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-2 mt-4">
+            <div className="grid grid-cols-4 gap-2 my-4">
               {sorted.map((player, index) => {
                 const score = player.totalScore ?? 0;
                 return (
@@ -1125,476 +1125,41 @@ export default function MatchPage() {
                 );
               })}
             </div>
+            <CircularTable3
+              players={players}
+              ranking={ranking}
+              selectOrder={selectOrder}
+              toggleSelect={toggleSelect}
+              selectableIds={selectableIds}
+              selectCounter={selectCounter}
+              requiredSelections={requiredSelections}
+              computedScores={computedScores}
+              activeNhot={activeNhot}
+              nhotCount={nhotCount}
+              nhotterId={nhotterId}
+              nhotVictimIds={nhotVictimIds}
+              denForIds={denForIds}
+              khapWinner={khapWinner}
+              khapCount={khapCount}
+              sanhWinner={sanhWinner}
+              toggleKhapPlayer={toggleKhapPlayer}
+              updateKhapCount={updateKhapCount}
+              toggleSanhPlayer={toggleSanhPlayer}
+              chatHeoList={chatHeoList}
+              accumulated={accumulated}
+              gameConfig={gameConfig}
+              getRowMeta={getRowMeta}
+              save={handleSave}
+              disabledSaveButton={
+                isSaving ||
+                (submitted && fetcher.data?.success) ||
+                !rankingComplete ||
+                !currentParticipant
+              }
+            />
           </div>
         </section>
-
-        {/* ── Xếp hạng ─────────────────────────────────────── */}
-        <Card className="overflow-hidden border-border/70 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Crown className="size-4" />
-                  </div>
-                  <div>
-                    <div>Xếp hạng</div>
-                    <p className="text-xs text-muted-foreground">
-                      {!activeNhot
-                        ? "Chọn thứ tự người chơi"
-                        : nhotCount === 3
-                          ? "Nhốt tất cả · không tính hạng"
-                          : nhotCount === 2
-                            ? "Nhốt 2 · người chơi còn lại đồng hạng 3"
-                            : "Nhốt 1 · chọn hạng 2 và 3 cho 2 người chơi còn lại"}
-                    </p>
-                  </div>
-                </CardTitle>
-              </div>
-              <div className="flex items-center gap-2">
-                {activeNhot && rankViewMode === "list" && (
-                  <span className="rounded-full bg-chart-3/10 px-3 py-1 text-xs font-black text-chart-3 ring-1 ring-chart-3/20">
-                    {selectCounter}/{requiredSelections}
-                  </span>
-                )}
-                <div className="flex rounded-xl border border-border/70 bg-muted/30 p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("list")}
-                    className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                      rankViewMode === "list"
-                        ? "bg-background text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-label="Danh sách xếp hạng"
-                  >
-                    <List className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("table")}
-                    className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                      rankViewMode === "table"
-                        ? "bg-background text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-label="Bàn tròn"
-                  >
-                    <LayoutGrid className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("table2")}
-                    className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                      rankViewMode === "table2"
-                        ? "bg-background text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-label="Bàn tròn"
-                  >
-                    <TableCellsSplit className="size-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2 pt-0">
-            {rankViewMode === "table" ? (
-              <CircularTable3
-                players={players}
-                ranking={ranking}
-                selectOrder={selectOrder}
-                toggleSelect={toggleSelect}
-                selectableIds={selectableIds}
-                selectCounter={selectCounter}
-                requiredSelections={requiredSelections}
-                computedScores={computedScores}
-                activeNhot={activeNhot}
-                nhotCount={nhotCount}
-                nhotterId={nhotterId}
-                nhotVictimIds={nhotVictimIds}
-                denForIds={denForIds}
-                khapWinner={khapWinner}
-                khapCount={khapCount}
-                sanhWinner={sanhWinner}
-                toggleKhapPlayer={toggleKhapPlayer}
-                updateKhapCount={updateKhapCount}
-                toggleSanhPlayer={toggleSanhPlayer}
-                chatHeoList={chatHeoList}
-                accumulated={accumulated}
-                gameConfig={gameConfig}
-                getRowMeta={getRowMeta}
-                save={handleSave}
-                disabledSaveButton={
-                  isSaving ||
-                  (submitted && fetcher.data?.success) ||
-                  !rankingComplete ||
-                  !currentParticipant
-                }
-              />
-            ) : rankViewMode === "table2" ? (
-              <CircularTable2
-                players={players}
-                ranking={ranking}
-                selectOrder={selectOrder}
-                toggleSelect={toggleSelect}
-                selectableIds={selectableIds}
-                selectCounter={selectCounter}
-                requiredSelections={requiredSelections}
-                computedScores={computedScores}
-                activeNhot={activeNhot}
-                nhotCount={nhotCount}
-                nhotterId={nhotterId}
-                nhotVictimIds={nhotVictimIds}
-                denForIds={denForIds}
-                khapWinner={khapWinner}
-                khapCount={khapCount}
-                sanhWinner={sanhWinner}
-                toggleKhapPlayer={toggleKhapPlayer}
-                updateKhapCount={updateKhapCount}
-                toggleSanhPlayer={toggleSanhPlayer}
-                chatHeoList={chatHeoList}
-                accumulated={accumulated}
-                gameConfig={gameConfig}
-                getRowMeta={getRowMeta}
-                save={handleSave}
-                disabledSaveButton={
-                  isSaving ||
-                  (submitted && fetcher.data?.success) ||
-                  !rankingComplete ||
-                  !currentParticipant
-                }
-              />
-            ) : (
-              ranking.map((playerId, rankIndex) => {
-                const player = players.find((p) => p.id === playerId)!;
-                const pIdx = players.findIndex((p) => p.id === playerId);
-                const order = selectOrder[pIdx];
-                const isSelectable = selectableIds.includes(playerId);
-                const isSelected = order !== null;
-                const score = computedScores[playerId];
-                const { label, labelColor, style, isFixed } = getRowMeta(
-                  playerId,
-                  rankIndex,
-                );
-
-                const showAsActive = isFixed || isSelected;
-
-                const isKhapWinner = khapWinner === playerId;
-                const isSanhWinner = sanhWinner === playerId;
-                const khapTaken = khapWinner !== null && !isKhapWinner;
-                const sanhTaken = sanhWinner !== null && !isSanhWinner;
-                const khapCountDisplay = isKhapWinner ? khapCount : 0;
-                const khapPtsDisplay =
-                  isKhapWinner && khapCount > 0
-                    ? accumulated.khap * khapCount * gameConfig.khapPoints * 3
-                    : 0;
-                // ── THÊM MỚI: điểm âm khạp/sảnh cho người không phải winner ──
-                const khapPtsLoss =
-                  !isKhapWinner && khapWinner !== null && khapCount > 0
-                    ? accumulated.khap * khapCount * gameConfig.khapPoints
-                    : 0;
-                const effectiveSanh = isSanhWinner ? accumulated.sanh : 0;
-                const sanhPtsDisplay = isSanhWinner
-                  ? accumulated.sanh * gameConfig.sanhPoints * 3
-                  : 0;
-                const sanhPtsLoss =
-                  !isSanhWinner && sanhWinner !== null
-                    ? accumulated.sanh * gameConfig.sanhPoints
-                    : 0;
-
-                const nextInRanking = ranking[rankIndex + 1];
-                const nextIdx = nextInRanking
-                  ? players.findIndex((p) => p.id === nextInRanking)
-                  : -1;
-                const canMoveDown =
-                  !isFixed &&
-                  isSelectable &&
-                  rankIndex < ranking.length - 1 &&
-                  nextIdx !== -1 &&
-                  selectableIds.includes(nextInRanking) &&
-                  selectOrder[nextIdx] !== null;
-                const canMoveUp =
-                  !isFixed &&
-                  isSelectable &&
-                  rankIndex > 0 &&
-                  selectableIds.includes(ranking[rankIndex - 1]) &&
-                  selectOrder[
-                    players.findIndex((p) => p.id === ranking[rankIndex - 1])
-                  ] !== null;
-
-                const showBonus =
-                  showAsActive ||
-                  (selectCounter >= selectableIds.length - 1 &&
-                    rankIndex === ranking.length - 1 &&
-                    !isFixed);
-
-                // ── THÊM MỚI: lọc danh sách chặt heo liên quan đến player này ──
-                const chatHeoAsChatter = chatHeoList.filter(
-                  (c) =>
-                    c.chatterId === playerId &&
-                    !nhotVictimIds.includes(c.victimId),
-                );
-                const chatHeoAsVictim = chatHeoList.filter(
-                  (c) =>
-                    c.victimId === playerId &&
-                    !nhotVictimIds.includes(c.victimId),
-                );
-
-                return (
-                  <div
-                    key={playerId}
-                    className={`relative z-10 overflow-hidden rounded-3xl border transition-all ${
-                      showAsActive
-                        ? "border-border/70 bg-card shadow-sm"
-                        : "border-border/30 bg-muted/20 opacity-75"
-                    } ${showAsActive ? style : ""}`}
-                  >
-                    <div
-                      onClick={() =>
-                        isSelectable && !isFixed && toggleSelect(playerId)
-                      }
-                      className={`relative z-10 flex w-full items-center gap-2 px-3 py-3 text-left transition-colors ${
-                        isSelectable && !isFixed
-                          ? "cursor-pointer hover:bg-background/60"
-                          : "cursor-default"
-                      }`}
-                    >
-                      {/* Badge */}
-                      {isFixed ? (
-                        <span
-                          className={`flex shrink-0 items-center justify-center size-6 rounded-full text-xs font-black ${
-                            playerId === nhotterId
-                              ? "bg-primary text-primary-foreground"
-                              : nhotVictimIds.includes(playerId)
-                                ? "bg-destructive text-destructive-foreground"
-                                : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {playerId === nhotterId ? (
-                            <Crown className="size-3" />
-                          ) : denForIds.includes(playerId) ? (
-                            "—"
-                          ) : nhotVictimIds.includes(playerId) ? (
-                            "✕"
-                          ) : (
-                            "3"
-                          )}
-                        </span>
-                      ) : (
-                        <span
-                          className={`relative z-10 flex shrink-0 items-center justify-center size-4 p-4 rounded-full font-black transition-colors ${
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "border border-muted-foreground/20 bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {isSelected ? order : "·"}
-                        </span>
-                      )}
-
-                      {/* Label hạng */}
-                      <span
-                        className={`shrink-0 w-14 font-black ${
-                          showAsActive ? labelColor : "text-muted-foreground"
-                        }`}
-                      >
-                        {showAsActive ? label : ""}
-                      </span>
-
-                      <span className="min-w-0 flex-1 truncate font-black">
-                        {player.name}
-                      </span>
-
-                      {showAsActive && (
-                        <span
-                          className={`shrink-0 text-sm font-black tabular-nums ${scoreColor(score)}`}
-                        >
-                          {scoreFmt(score)}
-                        </span>
-                      )}
-
-                      {isSelected && !isFixed && (
-                        <div
-                          className="relative z-10 ml-1 flex shrink-0 flex-col gap-0.5"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            onClick={() => moveRank(playerId, "up")}
-                            disabled={!canMoveUp}
-                            className="relative z-10 flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
-                          >
-                            <ChevronUp className="size-3.5" />
-                          </button>
-                          <button
-                            onClick={() => moveRank(playerId, "down")}
-                            disabled={!canMoveDown}
-                            className="relative z-10 flex size-6 items-center justify-center rounded-full bg-muted/70 font-black hover:bg-background disabled:opacity-20 disabled:cursor-not-allowed"
-                          >
-                            <ChevronDown className="size-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── Khạp + Sảnh ── */}
-                    {showBonus && (
-                      <div className="flex flex-wrap gap-2 px-3 pb-3">
-                        {/* Khạp */}
-                        <div
-                          className={`inline-flex items-center gap-1 rounded-2xl border px-2.5 py-1 text-xs transition-colors ${
-                            isKhapWinner
-                              ? "border-chart-4/40 bg-chart-4/10 text-chart-4"
-                              : khapTaken
-                                ? "border-destructive/20 bg-destructive/5 text-destructive"
-                                : "border-border bg-muted/35 text-muted-foreground"
-                          }`}
-                        >
-                          <button
-                            onClick={() => toggleKhapPlayer(playerId)}
-                            className="relative z-10 flex items-center gap-1 font-black hover:opacity-80"
-                            disabled={nhotVictimIds.includes(playerId)}
-                          >
-                            <Flame className="size-3.5" />
-                            <span>Khạp</span>
-                          </button>
-                          {isKhapWinner && (
-                            <>
-                              <span className="mx-0.5 opacity-30">|</span>
-                              <button
-                                onClick={() => updateKhapCount(-1)}
-                                disabled={khapCount <= 1}
-                                className="relative z-10 size-5 rounded-full bg-background font-black disabled:opacity-30"
-                              >
-                                −
-                              </button>
-                              <span className="w-4 text-center font-black">
-                                {khapCountDisplay}
-                              </span>
-                              <button
-                                onClick={() => updateKhapCount(1)}
-                                disabled={
-                                  khapCount >= gameConfig.maxKhapAccumulate
-                                }
-                                className="relative z-10 size-5 rounded-full bg-background font-black disabled:opacity-30"
-                              >
-                                +
-                              </button>
-                              <span className="mx-1 opacity-30">|</span>
-                              <span className="font-black">
-                                +{khapPtsDisplay}
-                              </span>
-                            </>
-                          )}
-                          {/* ── THÊM MỚI: điểm âm khạp cho người còn lại ── */}
-                          {!isKhapWinner && khapPtsLoss > 0 && (
-                            <>
-                              <span className="mx-0.5 opacity-30">|</span>
-                              <span className="font-black text-destructive">
-                                -{khapPtsLoss}
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Sảnh */}
-                        <button
-                          onClick={() => toggleSanhPlayer(playerId)}
-                          disabled={nhotVictimIds.includes(playerId)}
-                          className={`relative z-10 inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed ${
-                            isSanhWinner
-                              ? "border-chart-1/40 bg-chart-1/10 text-chart-1"
-                              : sanhTaken
-                                ? "border-destructive/20 bg-destructive/5 text-destructive"
-                                : "border-border bg-muted/35 text-muted-foreground hover:border-chart-1/30"
-                          }`}
-                        >
-                          <Spade className="size-3.5" />
-                          <span className="font-black">Sảnh</span>
-                          {isSanhWinner && (
-                            <>
-                              <span className="font-black">
-                                {effectiveSanh}
-                              </span>
-                              <span className="mx-0.5 opacity-30">|</span>
-                              <span className="font-black">
-                                +{sanhPtsDisplay}
-                              </span>
-                            </>
-                          )}
-                          {/* ── THÊM MỚI: điểm âm sảnh cho người còn lại ── */}
-                          {!isSanhWinner && sanhPtsLoss > 0 && (
-                            <>
-                              <span className="mx-0.5 opacity-30">|</span>
-                              <span className="font-black text-destructive">
-                                -{sanhPtsLoss}
-                              </span>
-                            </>
-                          )}
-                        </button>
-
-                        {/* ── THÊM MỚI: Chặt heo trong row player ── */}
-                        {showBonus &&
-                          (chatHeoAsChatter.length > 0 ||
-                            chatHeoAsVictim.length > 0) && (
-                            <div className="flex flex-col gap-1">
-                              {/* Người chặt */}
-                              {chatHeoAsChatter.map((c) => {
-                                const pts =
-                                  (c.heo.do ?? 0) * gameConfig.heoDoPoints +
-                                  (c.heo.den ?? 0) * gameConfig.heodenPoints;
-                                return (
-                                  <div
-                                    key={c.id}
-                                    className="inline-flex items-center gap-1 rounded-2xl border border-chart-2/30 bg-chart-2/10 px-2 py-1 text-xs text-chart-2"
-                                  >
-                                    {(c.heo.do ?? 0) > 0 && (
-                                      <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-black leading-normal text-white">
-                                        {c.heo.do} Đỏ
-                                      </span>
-                                    )}
-                                    {(c.heo.den ?? 0) > 0 && (
-                                      <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[10px] font-black leading-normal text-background">
-                                        {c.heo.den} Đen
-                                      </span>
-                                    )}
-
-                                    <span className="font-black">+{pts}</span>
-                                  </div>
-                                );
-                              })}
-
-                              {/* Người bị chặt */}
-                              {chatHeoAsVictim.map((c) => {
-                                const pts =
-                                  (c.heo.do ?? 0) * gameConfig.heoDoPoints +
-                                  (c.heo.den ?? 0) * gameConfig.heodenPoints;
-                                return (
-                                  <div className="inline-flex items-center gap-1 rounded-2xl border border-destructive/20 bg-destructive/10 px-2 py-1 text-xs text-destructive">
-                                    {(c.heo.do ?? 0) > 0 && (
-                                      <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-black leading-normal text-white">
-                                        {c.heo.do} Đỏ
-                                      </span>
-                                    )}
-                                    {(c.heo.den ?? 0) > 0 && (
-                                      <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[10px] font-black leading-normal text-background">
-                                        {c.heo.den} Đen
-                                      </span>
-                                    )}
-                                    <span className="font-black">-{pts}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+       
         <Card className="overflow-hidden border-border/70 shadow-sm">
           <CardContent className="flex flex-col gap-2 pt-0">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
@@ -2414,7 +1979,7 @@ export default function MatchPage() {
         )}
       </main>
       {showBtnToTop && (
-        <div className="fixed bottom-24 right-6">
+        <div className="fixed z-20 bottom-24 right-6">
           <Button
             variant="outline"
             size="icon"
