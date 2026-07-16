@@ -4,24 +4,16 @@ import type { Route } from "./+types/match";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
-  Swords,
   CheckCircle2,
   RotateCcw,
-  ChevronUp,
-  ChevronDown,
   Flame,
   Scissors,
   Lock,
   Plus,
   X,
-  ChevronRight,
-  ChevronDown as CollapseIcon,
   Crown,
   Trash,
   Spade,
-  LayoutGrid,
-  List,
-  TableCellsSplit,
   ArrowUpIcon,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
@@ -49,24 +41,17 @@ import {
 } from "~/lib/socket.client";
 import { finishRound } from "~/lib/socket.client";
 import { players, sessionTotals } from "~/db/schema";
-import { CircularTable } from "~/components/circular-table";
-import { CircularTable2 } from "~/components/circular-table2";
 import { CircularTable3 } from "~/components/circular-table3";
-
-interface RoundMeta {
-  currentRoundNo: number;
-  accumulated: { khap: number; sanh: number };
-  roundId: string;
-}
-export interface MatchLoaderData {
-  roundMeta: RoundMeta;
-  playerTotals: Array<{
-    playerId: string;
-    playerName: string;
-    orderNo: number;
-    totalScore: number | null;
-  }>;
-}
+import type {
+  ChatHeo,
+  HeoType,
+  MatchLoaderData,
+  NhotBai,
+  VictimHeo,
+} from "~/types/match.type";
+import { buildPigCounts, computedScoresHelper } from "~/helpers/match.helper";
+import { ChatHeoDialog } from "~/components/match/chatheo-dialog";
+import { NhotBaiDialog } from "~/components/match/nhotbai-dialog";
 
 export async function loader({
   params,
@@ -152,55 +137,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 }
 
-// ── Types ────────────────────────────────────────────────────
-type HeoType = "do" | "den";
-interface ChatHeo {
-  id: string;
-  chatterId: string;
-  chatterName: string;
-  victimId: string;
-  victimName: string;
-  heo: { do: number; den: number };
-}
-interface VictimHeo {
-  victimId: string;
-  heo: { do: number; den: number };
-}
-interface NhotBai {
-  id: string;
-  nhotterId: string;
-  victims: VictimHeo[];
-  dennerId?: string;
-  denForIds: string[];
-}
-
-interface DenBai {
-  dennerId: string;
-  denForIds: string[];
-}
-
-function buildPigCounts(
-  playerIds: string[],
-  chatHeoList: ChatHeo[],
-  activeNhot: NhotBai | null,
-) {
-  const counts = Object.fromEntries(
-    playerIds.map((id) => [id, { red: 0, black: 0 }]),
-  );
-
-  chatHeoList.forEach((c) => {
-    counts[c.victimId].red += c.heo.do ?? 0;
-    counts[c.victimId].black += c.heo.den ?? 0;
-  });
-
-  activeNhot?.victims.forEach((v) => {
-    counts[v.victimId].red += v.heo?.do ?? 0;
-    counts[v.victimId].black += v.heo?.den ?? 0;
-  });
-
-  return counts;
-}
-
 // ── Component ────────────────────────────────────────────────
 export default function MatchPage() {
   const { sessionId: sessionCode } = useParams();
@@ -209,7 +145,6 @@ export default function MatchPage() {
   const config = useGameConfig();
   const currentParticipant = useCurrentParticipant();
   const addRound = useSessionStore((s) => s.addRound);
-  const rounds = useRounds();
   const setTotals = useSessionStore((s) => s.setTotals);
   const session = useSessionStore((s) => s.session);
   const fetcher = useFetcher<typeof action>();
@@ -272,7 +207,6 @@ export default function MatchPage() {
     heo: { do: number; den: number };
   }>({ chatterId: "", victimId: "", heo: { do: 0, den: 0 } });
   const [nhotList, setNhotList] = useState<NhotBai[]>([]);
-  const [showNhotForm, setShowNhotForm] = useState(false);
   const [nhotForm, setNhotForm] = useState<{
     nhotterId: string;
     victims: VictimHeo[];
@@ -356,16 +290,13 @@ export default function MatchPage() {
   useEffect(() => {
     fetcherDataRef.current = fetcher.data;
   }, [fetcher.data]);
-  // ── Socket: nhận round-finished từ người khác ────────────────
+
   useEffect(() => {
     if (!session?.code) return;
 
     const handleRoundFinished = (payload: { round: Round }) => {
-      // Bỏ qua nếu chính mình vừa lưu (đã xử lý ở fetcher effect)
-      // if (handledSaveRoundRef.current === payload.round.roundNo) return;
       addRound(payload.round);
 
-      // Reset form để chuẩn bị ván mới
       setSelectOrder(players.map(() => null));
       setKhapWinner(null);
       setKhapCount(0);
@@ -377,7 +308,6 @@ export default function MatchPage() {
       setNhotForm({ nhotterId: "", victims: [] });
       setExpandBonus(false);
 
-      // Reload accumulated (khạp/sảnh tích lũy) từ server
       if (sessionCode) {
         matchLoaderFetcher.load(`/session/${sessionCode}/match`);
       }
@@ -475,10 +405,6 @@ export default function MatchPage() {
     );
   }, [activeNhot, gameConfig, players.length]);
 
-  // ── Ranking logic phụ thuộc vào nhốt ─────────────────────
-  // ... existing code ...
-
-  // ── Ranking logic phụ thuộc vào nhốt ─────────────────────
   const selectableIds = useMemo(() => {
     if (!activeNhot) return players.map((p) => p.id);
     if (nhotCount === 3) return [];
@@ -558,23 +484,6 @@ export default function MatchPage() {
         next[idx] = next.filter((o) => o !== null).length + 1;
         return next;
       }
-    });
-  };
-
-  const moveRank = (playerId: string, direction: "up" | "down") => {
-    const rankPos = ranking.indexOf(playerId);
-    const swapPos = direction === "up" ? rankPos - 1 : rankPos + 1;
-    if (swapPos < 0 || swapPos >= ranking.length) return;
-    const swapId = ranking[swapPos];
-    if (!selectableIds.includes(playerId) || !selectableIds.includes(swapId))
-      return;
-    const idxA = players.findIndex((p) => p.id === playerId);
-    const idxB = players.findIndex((p) => p.id === swapId);
-    if (selectOrder[idxA] === null || selectOrder[idxB] === null) return;
-    setSelectOrder((prev) => {
-      const next = [...prev];
-      [next[idxA], next[idxB]] = [next[idxB], next[idxA]];
-      return next;
     });
   };
 
@@ -659,7 +568,6 @@ export default function MatchPage() {
         denForIds: nextDenForIds,
       },
     ]);
-    setShowNhotForm(false);
     setConfirmNhot(true);
   };
   const removeNhot = () => {
@@ -721,127 +629,37 @@ export default function MatchPage() {
   };
 
   // ── Score computation ─────────────────────────────────────
-  const computedScores = useMemo(() => {
-    const s: Record<string, number> = Object.fromEntries(
-      players.map((p) => [p.id, 0]),
-    );
-    const heoPts = (heo: { do: number; den: number }) =>
-      heo.den * gameConfig.heodenPoints + heo.do * gameConfig.heoDoPoints;
-
-    if (!activeNhot) {
-      ranking.forEach((pid, i) => {
-        s[pid] += gameConfig.rankPoints[i] ?? 0;
-      });
-    } else {
-      const ecPts = Math.abs(gameConfig.rankPoints[players.length - 1]) * 2;
-      const victimHeoMap = Object.fromEntries(
-        activeNhot.victims.map((v) => [v.victimId, v.heo]),
-      );
-
-      if (nhotCount === 1) {
-        const vh = (victimHeoMap[nhotVictimIds[0]] as
-          | { do: number; den: number }
-          | undefined) ?? { do: 0, den: 0 };
-        const hp = heoPts(vh);
-        s[nhotterId!] += gameConfig.rankPoints[0] * 2 + hp;
-        s[nhotVictimIds[0]] -= gameConfig.rankPoints[0] * 2 + hp;
-        const othersInRanking = ranking.filter((id) => nhotOthers.includes(id));
-        othersInRanking.forEach((oid, i) => {
-          s[oid] += gameConfig.rankPoints[i + 1] ?? 0;
-        });
-      } else if (nhotCount === 2) {
-        let gain = 0;
-
-        activeNhot.victims.forEach(({ victimId, heo }) => {
-          const loss = ecPts + heoPts(heo);
-          s[victimId] -= loss;
-          gain += loss;
-        });
-
-        if (activeNhot.dennerId && activeNhot.denForIds.length > 0) {
-          const denBaiLoss = activeNhot.denForIds.reduce(
-            (sum, victimId) => sum + (denBaiLosses[victimId] ?? 0),
-            0,
-          );
-
-          activeNhot.denForIds.forEach((victimId) => {
-            const loss = denBaiLosses[victimId] ?? 0;
-            s[victimId] += loss;
-          });
-
-          s[activeNhot.dennerId] -= denBaiLoss;
-        }
-
-        s[nhotterId!] += gain + gameConfig.nhotBystanderPenalty;
-        nhotOthers.forEach((oid) => {
-          s[oid] -= gameConfig.nhotBystanderPenalty;
-        });
-      } else {
-        let gain = 0;
-        activeNhot.victims.forEach(({ victimId, heo }) => {
-          const loss = ecPts + heoPts(heo);
-          s[victimId] -= loss;
-          gain += loss;
-        });
-
-        if (activeNhot.dennerId && activeNhot.denForIds.length > 0) {
-          const denBaiLoss = activeNhot.denForIds.reduce(
-            (sum, victimId) => sum + (denBaiLosses[victimId] ?? 0),
-            0,
-          );
-
-          activeNhot.denForIds.forEach((victimId) => {
-            const loss = denBaiLosses[victimId] ?? 0;
-            s[victimId] += loss;
-          });
-
-          s[activeNhot.dennerId] -= denBaiLoss;
-        }
-
-        s[nhotterId!] += gain;
-      }
-    }
-
-    // Khạp
-    if (khapWinner && khapCount > 0) {
-      const gain = accumulated.khap * khapCount * gameConfig.khapPoints * 3;
-      const loss = accumulated.khap * khapCount * gameConfig.khapPoints;
-      s[khapWinner] += gain;
-      players.forEach((p) => {
-        if (p.id !== khapWinner) s[p.id] -= loss;
-      });
-    }
-    // Sảnh
-    if (sanhWinner) {
-      const gain = accumulated.sanh * gameConfig.sanhPoints * 3;
-      const loss = accumulated.sanh * gameConfig.sanhPoints;
-      s[sanhWinner] += gain;
-      players.forEach((p) => {
-        if (p.id !== sanhWinner) s[p.id] -= loss;
-      });
-    }
-    // Chặt heo
-    chatHeoList.forEach(({ chatterId, victimId, heo }) => {
-      const pts =
-        (heo.do ?? 0) * gameConfig.heoDoPoints +
-        (heo.den ?? 0) * gameConfig.heodenPoints;
-      s[chatterId] += pts;
-      s[victimId] -= pts;
-    });
-
-    return s;
-  }, [
-    ranking,
-    activeNhot,
-    nhotCount,
-    nhotterId,
-    nhotVictimIds,
-    nhotOthers,
-    khapWinner,
-    khapCount,
-    sanhWinner,
-    chatHeoList,
-  ]);
+  const computedScores = useMemo(
+    () =>
+      computedScoresHelper({
+        players,
+        ranking,
+        activeNhot,
+        gameConfig,
+        nhotCount,
+        nhotterId,
+        nhotVictimIds,
+        nhotOthers,
+        khapWinner,
+        khapCount,
+        sanhWinner,
+        chatHeoList,
+        accumulated,
+        denBaiLosses,
+      }),
+    [
+      ranking,
+      activeNhot,
+      nhotCount,
+      nhotterId,
+      nhotVictimIds,
+      nhotOthers,
+      khapWinner,
+      khapCount,
+      sanhWinner,
+      chatHeoList,
+    ],
+  );
 
   // ── UI helpers ────────────────────────────────────────────
   const handleReset = () => {
@@ -905,12 +723,7 @@ export default function MatchPage() {
 
   const pShort = (id: string) =>
     (players.find((p) => p.id === id)?.name ?? id).split(" ").pop()!;
-  const scoreColor = (v: number) =>
-    v > 0
-      ? "text-chart-2"
-      : v < 0
-        ? "text-destructive"
-        : "text-muted-foreground";
+
   const scoreFmt = (v: number) => (v > 0 ? `+${v}` : `${v}`);
   const scoreBoxClass = (v: number) =>
     v > 0
@@ -1034,7 +847,7 @@ export default function MatchPage() {
                     variant="outline"
                     size="sm"
                     onClick={handleReset}
-                    className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10 z-10"
+                    className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
                   >
                     <RotateCcw className="size-3.5" />
                   </Button>
@@ -1162,19 +975,12 @@ export default function MatchPage() {
         </section>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
-          <div className="flex items-center justify-between gap-2 w-full">
-            <div className="flex gap-2 items-center">
-              {/* <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Swords className="size-4" />
-            </div> */}
-
-              <p className="text-sm font-black text-foreground"></p>
-            </div>
-            <div className="flex gap-1.5">
+          <div className="flex items-center justify-center gap-2 w-full">
+            <div className="flex gap-4">
               <Button
                 variant="outline"
-                size="sm"
-                className="h-9 gap-1 font-black text-sm"
+                size="lg"
+                className="h-9 gap-2 font-black text-sm"
                 onClick={() => setExpandBonus(true)}
               >
                 <Plus className="size-4" />
@@ -1182,8 +988,8 @@ export default function MatchPage() {
               </Button>
               <Button
                 variant="outline"
-                size="sm"
-                className="h-9 gap-1 font-black text-sm"
+                size="lg"
+                className="h-9 gap-2 font-black text-sm"
                 onClick={() => {
                   setShowChatHeo((v) => !v);
                   setShowChatHeoForm(true);
@@ -1412,245 +1218,6 @@ export default function MatchPage() {
                     </div>
                   );
                 })}
-
-              {!confirmNhot && (
-                <div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                      Người nhốt
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {players.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() =>
-                            setNhotForm((f) => ({
-                              ...f,
-                              nhotterId: p.id,
-                              victims: f.victims.filter(
-                                (v) => v.victimId !== p.id,
-                              ),
-                            }))
-                          }
-                          className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
-                            nhotForm.nhotterId === p.id
-                              ? "border border-primary bg-chart-1/10 text-chart-1"
-                              : "border-border bg-background/10 text-foreground hover:border-primary/40"
-                          }`}
-                        >
-                          {pShort(p.id)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mt-4">
-                      Người bị nhốt
-                    </p>
-                    <div className="mt-2 flex flex-col gap-1">
-                      {players
-                        .filter((p) => p.id !== nhotForm.nhotterId)
-                        .map((p) => {
-                          const isVictim = nhotForm.victims.some(
-                            (v) => v.victimId === p.id,
-                          );
-                          const victimData = nhotForm.victims.find(
-                            (v) => v.victimId === p.id,
-                          );
-                          const vicTimHeoCount = victimData?.heo;
-
-                          return (
-                            <div
-                              key={p.id}
-                              className={`flex items-center justify-between gap-3 rounded-2xl border p-3 ${
-                                isVictim
-                                  ? "border-destructive/25 bg-destructive/5"
-                                  : "border-border bg-background"
-                              }`}
-                            >
-                              <div
-                                className={`relative z-10 flex-1 font-black  ${isVictim ? "text-destructive" : "text-foreground"}`}
-                                onClick={() => toggleNhotVictim(p.id)}
-                              >
-                                {pShort(p.id)}
-                              </div>
-                              {isVictim && (
-                                <div className="flex gap-1">
-                                  {(["do", "den"] as HeoType[]).map((t) => (
-                                    <div
-                                      key={t}
-                                      className="flex items-center gap-0.5 text-xs"
-                                    >
-                                      <span
-                                        className={`rounded-full px-2 py-0.5 font-black ${
-                                          t === "den"
-                                            ? "bg-foreground text-background"
-                                            : "bg-red-500 text-white"
-                                        }`}
-                                      >
-                                        {t === "do" ? "Đỏ" : "Đen"}
-                                      </span>
-                                      <button
-                                        onClick={() =>
-                                          updateVictimHeo(p.id, t, -1)
-                                        }
-                                        className="relative z-10 size-6 rounded-full bg-muted/70 font-black"
-                                      >
-                                        −
-                                      </button>
-                                      <span className="w-4 text-center font-black">
-                                        {vicTimHeoCount?.[t] ?? 0}
-                                      </span>
-                                      <button
-                                        onClick={() =>
-                                          updateVictimHeo(p.id, t, 1)
-                                        }
-                                        className="relative z-10 size-6 rounded-full bg-muted/70 font-black"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-
-                  {showDenBai && (
-                    <div className="rounded-3xl border border-chart-3/20 bg-chart-3/10 p-4 mt-4">
-                      <div>
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                            Người đền bài
-                          </p>
-                          {/* <span className="text-xs text-muted-foreground">
-                          Chọn 1 trong {dennerCandidates.length}
-                        </span> */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setShowDenBai(false);
-                              setDennerId(null);
-                              setDenForIds([]);
-                            }}
-                            className="h-9 gap-1.5 text-xs font-bold sm:h-10 relative z-10"
-                            type="submit"
-                          >
-                            <X className="size-5" />
-                          </Button>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {dennerCandidates.map((pid) => {
-                            const selected = dennerId === pid;
-                            return (
-                              <button
-                                key={pid}
-                                onClick={() => {
-                                  setDennerId(pid);
-                                  setDenForIds(
-                                    denForCandidates.filter((id) => id !== pid),
-                                  );
-                                }}
-                                className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
-                                  selected
-                                    ? "border-destructive bg-destructive/10 text-destructive"
-                                    : "border-border bg-background text-foreground hover:border-destructive/30"
-                                }`}
-                              >
-                                {pShort(pid)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {dennerId && denForCandidates.length > 0 && (
-                        <div className="mt-4">
-                          <div className="flex items-center justify-between gap-1">
-                            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                              Người được đền
-                            </p>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {denForCandidates.map((pid) => {
-                              const selected = denForIds.includes(pid);
-                              return (
-                                <button
-                                  key={pid}
-                                  onClick={() =>
-                                    setDenForIds((prev) =>
-                                      prev.includes(pid)
-                                        ? prev.filter((id) => id !== pid)
-                                        : [...prev, pid],
-                                    )
-                                  }
-                                  className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
-                                    selected
-                                      ? "border-chart-1 bg-chart-1/20 text-chart-1"
-                                      : "border-border bg-background text-foreground hover:border-chart-1/30"
-                                  }`}
-                                >
-                                  {pShort(pid)}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {nhotFormVictimIds.length > 1 && !showDenBai && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="relative z-10 h-10 font-black w-full mt-2"
-                      onClick={() => setShowDenBai(true)}
-                    >
-                      <Plus className="size-3.5" />
-                      Đền bài
-                    </Button>
-                  )}
-                  <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1 mt-2 relative z-20 ">
-                    {!confirmNhot ? (
-                      <>
-                        <Button
-                          size="sm"
-                          className="relative z-10 h-10 font-black"
-                          onClick={addNhot}
-                          disabled={
-                            !nhotForm.nhotterId || nhotForm.victims.length === 0
-                          }
-                        >
-                          Chốt nhốt {dennerId ? "và đền bài" : ""}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="relative z-10 h-10 font-black"
-                          onClick={() => removeNhot()}
-                        >
-                          Hủy
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="relative z-10 h-10 font-black"
-                        onClick={() => resetNhot()}
-                      >
-                        Chọn lại
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           </Card>
         )}
@@ -1753,177 +1320,15 @@ export default function MatchPage() {
                       </div>
                     );
                   })}
-                {showChatHeoForm && nhotCount < 3 ? (
-                  <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/35 p-4">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                        Người chặt
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {players
-                          .filter((p) => !nhotVictimIds.includes(p.id))
-                          .map((p) => (
-                            <button
-                              key={p.id}
-                              onClick={() =>
-                                setChatForm((f) => ({
-                                  ...f,
-                                  chatterId: p.id,
-                                  victimId:
-                                    f.victimId &&
-                                    nhotVictimIds.includes(f.victimId)
-                                      ? ""
-                                      : f.victimId,
-                                }))
-                              }
-                              className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
-                                chatForm.chatterId === p.id
-                                  ? "border border-primary bg-chart-1/10 text-chart-1"
-                                  : "border-border bg-background/10 text-foreground hover:border-primary/40"
-                              }`}
-                            >
-                              {pShort(p.id)}
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                        Người bị chặt
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1 relative z-10">
-                        {players
-                          .filter(
-                            (p) =>
-                              p.id !== chatForm.chatterId &&
-                              !nhotVictimIds.includes(p.id),
-                          )
-                          .map((p) => (
-                            <button
-                              key={p.id}
-                              onClick={() =>
-                                setChatForm((f) => ({ ...f, victimId: p.id }))
-                              }
-                              className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
-                                chatForm.victimId === p.id
-                                  ? "border-destructive bg-destructive/10 text-destructive"
-                                  : "border-border bg-background/10 text-foreground hover:border-destructive/30"
-                              }`}
-                            >
-                              {pShort(p.id)}
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                        Số lượng heo
-                      </p>
-                      <div className="mt-2 flex gap-0.5">
-                        {(["do", "den"] as HeoType[]).map((t) => (
-                          <div
-                            key={t}
-                            className="flex flex-1 items-center justify-between gap-0.5 rounded-2xl border border-border/70 bg-background p-2"
-                          >
-                            <span
-                              className={`rounded-full px-2 py-1 text-[12px] font-black ${
-                                t === "den"
-                                  ? "bg-foreground text-background"
-                                  : "bg-red-500 text-white"
-                              }`}
-                            >
-                              {t === "do" ? "Đỏ" : "Đen"}
-                            </span>
-                            <button
-                              onClick={() => updateChatFormHeo(t, -1)}
-                              className="size-7 rounded-full bg-muted/70 font-black relative z-10"
-                            >
-                              −
-                            </button>
-                            <span className="w-5 text-center text-sm font-black">
-                              {chatForm.heo[t]}
-                            </span>
-                            <button
-                              onClick={() => updateChatFormHeo(t, 1)}
-                              className="size-7 rounded-full bg-muted/70 font-black relative z-10"
-                            >
-                              +
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-[8fr_2fr] gap-2 pt-1 relative z-10">
-                      <Button
-                        size="sm"
-                        className="h-10 font-black opacity-80"
-                        onClick={addChatHeo}
-                        disabled={
-                          !chatForm.chatterId ||
-                          !chatForm.victimId ||
-                          (chatForm.heo.do === 0 && chatForm.heo.den === 0)
-                        }
-                      >
-                        Chốt chặt heo
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-10 font-black"
-                        onClick={() => setShowChatHeoForm(false)}
-                      >
-                        Hủy
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="relative z-10 h-9 gap-1 font-black"
-                    onClick={() => setShowChatHeoForm((v) => !v)}
-                  >
-                    <Plus className="size-3.5" />
-                    Thêm
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Kết quả tạm tính */}
-        {rankViewMode === "list" && (
-          <Card className="overflow-hidden border-border/70 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-chart-2/10 text-chart-2">
-                  <CheckCircle2 className="size-4" />
-                </div>
-                Kết quả tạm tính
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-4 gap-2">
-                {players.map((player) => {
-                  const sc = computedScores[player.id];
-                  return (
-                    <div
-                      key={player.id}
-                      className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 text-center transition-colors ${scoreBoxClass(sc)}`}
-                    >
-                      <span className="text-xs font-black uppercase tracking-wide opacity-70">
-                        {pShort(player.id)}
-                      </span>
-                      <span className="text-xl font-black tabular-nums">
-                        {scoreFmt(sc)}
-                      </span>
-                    </div>
-                  );
-                })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="relative z-10 h-9 gap-1 font-black"
+                  onClick={() => setShowChatHeoForm((v) => !v)}
+                >
+                  <Plus className="size-3.5" />
+                  Thêm
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1934,46 +1339,43 @@ export default function MatchPage() {
             {fetcher.data.error}
           </div>
         )}
-
-        {/* Submit */}
-        {rankViewMode === "list" && (
-          <Button
-            size="lg"
-            className="sticky bottom-24 z-20 h-14 w-full gap-2 rounded-2xl text-sm font-black shadow-xl shadow-primary/20"
-            disabled={
-              isSaving ||
-              (submitted && fetcher.data?.success) ||
-              !rankingComplete ||
-              !currentParticipant
-            }
-            onClick={handleSave}
-          >
-            {isSaving ? (
-              <>
-                <Swords className="size-4 animate-pulse" />
-                Đang lưu ván đấu...
-              </>
-            ) : submitted && fetcher.data?.success ? (
-              <>
-                <CheckCircle2 className="size-4" />
-                Đã lưu ván đấu
-              </>
-            ) : !rankingComplete ? (
-              <>
-                <Swords className="size-4" />
-                {activeNhot
-                  ? `Chọn hạng 2 và 3 (${selectCounter}/${requiredSelections})`
-                  : `Chọn đủ người chơi (${selectCounter}/${players.length})`}
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="size-4" />
-                Lưu ván {currentRoundNo}
-              </>
-            )}
-          </Button>
-        )}
       </main>
+      <ChatHeoDialog
+        open={showChatHeo && showChatHeoForm}
+        onOpenChange={(o) => {
+          setShowChatHeoForm(o);
+          if (!o) setShowChatHeo(false);
+        }}
+        players={players}
+        chatForm={chatForm}
+        setChatForm={setChatForm}
+        nhotVictimIds={nhotVictimIds}
+        addChatHeo={addChatHeo}
+        updateChatFormHeo={updateChatFormHeo}
+        pShort={pShort}
+      />
+
+      <NhotBaiDialog
+        open={expandBonus && !confirmNhot}
+        onOpenChange={(o) => (o ? setExpandBonus(true) : closeNhotBai())}
+        players={players}
+        nhotForm={nhotForm}
+        setNhotForm={setNhotForm}
+        nhotFormVictimIds={nhotFormVictimIds}
+        showDenBai={showDenBai}
+        setShowDenBai={setShowDenBai}
+        dennerId={dennerId}
+        setDennerId={setDennerId}
+        denForIds={denForIds}
+        setDenForIds={setDenForIds}
+        dennerCandidates={dennerCandidates}
+        denForCandidates={denForCandidates}
+        toggleNhotVictim={toggleNhotVictim}
+        updateVictimHeo={updateVictimHeo}
+        addNhot={addNhot}
+        removeNhot={removeNhot}
+        pShort={pShort}
+      />
       {showBtnToTop && (
         <div className="fixed z-20 bottom-24 right-6">
           <Button

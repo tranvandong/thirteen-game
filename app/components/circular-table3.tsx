@@ -210,11 +210,11 @@ export function CircularTable3({
           }}
           disabled={disabledSaveButton}
         >
-          {!disabledSaveButton && (
+          {/* {!disabledSaveButton && (
             <div className="absolute inset-1 rounded-full animate-spin">
               <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
             </div>
-          )}
+          )} */}
 
           {isLoading && (
             <div className="absolute inset-1 rounded-full animate-spin">
