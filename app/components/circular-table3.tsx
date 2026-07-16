@@ -60,11 +60,11 @@ const SECTIONS = [
     side: "Right",
     clipPath: "polygon(100% 0, 100% 100%, 50% 50%)",
     contentStyle: {
-      width: SIZE,
-      height: BORDER,
-      right: -OFFSET,
-      bottom: OFFSET,
-      transform: "rotate(90deg)",
+      width: "100%",
+      height: "50%",
+      right: "25%",
+      bottom: "25%",
+      transform: "translateX(50%) rotate(90deg)",
     },
   },
   {
@@ -87,11 +87,11 @@ const SECTIONS = [
     side: "Left",
     clipPath: "polygon(0 100%, 0 0, 50% 50%)",
     contentStyle: {
-      width: SIZE,
-      height: BORDER,
-      left: -OFFSET,
-      bottom: OFFSET,
-      transform: "rotate(270deg)",
+      width: "100%",
+      height: "50%",
+      left: "25%",
+      bottom: "25%",
+      transform: "translateX(-50%) rotate(270deg)",
     },
   },
 ];
@@ -353,7 +353,7 @@ export function CircularTable3({
                   dung nhu .top-content/.right-content/.bottom-content/.left-content
                   trong file mau, de chu luon doc dung chieu tu huong ngoi cua nguoi do. */}
               <div
-                className="pointer-events-none absolute z-10 flex flex-col items-center py-3 gap-1 px-2 text-center"
+                className="pointer-events-none absolute z-10 flex flex-col items-center pt-3 gap-0.5 px-2 text-center"
                 style={section.contentStyle}
               >
                 {showAsActive && (
@@ -458,7 +458,7 @@ export function CircularTable3({
                 )}
 
                 {/* Hang 1: badge trang thai + ten + diem (tuong duong dong "Nam" trong mau) */}
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center gap-0.5">
                   {isFixed ? (
                     <span
                       className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black ${

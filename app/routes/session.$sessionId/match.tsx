@@ -49,7 +49,12 @@ import type {
   NhotBai,
   VictimHeo,
 } from "~/types/match.type";
-import { buildPigCounts, computedScoresHelper } from "~/helpers/match.helper";
+import {
+  buildPigCounts,
+  computedScoresHelper,
+  heatBackground,
+  PROGRESS_COLORS,
+} from "~/helpers/match.helper";
 import { ChatHeoDialog } from "~/components/match/chatheo-dialog";
 import { NhotBaiDialog } from "~/components/match/nhotbai-dialog";
 
@@ -192,6 +197,12 @@ export default function MatchPage() {
       };
     })
     .sort((a, b) => b.totalScore - a.totalScore);
+
+  const totalScore = playerTotals.reduce(
+    (acc, pt) =>
+      acc + (pt.totalScore !== null && pt.totalScore > 0 ? pt.totalScore : 0),
+    0,
+  );
 
   // ── State ─────────────────────────────────────────────────
   const [selectOrder, setSelectOrder] = useState<(number | null)[]>([]);
@@ -813,7 +824,12 @@ export default function MatchPage() {
     <>
       <main className="relative mx-auto flex max-w-3xl flex-col gap-4 px-3 pb-4 pt-6 sm:px-4">
         {/* Header */}
-        <section className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm">
+        <section
+          style={{
+            background: heatBackground(totalScore),
+          }}
+          className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm"
+        >
           <div className="relative p-5">
             <div className="absolute -right-14 -top-14 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
             <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/10 blur-3xl" />
@@ -881,7 +897,12 @@ export default function MatchPage() {
                     (_, i) => (
                       <div
                         key={i}
-                        className={`h-2 rounded-full transition-all ${i < accumulated.khap ? "bg-chart-4" : "bg-muted"}`}
+                        style={{
+                          ...(i < accumulated.khap
+                            ? { backgroundColor: PROGRESS_COLORS[i] }
+                            : {}),
+                        }}
+                        className={`h-2 rounded-full transition-all bg-muted`}
                       />
                     ),
                   )}
@@ -913,7 +934,12 @@ export default function MatchPage() {
                     (_, i) => (
                       <div
                         key={i}
-                        className={`h-2 rounded-full transition-all ${i < accumulated.sanh ? "bg-chart-1" : "bg-muted"}`}
+                        style={{
+                          ...(i < accumulated.sanh
+                            ? { backgroundColor: PROGRESS_COLORS[i] }
+                            : {}),
+                        }}
+                        className={`h-2 rounded-full transition-all bg-muted`}
                       />
                     ),
                   )}
@@ -972,35 +998,34 @@ export default function MatchPage() {
               isLoading={isSaving}
             />
           </div>
-        </section>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
-          <div className="flex items-center justify-center gap-2 w-full">
-            <div className="flex gap-4">
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-9 gap-2 font-black text-sm"
-                onClick={() => setExpandBonus(true)}
-              >
-                <Plus className="size-4" />
-                Nhốt bài
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-9 gap-2 font-black text-sm"
-                onClick={() => {
-                  setShowChatHeo((v) => !v);
-                  setShowChatHeoForm(true);
-                }}
-              >
-                <Plus className="size-4" />
-                Chặt heo
-              </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20 mb-4">
+            <div className="flex items-center justify-center gap-2 w-full">
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-9 gap-2 font-black text-sm"
+                  onClick={() => setExpandBonus(true)}
+                >
+                  <Plus className="size-4" />
+                  Nhốt bài
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-9 gap-2 font-black text-sm"
+                  onClick={() => {
+                    setShowChatHeo((v) => !v);
+                    setShowChatHeoForm(true);
+                  }}
+                >
+                  <Plus className="size-4" />
+                  Chặt heo
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* ── Nhốt bài ─────────────────────────── */}
         {expandBonus && (

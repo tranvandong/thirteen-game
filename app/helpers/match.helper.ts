@@ -164,3 +164,29 @@ export function buildPigCounts(
 
   return counts;
 }
+
+export const PROGRESS_COLORS = [
+  "#00FF7F",
+  "#00FF40",
+  "#66FF00",
+  "#B8FF00",
+  "#F2FF00",
+  "#FFF000",
+  "#FFC400",
+  "#FF9100",
+  "#FF3D00",
+  "#FF0033",
+];
+
+export const heatBackground = (totalScore: number) =>
+  totalScore <= 25
+    ? "linear-gradient(to bottom, rgba(34,197,94,.35) 0%, transparent 16%)"
+    : totalScore <= 50
+      ? "linear-gradient(to bottom, rgba(250,204,21,.35) 0%, transparent 20%)"
+      : totalScore <= 75
+        ? "linear-gradient(to bottom, rgba(245,158,11,.5) 0%, rgba(245,158,11,.12) 15%, transparent 24%)"
+        : totalScore <= 100
+          ? "linear-gradient(to bottom, rgba(249,115,22,.65) 0%, rgba(249,115,22,.18) 18%, transparent 28%)"
+          : totalScore <= 125
+            ? "linear-gradient(to bottom, rgba(239,68,68,.8) 0%, rgba(239,68,68,.22) 20%, transparent 40%)"
+            : "linear-gradient(to bottom, rgba(185,28,28,.95) 0%, rgba(239,68,68,.28) 22%, transparent 70%)";
