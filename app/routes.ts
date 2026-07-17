@@ -35,8 +35,9 @@ export default [
     "api/sessions/active-by-device",
     "routes/api/sessions/active-by-device.ts",
   ),
-    route(
+  route(
     "api/sessions/:sessionId/devices/reconnect",
     "routes/session.$sessionId/devices/reconnect.ts",
   ),
+  route("api/tts", "routes/api.tts.ts"),
 ] satisfies RouteConfig;

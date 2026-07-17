@@ -42,6 +42,7 @@ import { joinSession, leaveSession } from "~/lib/socket.client";
 import { createFingerprint } from "~/helpers/fingerprint.helper";
 import { Background } from "~/components/background";
 import { Button } from "~/components/ui/button";
+import { playTTS } from "~/helpers/match.helper";
 
 const FINGERPRINT_KEY = "device_fingerprint";
 
@@ -170,10 +171,23 @@ export async function clientLoader({
   }
 
   const showBackground = localStorage.getItem("showBackground") === "true";
+  const enableTTS = localStorage.getItem("textToSpeed") === "true";
+  const playerPositions = JSON.parse(
+    localStorage.getItem("player-positions") || "[]",
+  );
 
   const loaderData: SessionLoaderData = {
     ...data,
-    config: { ...data.config, showBackground },
+    players: data.players
+      .map((p, i) => {
+        const player = playerPositions.find((pp: any) => pp.id === p.id);
+        return {
+          ...p,
+          orderNo: player?.orderNo ?? p.orderNo,
+        };
+      })
+      .sort((a, b) => a.orderNo - b.orderNo),
+    config: { ...data.config, showBackground, enableTTS },
     currentParticipant,
   };
 

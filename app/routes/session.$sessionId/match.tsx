@@ -3,6 +3,7 @@ import { useFetcher, useLoaderData, useParams } from "react-router";
 import type { Route } from "./+types/match";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { doReadNumber, ReadingConfig } from "read-vietnamese-number";
 import {
   CheckCircle2,
   RotateCcw,
@@ -53,10 +54,14 @@ import {
   buildPigCounts,
   computedScoresHelper,
   heatBackground,
+  playTTS,
   PROGRESS_COLORS,
 } from "~/helpers/match.helper";
 import { ChatHeoDialog } from "~/components/match/chatheo-dialog";
 import { NhotBaiDialog } from "~/components/match/nhotbai-dialog";
+
+const readingConfig = new ReadingConfig();
+readingConfig.unit = [""];
 
 export async function loader({
   params,
@@ -554,13 +559,6 @@ export default function MatchPage() {
   const removeChatHeo = (id: string) =>
     setChatHeoList((p) => p.filter((c) => c.id !== id));
 
-  const setViewMode = (mode: "list" | "table" | "table2") => {
-    setRankViewMode(() => {
-      localStorage.setItem("rankViewMode", mode);
-      return mode;
-    });
-  };
-
   // ── Helpers: nhot bai ────────────────────────────────────
   const addNhot = () => {
     if (!nhotForm.nhotterId || nhotForm.victims.length === 0) return;
@@ -702,7 +700,7 @@ export default function MatchPage() {
     setConfirmNhot(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!currentParticipant || !rankingComplete || isSaving) return;
 
     const pigCounts = buildPigCounts(
@@ -721,7 +719,7 @@ export default function MatchPage() {
       redPigNo: pigCounts[player.id].red,
     }));
 
-    fetcher.submit(
+    await fetcher.submit(
       {
         intent: "save-round",
         createdBy: currentParticipant.id,
@@ -730,6 +728,23 @@ export default function MatchPage() {
       { method: "post" },
     );
     setSubmitted(true);
+    if (config?.enableTTS) {
+      const nextKhap = !khapWinner
+        ? accumulated.khap < gameConfig.maxKhapAccumulate
+          ? accumulated.khap + 1
+          : gameConfig.maxKhapAccumulate
+        : 1;
+
+      const nextSanh = !sanhWinner
+        ? accumulated.sanh < gameConfig.maxSanhAccumulate
+          ? accumulated.sanh + 1
+          : gameConfig.maxSanhAccumulate
+        : 1;
+      if (nextKhap > 2 || nextSanh > 4) {
+        const text = `Ván tiếp theo. Khạp ${doReadNumber(`${nextKhap}`, readingConfig)}. Sảnh ${doReadNumber(`${nextSanh}`, readingConfig)}.`;
+        playTTS(text);
+      }
+    }
   };
 
   const pShort = (id: string) =>

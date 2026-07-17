@@ -170,6 +170,7 @@ export function CircularTable3({
     tapSound.play();
   };
 
+
   const getBackgroundImage = (score: number, active: boolean) => {
     if (!active) return undefined;
 
@@ -337,13 +338,8 @@ export function CircularTable3({
                   // score > 20 && isSelected ? "border border-chart-1/20 bg-chart-1/10" : "",
                 )}
                 style={{
-                  borderWidth: BORDER,
                   borderRadius: RADIUS,
                   clipPath: section.clipPath,
-                  ...(section.side === "Top" && { borderBottomWidth: 0 }),
-                  ...(section.side === "Bottom" && { borderTopWidth: 0 }),
-                  ...(section.side === "Right" && { borderLeftWidth: 0 }),
-                  ...(section.side === "Left" && { borderRightWidth: 0 }),
                   ...(showAsActive ? { border: "4px solid #02bc7d" } : {}),
                   backgroundImage: getBackgroundImage(score, showAsActive),
                 }}

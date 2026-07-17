@@ -31,7 +31,7 @@ import {
   type Player,
 } from "~/stores/useSessionStore";
 import { playerDevices, players, sessions } from "~/db/schema";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Field,
   FieldContent,
@@ -317,6 +317,13 @@ export default function SettingsPage() {
 
   const cancelEdit = () => setIsEditing(false);
 
+  const setLocalStoragePlayers = (updates: Player[]) => {
+    localStorage.setItem(
+      "player-positions",
+      JSON.stringify(updates.map((p) => ({ id: p.id, orderNo: p.orderNo }))),
+    );
+  };
+
   const saveEdit = () => {
     const updates = players.map((p) => ({
       id: p.id,
@@ -324,15 +331,19 @@ export default function SettingsPage() {
       initialScore: parseInt(editDrafts[p.id]?.initialScore ?? "0", 10) || 0,
       orderNo: p.orderNo,
     }));
+
     fetcher.submit(
       { intent: "update-players", updates: JSON.stringify(updates) },
       { method: "POST" },
     );
+    setLocalStoragePlayers(updates);
   };
 
+  const updatePositionPlayerLocal = (updates: Player[]) => {
+    setLocalStoragePlayers(updates);
+  };
   const handleFinishSession = () => {
     const fingerprint = localStorage.getItem("device_fingerprint");
-    console.log("fingerprint", fingerprint);
     fetcher.submit(
       { intent: "finish-session", fingerprint },
       { method: "POST" },
@@ -343,9 +354,13 @@ export default function SettingsPage() {
     localStorage.setItem("showBackground", value.toString());
     updateConfig({ showBackground: value });
   };
+  const toggleTTS = (value: boolean) => {
+    localStorage.setItem("textToSpeed", value.toString());
+    updateConfig({ enableTTS: value });
+  };
   const movePlayers = (players: Player[]) => {
-    console.log("movePlayers", players);
     sortPlayers(players);
+    if (!isOwner) updatePositionPlayerLocal(players);
   };
   return (
     <main className="p-4 flex flex-col gap-4">
@@ -369,7 +384,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
                 <Gamepad2 className="size-4" />
               </div>
-              Chọn nhân vật
+              Cấu hình nhân vật
             </div>
 
             {isOwner &&
@@ -404,19 +419,9 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="flex flex-col gap-3">
-          {isEditing ? (
+        {!isOwner ? (
+          <CardContent className="flex flex-col gap-3">
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 px-3 py-2">
-                <div className="flex flex-1 gap-2">
-                  <div className="flex-1 min-w-0 rounded-md text-sm">
-                    Tên nhân vật
-                  </div>
-                  <div className="w-20 shrink-0 rounded-md text-sm text-right">
-                    Giáp
-                  </div>
-                </div>
-              </div>
               {players.map((player, idx) => {
                 const draft = editDrafts[player.id] ?? {
                   name: player.name,
@@ -430,125 +435,163 @@ export default function SettingsPage() {
                     <div className="flex flex-1 gap-2 items-center">
                       <span className="text-[11px]">{postion[idx]}</span>
                       <Move move={movePlayers} player={player} />
-                      <input
-                        type="text"
-                        value={draft.name}
-                        maxLength={100}
-                        placeholder="Tên nhân vật"
-                        onChange={(e) =>
-                          setEditDrafts((prev) => ({
-                            ...prev,
-                            [player.id]: {
-                              ...prev[player.id],
-                              name: e.target.value,
-                            },
-                          }))
-                        }
-                        className="relative z-10 flex-1 min-w-0 rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                      <input
-                        type="number"
-                        value={draft.initialScore}
-                        placeholder="Điểm"
-                        onChange={(e) =>
-                          setEditDrafts((prev) => ({
-                            ...prev,
-                            [player.id]: {
-                              ...prev[player.id],
-                              initialScore: e.target.value,
-                            },
-                          }))
-                        }
-                        className="relative z-10 w-20 shrink-0 rounded-md border bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
+                      <div className="">{player.name}</div>
                     </div>
                   </div>
                 );
               })}
-              <p className="text-xs text-muted-foreground text-center">
-                Sửa tên và điểm ban đầu cho từng nhân vật.
-              </p>
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-2">
-                {playerList.map((player) => {
-                  const isSelectedByMe = mySelectedPlayerId === player.id;
-                  const isTaken = takenPlayerIds.has(player.id);
-                  const takenBy = isTaken
-                    ? participantsWithPlayer.find(
-                        (p) => p.selectedPlayerId === player.id,
-                      )
-                    : null;
-
+          </CardContent>
+        ) : (
+          <CardContent className="flex flex-col gap-3">
+            {isEditing ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <div className="flex flex-1 gap-2">
+                    <div className="flex-1 min-w-0 rounded-md text-sm">
+                      Tên nhân vật
+                    </div>
+                    <div className="w-20 shrink-0 rounded-md text-sm text-right">
+                      Giáp
+                    </div>
+                  </div>
+                </div>
+                {players.map((player, idx) => {
+                  const draft = editDrafts[player.id] ?? {
+                    name: player.name,
+                    initialScore: String(player.initialScore ?? 0),
+                  };
                   return (
-                    <button
+                    <div
                       key={player.id}
-                      disabled={!!mySelectedPlayerId || isTaken || isBusy}
-                      onClick={() => handleSelectPlayer(player.id)}
-                      className={[
-                        "relative flex flex-col items-center gap-1 p-3 rounded-lg border text-sm font-medium transition-colors",
-                        isSelectedByMe
-                          ? "bg-primary/10 border-primary text-primary"
-                          : isTaken
-                            ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed opacity-60"
-                            : mySelectedPlayerId
-                              ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed"
-                              : "bg-muted border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
-                      ].join(" ")}
+                      className="flex items-center gap-2 p-3 rounded-lg bg-muted"
                     >
-                      {isSelectedByMe && (
-                        <CheckCircle2 className="absolute top-2 right-2 size-4 text-primary" />
-                      )}
-                      <div
-                        className={[
-                          "flex items-center justify-center size-10 rounded-full text-base font-bold",
-                          isSelectedByMe
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-background text-foreground",
-                        ].join(" ")}
-                      >
-                        {player.name.charAt(0).toUpperCase()}
+                      <div className="flex flex-1 gap-2 items-center">
+                        <span className="text-[11px]">{postion[idx]}</span>
+                        <Move move={movePlayers} player={player} />
+                        <input
+                          type="text"
+                          value={draft.name}
+                          maxLength={100}
+                          placeholder="Tên nhân vật"
+                          onChange={(e) =>
+                            setEditDrafts((prev) => ({
+                              ...prev,
+                              [player.id]: {
+                                ...prev[player.id],
+                                name: e.target.value,
+                              },
+                            }))
+                          }
+                          className="relative z-10 flex-1 min-w-0 rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                        <input
+                          type="number"
+                          value={draft.initialScore}
+                          placeholder="Điểm"
+                          onChange={(e) =>
+                            setEditDrafts((prev) => ({
+                              ...prev,
+                              [player.id]: {
+                                ...prev[player.id],
+                                initialScore: e.target.value,
+                              },
+                            }))
+                          }
+                          className="relative z-10 w-20 shrink-0 rounded-md border bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        />
                       </div>
-                      <span>
-                        {player.name} <strong className="text-xs">({postion[player.orderNo - 1]})</strong>
-                      </span>
-                      {(player.initialScore ?? 0) !== 0 && (
-                        <div className="relative inline-flex items-center justify-center">
-                          <Shield className="size-8 text-muted-foreground" />
-                          <span className="absolute text-[9px] font-bold text-muted-foreground leading-none">
-                            {player.initialScore}
-                          </span>
-                        </div>
-                      )}
-                      {isTaken && takenBy && (
-                        <span className="text-xs text-muted-foreground">
-                          ← {takenBy.displayName}
-                        </span>
-                      )}
-                      {isSelectedByMe && (
-                        <span className="text-xs text-primary font-normal">
-                          Bạn đang chọn
-                        </span>
-                      )}
-                    </button>
+                    </div>
                   );
                 })}
+                <p className="text-xs text-muted-foreground text-center">
+                  Sửa tên và điểm ban đầu cho từng nhân vật.
+                </p>
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  {playerList.map((player) => {
+                    const isSelectedByMe = mySelectedPlayerId === player.id;
+                    const isTaken = takenPlayerIds.has(player.id);
+                    const takenBy = isTaken
+                      ? participantsWithPlayer.find(
+                          (p) => p.selectedPlayerId === player.id,
+                        )
+                      : null;
 
-              {!mySelectedPlayerId && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
-                </p>
-              )}
-              {mySelectedPlayerId && !isOwner && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại.
-                </p>
-              )}
-            </>
-          )}
-        </CardContent>
+                    return (
+                      <button
+                        key={player.id}
+                        disabled={!!mySelectedPlayerId || isTaken || isBusy}
+                        onClick={() => handleSelectPlayer(player.id)}
+                        className={[
+                          "relative flex flex-col items-center gap-1 p-3 rounded-lg border text-sm font-medium transition-colors",
+                          isSelectedByMe
+                            ? "bg-primary/10 border-primary text-primary"
+                            : isTaken
+                              ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed opacity-60"
+                              : mySelectedPlayerId
+                                ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed"
+                                : "bg-muted border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
+                        ].join(" ")}
+                      >
+                        {isSelectedByMe && (
+                          <CheckCircle2 className="absolute top-2 right-2 size-4 text-primary" />
+                        )}
+                        <div
+                          className={[
+                            "flex items-center justify-center size-10 rounded-full text-base font-bold",
+                            isSelectedByMe
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-background text-foreground",
+                          ].join(" ")}
+                        >
+                          {player.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span>
+                          {player.name}{" "}
+                          <strong className="text-xs">
+                            ({postion[player.orderNo - 1]})
+                          </strong>
+                        </span>
+                        {(player.initialScore ?? 0) !== 0 && (
+                          <div className="relative inline-flex items-center justify-center">
+                            <Shield className="size-8 text-muted-foreground" />
+                            <span className="absolute text-[9px] font-bold text-muted-foreground leading-none">
+                              {player.initialScore}
+                            </span>
+                          </div>
+                        )}
+                        {isTaken && takenBy && (
+                          <span className="text-xs text-muted-foreground">
+                            ← {takenBy.displayName}
+                          </span>
+                        )}
+                        {isSelectedByMe && (
+                          <span className="text-xs text-primary font-normal">
+                            Bạn đang chọn
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {!mySelectedPlayerId && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
+                  </p>
+                )}
+                {mySelectedPlayerId && !isOwner && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại.
+                  </p>
+                )}
+              </>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       {/* ------------------------------------------------------------------ */}
@@ -702,6 +745,23 @@ export default function SettingsPage() {
             id="switch-enable-background"
             checked={gameConfig?.showBackground}
             onCheckedChange={toggleBackground}
+            className="relative z-10"
+          />
+        </Field>
+      </FieldLabel>
+
+      <FieldLabel htmlFor="switch-share">
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldTitle>Cho phép thông báo trong ván đấu</FieldTitle>
+            <FieldDescription>
+              Đọc số khạp, sảnh mỗi tích lũy mỗi ván đấu
+            </FieldDescription>
+          </FieldContent>
+          <Switch
+            id="switch-enable-background"
+            checked={gameConfig?.enableTTS}
+            onCheckedChange={toggleTTS}
             className="relative z-10"
           />
         </Field>

@@ -11,6 +11,7 @@ export interface MatchLoaderData {
     orderNo: number;
     totalScore: number | null;
   }>;
+  textToSpeed?: any
 }
 
 // ── Types ────────────────────────────────────────────────────

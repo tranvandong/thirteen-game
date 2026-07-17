@@ -21,6 +21,7 @@ export interface GameConfig {
   sanhScore: number;
   sanhLimit: number;
   showBackground?: boolean;
+  enableTTS?: boolean; 
 }
 
 export interface Player {

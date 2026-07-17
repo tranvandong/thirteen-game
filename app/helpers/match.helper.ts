@@ -190,3 +190,38 @@ export const heatBackground = (totalScore: number) =>
           : totalScore <= 125
             ? "linear-gradient(to bottom, rgba(239,68,68,.8) 0%, rgba(239,68,68,.22) 20%, transparent 40%)"
             : "linear-gradient(to bottom, rgba(185,28,28,.95) 0%, rgba(239,68,68,.28) 22%, transparent 70%)";
+
+// play-tts
+
+let currentAudio: HTMLAudioElement | null = null;
+
+export async function playTTS(text: string) {
+  const response = await fetch("/api/tts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  const blob = await response.blob();
+
+  const url = URL.createObjectURL(blob);
+
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+
+  currentAudio = new Audio(url);
+
+  currentAudio.onended = () => {
+    URL.revokeObjectURL(url);
+  };
+
+  await currentAudio.play();
+}

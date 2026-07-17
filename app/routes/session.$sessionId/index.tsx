@@ -15,7 +15,6 @@ import { Trophy, Crown, Flame, Spade, Shield } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { getRoundMeta } from "~/lib/round.server";
 import { useLoaderData, useFetcher } from "react-router";
-import type { MatchLoaderData } from "./match";
 import { useGameConfig, usePlayers } from "~/stores/useSessionStore";
 import { useMemo } from "react";
 

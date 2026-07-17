@@ -37,6 +37,7 @@
     "react-dom": "^19.2.6",
     "react-is": "^19.2.7",
     "react-router": "7.16.0",
+    "read-vietnamese-number": "^2.3.1",
     "recharts": "^3.8.0",
     "shadcn": "^4.10.0",
     "socket.io": "^4.8.3",
