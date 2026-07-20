@@ -146,7 +146,7 @@ export function NhotBaiDialog({
                       victims: f.victims.filter((v) => v.victimId !== p.id),
                     }))
                   }
-                  className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
+                  className={`relative z-10 uppercase tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors ${
                     nhotForm.nhotterId === p.id
                       ? "border border-primary bg-chart-1/10 text-chart-1"
                       : "border-border bg-background/10 text-foreground hover:border-primary/40"
@@ -184,7 +184,7 @@ export function NhotBaiDialog({
                       }`}
                     >
                       <div
-                        className={`relative z-10 flex-1 font-black  ${isVictim ? "text-destructive" : "text-foreground"}`}
+                        className={`relative z-10 uppercase tracking-wider flex-1 font-black  ${isVictim ? "text-destructive" : "text-foreground"}`}
                         onClick={() => toggleNhotVictim(p.id)}
                       >
                         {pShort(p.id)}
@@ -262,7 +262,7 @@ export function NhotBaiDialog({
                             denForCandidates.filter((id) => id !== pid),
                           );
                         }}
-                        className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
+                        className={`relative z-10 uppercase tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors ${
                           selected
                             ? "border-destructive bg-destructive/10 text-destructive"
                             : "border-border bg-background text-foreground hover:border-destructive/30"
@@ -295,7 +295,7 @@ export function NhotBaiDialog({
                                 : [...prev, pid],
                             )
                           }
-                          className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors ${
+                          className={`relative z-10 uppercase tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors ${
                             selected
                               ? "border-chart-1 bg-chart-1/20 text-chart-1"
                               : "border-border bg-background text-foreground hover:border-chart-1/30"

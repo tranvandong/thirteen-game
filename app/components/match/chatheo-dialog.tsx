@@ -136,7 +136,7 @@ export function ChatHeoDialog({
                               : f.victimId,
                         }))
                       }
-                      className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
+                      className={`relative z-10 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
                         chatForm.chatterId === p.id
                           ? "border border-primary bg-chart-1/10 text-chart-1"
                           : "border-border bg-background/10 text-foreground hover:border-primary/40"
@@ -165,7 +165,7 @@ export function ChatHeoDialog({
                       onClick={() =>
                         setChatForm((f) => ({ ...f, victimId: p.id }))
                       }
-                      className={`relative z-10 rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
+                      className={`relative z-10 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
                         chatForm.victimId === p.id
                           ? "border-destructive bg-destructive/10 text-destructive"
                           : "border-border bg-background/10 text-foreground hover:border-destructive/30"

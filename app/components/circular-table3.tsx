@@ -208,7 +208,7 @@ export function CircularTable3({
           <Button
             className={cn(
               "absolute pointer-events-auto left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 shadow-xl shadow-primary/20",
-              !disabledSaveButton && "animate-holy-glow",
+              // !disabledSaveButton && "animate-holy-glow",
             )}
             style={{ width: 80, height: 80 }}
             onClick={(e) => {
@@ -373,10 +373,10 @@ export function CircularTable3({
                         disabled={nhotVictimIds.includes(playerId)}
                         className={`flex items-center gap-1 rounded-2xl border px-3 py-1.5 text-[12px] font-black disabled:opacity-40 ${
                           isKhapWinner
-                            ? "border-chart-4/50 bg-chart-4/20 text-chart-4 shadow-lg"
+                            ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-md"
                             : khapTaken
-                              ? "border-destructive/20 bg-destructive/10 text-destructive shadow-lg"
-                              : "border-border/70 bg-background/90 text-muted-foreground"
+                              ? "border-destructive/20 bg-destructive/10 text-destructive shadow-md"
+                              : "border-border/20 bg-background/50 text-muted-foreground"
                         }`}
                       >
                         <Flame className="size-3 shrink-0" />
@@ -406,10 +406,10 @@ export function CircularTable3({
                         disabled={nhotVictimIds.includes(playerId)}
                         className={`flex items-center gap-1 rounded-2xl border px-3 py-1.5 text-[12px] font-black disabled:opacity-40 shadow-lg ${
                           isSanhWinner
-                            ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-lg"
+                            ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-md"
                             : sanhTaken
-                              ? "border-destructive/20 bg-destructive/10 text-destructive shadow-lg"
-                              : "border-border/70 bg-background/90 text-muted-foreground"
+                              ? "border-destructive/20 bg-destructive/10 text-destructive shadow-md"
+                              : "border-border/20 bg-background/50 text-muted-foreground"
                         }`}
                       >
                         <Spade className="size-3 shrink-0" />
@@ -461,7 +461,7 @@ export function CircularTable3({
                     )}
 
                     <span
-                      className={`truncate font-bold uppercase leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
+                      className={`truncate tracking-wider font-bold uppercase leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
                     >
                       {player.name}
                     </span>
@@ -477,7 +477,7 @@ export function CircularTable3({
 
                     {showAsActive && (
                       <span
-                        className={`tabular-nums leading-none font-bold text-xl text-shadow-sm ${scoreColor(
+                        className={`tabular-nums leading-none font-bold text-xl text-shadow-md  ${scoreColor(
                           score,
                         )}`}
                       >
