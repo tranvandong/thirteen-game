@@ -2,10 +2,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useFetcher, useLoaderData, useParams } from "react-router";
 import type { Route } from "./+types/match";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { doReadNumber, ReadingConfig } from "read-vietnamese-number";
 import {
-  CheckCircle2,
   RotateCcw,
   Flame,
   Scissors,
@@ -16,6 +15,7 @@ import {
   Trash,
   Spade,
   ArrowUpIcon,
+  Loader2,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { redirect } from "react-router";
@@ -31,7 +31,6 @@ import {
   useCurrentParticipant,
   useGameConfig,
   usePlayers,
-  useRounds,
   type Round,
 } from "~/stores/useSessionStore";
 import { useSessionStore } from "~/stores/useSessionStore";
@@ -159,6 +158,8 @@ export default function MatchPage() {
   const session = useSessionStore((s) => s.session);
   const fetcher = useFetcher<typeof action>();
   const matchLoaderFetcher = useFetcher<typeof loader>();
+  const deleteFetcher = useFetcher();
+  const isDeletingRound = deleteFetcher.state !== "idle";
   const handledSaveRoundRef = useRef<number | null>(null);
 
   const roundMeta = matchLoaderFetcher.data?.roundMeta ?? loaderData.roundMeta;
@@ -234,14 +235,38 @@ export default function MatchPage() {
   const [showChatHeo, setShowChatHeo] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
-  const [rankViewMode, setRankViewMode] = useState<"list" | "table" | "table2">(
-    "list",
-  );
 
   const playerIdsKey = useMemo(
     () => players.map((p) => p.id).join(","),
     [players],
   );
+
+  useEffect(() => {
+    if (!sessionCode) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      // tránh refetch chồng lên lúc đang save/delete round
+      if (fetcher.state !== "idle") return;
+      if (deleteFetcher.state !== "idle") return;
+
+      matchLoaderFetcher.load(`/session/${sessionCode}/match`);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionCode]);
+
+  useEffect(() => {
+    if (deleteFetcher.state !== "idle") return;
+    if (!(deleteFetcher.data as any)?.success) return;
+    if (sessionCode) {
+      matchLoaderFetcher.load(`/session/${sessionCode}/match`);
+    }
+  }, [deleteFetcher.state, deleteFetcher.data, sessionCode]);
 
   useEffect(() => {
     window.addEventListener("scroll", () => {
@@ -252,11 +277,6 @@ export default function MatchPage() {
       }
     });
   }, [showBtnToTop]);
-
-  useEffect(() => {
-    const mode = localStorage.getItem("rankViewMode");
-    if (mode) setRankViewMode(mode as any);
-  }, []);
 
   useEffect(() => {
     setSelectOrder((prev) =>
@@ -856,7 +876,10 @@ export default function MatchPage() {
                 </h1>
                 <div className="flex gap-2">
                   {currentRoundId !== undefined && currentRoundNo > 1 && (
-                    <form method="post" className="flex-1 sm:flex-none">
+                    <deleteFetcher.Form
+                      method="post"
+                      className="flex-1 sm:flex-none"
+                    >
                       <input type="hidden" name="intent" value="delete-round" />
                       <input
                         type="hidden"
@@ -866,13 +889,17 @@ export default function MatchPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleReset}
+                        disabled={isDeletingRound}
                         className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
                         type="submit"
                       >
-                        <Trash className="size-3.5" />
+                        {isDeletingRound ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash className="size-3.5" />
+                        )}
                       </Button>
-                    </form>
+                    </deleteFetcher.Form>
                   )}
                   <Button
                     variant="outline"
@@ -1416,6 +1443,16 @@ export default function MatchPage() {
         removeNhot={removeNhot}
         pShort={pShort}
       />
+      {isDeletingRound && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-card px-6 py-5 shadow-lg border border-border/70">
+            <Loader2 className="size-6 animate-spin text-primary" />
+            <p className="text-sm font-semibold text-muted-foreground">
+              Đang xóa ván đấu...
+            </p>
+          </div>
+        </div>
+      )}
       {showBtnToTop && (
         <div className="fixed z-20 bottom-24 right-6">
           <Button
