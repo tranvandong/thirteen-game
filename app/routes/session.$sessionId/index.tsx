@@ -14,9 +14,15 @@ import {
 import { Trophy, Crown, Flame, Spade, Shield } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { getRoundMeta } from "~/lib/round.server";
-import { useLoaderData, useFetcher } from "react-router";
+import {
+  useLoaderData,
+  useFetcher,
+  useParams,
+  data,
+  useRevalidator,
+} from "react-router";
 import { useGameConfig, usePlayers } from "~/stores/useSessionStore";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -46,11 +52,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     .orderBy(players.orderNo);
   const roundMeta = await getRoundMeta(session.id);
 
-  return {
-    session,
-    playerTotals,
-    roundMeta,
-  };
+  return data(
+    {
+      session,
+      playerTotals,
+      roundMeta,
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -127,48 +136,6 @@ function ScorePill({
   );
 }
 
-function LeaderSummaryCard({
-  title,
-  player,
-  accent,
-}: {
-  title: string;
-  player: PlayerTotal | null;
-  accent: "leader" | "lowest";
-}) {
-  const score = player?.totalScore ?? 0;
-
-  return (
-    <Card
-      className={cn(
-        "overflow-hidden border p-3 shadow-sm",
-        accent === "leader"
-          ? "border-primary/20 bg-primary/5"
-          : "border-destructive/15 bg-destructive/5",
-      )}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
-            {accent === "leader" ? (
-              <Crown className="size-3 text-primary" />
-            ) : (
-              <Trophy className="size-3 text-destructive" />
-            )}
-            {title}
-          </div>
-
-          <p className="mt-1.5 pl-4 truncate text-sm font-black text-foreground sm:text-base">
-            {player?.playerName ?? "—"}
-          </p>
-        </div>
-
-        <ScorePill score={score} />
-      </div>
-    </Card>
-  );
-}
-
 function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
   const score = player.totalScore ?? 0;
   const isLeader = rank === 0;
@@ -236,9 +203,26 @@ function EmptyState() {
 export default function SessionScoreboard({
   loaderData,
 }: Route.ComponentProps) {
+  const { sessionId: sessionCode } = useParams();
   const config = useGameConfig();
   const players = usePlayers();
+  const revalidator = useRevalidator();
+
+  // Không cần fetcher nữa — loaderData tự cập nhật sau khi revalidate
   const { playerTotals, roundMeta } = loaderData;
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (revalidator.state !== "idle") return; // tránh gọi chồng
+      revalidator.revalidate();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [revalidator]);
 
   const sorted = [...playerTotals]
     .map((pt) => {
@@ -254,7 +238,6 @@ export default function SessionScoreboard({
   const leader = sorted[0] ?? null;
   const lowest = sorted[sorted.length - 1] ?? null;
 
-  const matchLoaderFetcher = useFetcher<typeof loader>();
   const accumulated = roundMeta.accumulated;
 
   const currentRoundNo = roundMeta.currentRoundNo;

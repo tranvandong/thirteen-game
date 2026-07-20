@@ -4,6 +4,7 @@ import {
   useParams,
   useLocation,
   useNavigate,
+  type ShouldRevalidateFunctionArgs,
 } from "react-router";
 import type { Route } from "./+types/layout";
 import { db } from "~/db/client.server";
@@ -128,6 +129,21 @@ export async function loader({
 }
 
 export async function action({ request }: Route.ActionArgs) {}
+
+export function shouldRevalidate({
+  currentParams,
+  nextParams,
+  formAction,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (formAction?.includes("/settings")) {
+    return true; // action từ trang settings luôn phải revalidate layout
+  }
+  if (currentParams.sessionId === nextParams.sessionId) {
+    return false;
+  }
+  return defaultShouldRevalidate;
+}
 
 // ── Fingerprint helper ──────────────────────────────────────
 //

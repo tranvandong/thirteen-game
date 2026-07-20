@@ -1,4 +1,4 @@
-import { redirect, useLoaderData } from "react-router";
+import { redirect, useFetcher, useLoaderData, useParams } from "react-router";
 import type { Route } from "./+types/history";
 import { eq, asc, inArray } from "drizzle-orm";
 import { db } from "~/db/client.server";
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { History } from "lucide-react";
+import { useEffect } from "react";
 
 export interface HistoryLoaderData {
   players: Array<{ id: string; name: string; shortName: string }>;
@@ -103,9 +104,7 @@ export async function loader({
     .from(sessionTotals)
     .where(eq(sessionTotals.sessionId, session.id));
 
-  const totalsMap = new Map(
-    totalsRows.map((t) => [t.playerId, t.totalScore]),
-  );
+  const totalsMap = new Map(totalsRows.map((t) => [t.playerId, t.totalScore]));
 
   const playerTotals = players.map((p) => totalsMap.get(p.id) ?? 0);
 
@@ -237,8 +236,29 @@ function RoundTable({
 }
 
 export default function HistoryPage() {
-  const { players, rounds, playerTotals } = useLoaderData<HistoryLoaderData>();
+  const { sessionId: sessionCode } = useParams();
+  const fetcher = useFetcher<typeof loader>();
+  const loaderData = useLoaderData<HistoryLoaderData>();
 
+  const players = fetcher.data?.players ?? loaderData.players;
+  const rounds = fetcher.data?.rounds ?? loaderData.rounds;
+  const playerTotals = fetcher.data?.playerTotals ?? loaderData.playerTotals;
+
+  useEffect(() => {
+    if (!sessionCode) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (fetcher.state !== "idle") return; // tránh gọi chồng khi đang có request khác chạy
+      fetcher.load(`/session/${sessionCode}/history`);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionCode]);
   return (
     <main className="flex h-[calc(100dvh-180px)] min-h-0 box-border overflow-hidden p-3 sm:p-4">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden">
@@ -265,7 +285,9 @@ export default function HistoryPage() {
                 <History className="size-6" />
               </div>
               <div>
-                <p className="font-semibold text-foreground">Chưa có người chơi</p>
+                <p className="font-semibold text-foreground">
+                  Chưa có người chơi
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Vui lòng thêm người chơi để bắt đầu ghi lịch sử.
                 </p>
