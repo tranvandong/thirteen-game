@@ -58,6 +58,16 @@ import {
 } from "~/helpers/match.helper";
 import { ChatHeoDialog } from "~/components/match/chatheo-dialog";
 import { NhotBaiDialog } from "~/components/match/nhotbai-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 
 const readingConfig = new ReadingConfig();
 readingConfig.unit = [""];
@@ -235,6 +245,7 @@ export default function MatchPage() {
   const [showChatHeo, setShowChatHeo] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [confirmNhot, setConfirmNhot] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const playerIdsKey = useMemo(
     () => players.map((p) => p.id).join(","),
@@ -876,30 +887,19 @@ export default function MatchPage() {
                 </h1>
                 <div className="flex gap-2">
                   {currentRoundId !== undefined && currentRoundNo > 1 && (
-                    <deleteFetcher.Form
-                      method="post"
-                      className="flex-1 sm:flex-none"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isDeletingRound}
+                      onClick={() => setConfirmDeleteOpen(true)}
+                      className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
                     >
-                      <input type="hidden" name="intent" value="delete-round" />
-                      <input
-                        type="hidden"
-                        name="roundId"
-                        value={currentRoundId}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={isDeletingRound}
-                        className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
-                        type="submit"
-                      >
-                        {isDeletingRound ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <Trash className="size-3.5" />
-                        )}
-                      </Button>
-                    </deleteFetcher.Form>
+                      {isDeletingRound ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash className="size-3.5" />
+                      )}
+                    </Button>
                   )}
                   <Button
                     variant="outline"
@@ -1467,6 +1467,32 @@ export default function MatchPage() {
           </Button>
         </div>
       )}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa ván {currentRoundNo}, quay lại ván trước?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Điểm số của ván này sẽ bị xóa
+              vĩnh viễn.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteFetcher.submit(
+                  { intent: "delete-round", roundId: currentRoundId },
+                  { method: "post" },
+                );
+                setConfirmDeleteOpen(false);
+              }}
+              variant={'destructive'}
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
