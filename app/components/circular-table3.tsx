@@ -1,4 +1,12 @@
-import { Crown, Flame, Scissors, Spade, Swords } from "lucide-react";
+import {
+  Crown,
+  Flame,
+  Minus,
+  Plus,
+  Scissors,
+  Spade,
+  Swords,
+} from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
 import { Button } from "./ui/button";
 import { cn } from "~/lib/utils";
@@ -170,7 +178,6 @@ export function CircularTable3({
     tapSound.play();
   };
 
-
   const getBackgroundImage = (score: number, active: boolean) => {
     if (!active) return undefined;
 
@@ -193,303 +200,273 @@ export function CircularTable3({
     return undefined;
   };
   return (
-    <div className="relative z-10 mx-auto w-full">
-      <div className="relative mx-auto w-full aspect-square">
-        {/* Center hub */}
+    <>
+      <div className="relative z-10 mx-auto w-full mb-4">
+        <div className="relative mx-auto w-full aspect-square">
+          {/* Center hub */}
 
-        <Button
-          className={cn(
-            "absolute pointer-events-auto left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 shadow-xl shadow-primary/20",
-            !disabledSaveButton && "animate-holy-glow",
-          )}
-          style={{ width: 80, height: 80 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            save();
-            successAudioRef.current.currentTime = 0;
-            successAudioRef.current.play();
-          }}
-          disabled={disabledSaveButton}
-        >
-          {/* {!disabledSaveButton && (
+          <Button
+            className={cn(
+              "absolute pointer-events-auto left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 shadow-xl shadow-primary/20",
+              !disabledSaveButton && "animate-holy-glow",
+            )}
+            style={{ width: 80, height: 80 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              save();
+              successAudioRef.current.currentTime = 0;
+              successAudioRef.current.play();
+            }}
+            disabled={disabledSaveButton}
+          >
+            {/* {!disabledSaveButton && (
             <div className="absolute inset-1 rounded-full animate-spin">
               <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
             </div>
           )} */}
 
-          {isLoading && (
-            <div className="absolute inset-1 rounded-full animate-spin">
-              <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
-            </div>
-          )}
+            {isLoading && (
+              <div className="absolute inset-1 rounded-full animate-spin">
+                <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
+              </div>
+            )}
 
-          {!disabledSaveButton || isLoading ? (
-            <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
-              <img
-                src="/icons/swords.gif"
-                alt="swords"
-                className="size-full text-primary/3 rounded-full"
-              />
-            </div>
-          ) : (
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
-              <Swords className="size-14 text-white/50" />
-            </div>
-          )}
-        </Button>
-        <div
-          className="absolute pointer-events-none left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 bg-card"
-          style={{ width: 78, height: 78 }}
-        ></div>
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
-          <Swords className="size-full text-primary/3" />
-        </div>
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
+            {!disabledSaveButton || isLoading ? (
+              <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
+                <img
+                  src="/icons/swords.gif"
+                  alt="swords"
+                  className="size-full text-primary/3 rounded-full"
+                />
+              </div>
+            ) : (
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
+                <Swords className="size-14 text-white/50" />
+              </div>
+            )}
+          </Button>
           <div
-            className="w-full h-px rotate-45"
-            style={{
-              border: 0,
-              backgroundImage:
-                " linear-gradient(to left, rgba(145, 145, 145, 0.2), rgba(0, 0, 0, 0))",
-            }}
+            className="absolute pointer-events-none left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 bg-card"
+            style={{ width: 78, height: 78 }}
           ></div>
-        </div>
-
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-          <div
-            className="w-full h-px rotate-135"
-            style={{
-              border: 0,
-              backgroundImage:
-                " linear-gradient(to left,rgba(145, 145, 145, 0.2  ),  rgba(0, 0, 0, 0))",
-            }}
-          ></div>
-        </div>
-
-        {players.map((player, idx) => {
-          const playerId = player.id;
-          const rankIndex = ranking.indexOf(playerId);
-          const order = selectOrder[idx];
-          const isSelectable = selectableIds.includes(playerId);
-          const isSelected = order !== null;
-          const { label, labelColor, isFixed } = getRowMeta(
-            playerId,
-            rankIndex,
-          );
-          const showAsActive = isFixed || isSelected;
-          const score = computedScores[playerId];
-          const isKhapWinner = khapWinner === playerId;
-          const isSanhWinner = sanhWinner === playerId;
-          const khapTaken = khapWinner !== null && !isKhapWinner;
-          const sanhTaken = sanhWinner !== null && !isSanhWinner;
-          const khapPtsDisplay =
-            isKhapWinner && khapCount > 0
-              ? accumulated.khap * khapCount * gameConfig.khapPoints * 3
-              : 0;
-          const khapPtsLoss =
-            !isKhapWinner && khapWinner !== null && khapCount > 0
-              ? accumulated.khap * khapCount * gameConfig.khapPoints
-              : 0;
-          const effectiveSanh = isSanhWinner ? accumulated.sanh : 0;
-          const sanhPtsDisplay = isSanhWinner
-            ? accumulated.sanh * gameConfig.sanhPoints * 3
-            : 0;
-          const sanhPtsLoss =
-            !isSanhWinner && sanhWinner !== null
-              ? accumulated.sanh * gameConfig.sanhPoints
-              : 0;
-
-          const showBonus =
-            showAsActive ||
-            (selectCounter >= selectableIds.length - 1 &&
-              rankIndex === ranking.length - 1 &&
-              !isFixed);
-
-          const chatHeoAsChatter = chatHeoList.filter(
-            (c) =>
-              c.chatterId === playerId && !nhotVictimIds.includes(c.victimId),
-          );
-          const chatHeoAsVictim = chatHeoList.filter(
-            (c) =>
-              c.victimId === playerId && !nhotVictimIds.includes(c.victimId),
-          );
-          const section = SECTIONS[idx];
-          return (
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
+            <Swords className="size-full text-primary/3" />
+          </div>
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
             <div
-              key={section.id}
-              className="pointer-events-none absolute inset-0"
-            >
-              {/* Vung hinh tam giac de bat click, giu nguyen clip-path nhu file mau (.border) */}
-              <button
-                type="button"
-                aria-label={`Chon huong ${section.label}`}
-                onClick={() => {
-                  handleTap();
-                  if (isSelectable) {
-                    toggleSelect(playerId);
-                  }
-                }}
-                disabled={!isSelectable}
-                className={cn(
-                  "pointer-events-auto absolute inset-0 border-solid border-transparent transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
-                  isSelectable
-                    ? "cursor-pointer bg-gray-300/10"
-                    : "cursor-default bg-transparent",
-                  // score > 20 && isSelected ? "border border-chart-1/20 bg-chart-1/10" : "",
-                )}
-                style={{
-                  borderRadius: RADIUS,
-                  clipPath: section.clipPath,
-                  ...(showAsActive ? { border: "4px solid #02bc7d" } : {}),
-                  backgroundImage: getBackgroundImage(score, showAsActive),
-                }}
-              />
+              className="w-full h-px rotate-45"
+              style={{
+                border: 0,
+                backgroundImage:
+                  " linear-gradient(to left, rgba(145, 145, 145, 0.2), rgba(0, 0, 0, 0))",
+              }}
+            ></div>
+          </div>
 
-              {/* Noi dung cua nguoi choi, tach rieng khoi vung click, dinh vi & xoay
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+            <div
+              className="w-full h-px rotate-135"
+              style={{
+                border: 0,
+                backgroundImage:
+                  " linear-gradient(to left,rgba(145, 145, 145, 0.2  ),  rgba(0, 0, 0, 0))",
+              }}
+            ></div>
+          </div>
+
+          {players.map((player, idx) => {
+            const playerId = player.id;
+            const rankIndex = ranking.indexOf(playerId);
+            const order = selectOrder[idx];
+            const isSelectable = selectableIds.includes(playerId);
+            const isSelected = order !== null;
+            const { label, labelColor, isFixed } = getRowMeta(
+              playerId,
+              rankIndex,
+            );
+            const showAsActive = isFixed || isSelected;
+            const score = computedScores[playerId];
+            const isKhapWinner = khapWinner === playerId;
+            const isSanhWinner = sanhWinner === playerId;
+            const khapTaken = khapWinner !== null && !isKhapWinner;
+            const sanhTaken = sanhWinner !== null && !isSanhWinner;
+            const khapPtsDisplay =
+              isKhapWinner && khapCount > 0
+                ? accumulated.khap * khapCount * gameConfig.khapPoints * 3
+                : 0;
+            const khapPtsLoss =
+              !isKhapWinner && khapWinner !== null && khapCount > 0
+                ? accumulated.khap * khapCount * gameConfig.khapPoints
+                : 0;
+            const effectiveSanh = isSanhWinner ? accumulated.sanh : 0;
+            const sanhPtsDisplay = isSanhWinner
+              ? accumulated.sanh * gameConfig.sanhPoints * 3
+              : 0;
+            const sanhPtsLoss =
+              !isSanhWinner && sanhWinner !== null
+                ? accumulated.sanh * gameConfig.sanhPoints
+                : 0;
+
+            const showBonus =
+              showAsActive ||
+              (selectCounter >= selectableIds.length - 1 &&
+                rankIndex === ranking.length - 1 &&
+                !isFixed);
+
+            const chatHeoAsChatter = chatHeoList.filter(
+              (c) =>
+                c.chatterId === playerId && !nhotVictimIds.includes(c.victimId),
+            );
+            const chatHeoAsVictim = chatHeoList.filter(
+              (c) =>
+                c.victimId === playerId && !nhotVictimIds.includes(c.victimId),
+            );
+            const section = SECTIONS[idx];
+            return (
+              <div
+                key={section.id}
+                className="pointer-events-none absolute inset-0"
+              >
+                {/* Vung hinh tam giac de bat click, giu nguyen clip-path nhu file mau (.border) */}
+                <button
+                  type="button"
+                  aria-label={`Chon huong ${section.label}`}
+                  onClick={() => {
+                    handleTap();
+                    if (isSelectable) {
+                      toggleSelect(playerId);
+                    }
+                  }}
+                  disabled={!isSelectable}
+                  className={cn(
+                    "pointer-events-auto absolute inset-0 border-solid border-transparent transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
+                    isSelectable
+                      ? "cursor-pointer bg-gray-300/10"
+                      : "cursor-default bg-transparent",
+                    // score > 20 && isSelected ? "border border-chart-1/20 bg-chart-1/10" : "",
+                  )}
+                  style={{
+                    borderRadius: RADIUS,
+                    clipPath: section.clipPath,
+                    ...(showAsActive ? { border: "4px solid #02bc7d" } : {}),
+                    backgroundImage: getBackgroundImage(score, showAsActive),
+                  }}
+                />
+
+                {/* Noi dung cua nguoi choi, tach rieng khoi vung click, dinh vi & xoay
                   dung nhu .top-content/.right-content/.bottom-content/.left-content
                   trong file mau, de chu luon doc dung chieu tu huong ngoi cua nguoi do. */}
-              <div
-                className="pointer-events-none absolute z-10 flex flex-col items-center pt-3 gap-0.5 px-2 text-center"
-                style={section.contentStyle}
-              >
-                {showAsActive && (
-                  <div className="pointer-events-auto flex items-center gap-2">
-                    {/* Khap button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTap();
-                        toggleKhapPlayer(playerId);
-                      }}
-                      disabled={nhotVictimIds.includes(playerId)}
-                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[12px] font-black disabled:opacity-40 ${
-                        isKhapWinner
-                          ? "border-chart-4/50 bg-chart-4/20 text-chart-4"
-                          : khapTaken
-                            ? "border-destructive/20 bg-destructive/10 text-destructive"
-                            : "border-border/70 bg-background/90 text-muted-foreground"
-                      }`}
-                    >
-                      <Flame className="size-3 shrink-0" />
-                      Khạp
-                      {isKhapWinner && khapPtsDisplay > 0 && (
-                        <>
-                          <span className="opacity-30">|</span>
-                          <span>+{khapPtsDisplay}</span>
-                        </>
-                      )}
-                      {!isKhapWinner && khapPtsLoss > 0 && (
-                        <>
-                          <span className="opacity-30">|</span>
-                          <span>-{khapPtsLoss}</span>
-                        </>
-                      )}
-                    </button>
+                <div
+                  className="pointer-events-none absolute z-10 flex flex-col items-center pt-3 gap-0.5 px-2 text-center"
+                  style={section.contentStyle}
+                >
+                  {showAsActive && (
+                    <div className="pointer-events-auto flex items-center gap-2">
+                      {/* Khap button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTap();
+                          toggleKhapPlayer(playerId);
+                        }}
+                        disabled={nhotVictimIds.includes(playerId)}
+                        className={`flex items-center gap-1 rounded-2xl border px-3 py-1.5 text-[12px] font-black disabled:opacity-40 ${
+                          isKhapWinner
+                            ? "border-chart-4/50 bg-chart-4/20 text-chart-4 shadow-lg"
+                            : khapTaken
+                              ? "border-destructive/20 bg-destructive/10 text-destructive shadow-lg"
+                              : "border-border/70 bg-background/90 text-muted-foreground"
+                        }`}
+                      >
+                        <Flame className="size-3 shrink-0" />
+                        Khạp
+                        {isKhapWinner && khapPtsDisplay > 0 && (
+                          <>
+                            <span className="opacity-30">|</span>
+                            <span>+{khapPtsDisplay}</span>
+                          </>
+                        )}
+                        {!isKhapWinner && khapPtsLoss > 0 && (
+                          <>
+                            <span className="opacity-30">|</span>
+                            <span>-{khapPtsLoss}</span>
+                          </>
+                        )}
+                      </button>
 
-                    {/* Khap count +/- (only when winner) */}
-                    {isKhapWinner && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateKhapCount(-1);
-                          }}
-                          disabled={khapCount <= 1}
-                          className="flex size-5 items-center justify-center rounded-full bg-background/90 px-1 text-[12px] font-black shadow-sm disabled:opacity-30"
-                        >
-                          -
-                        </button>
-                        <span className="min-w-[14px] text-center text-[12px] font-black text-foreground">
-                          {khapCount}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateKhapCount(1);
-                          }}
-                          disabled={khapCount >= gameConfig.maxKhapAccumulate}
-                          className="flex size-5 items-center justify-center rounded-full bg-background/90 px-1 text-[12px] font-black shadow-sm disabled:opacity-30"
-                        >
-                          +
-                        </button>
-                      </>
-                    )}
-
-                    {/* Sanh button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTap();
-                        toggleSanhPlayer(playerId);
-                      }}
-                      disabled={nhotVictimIds.includes(playerId)}
-                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[12px] font-black disabled:opacity-40 ${
-                        isSanhWinner
-                          ? "border-chart-1/50 bg-chart-1/20 text-chart-1"
-                          : sanhTaken
-                            ? "border-destructive/20 bg-destructive/10 text-destructive"
-                            : "border-border/70 bg-background/90 text-muted-foreground"
-                      }`}
-                    >
-                      <Spade className="size-3 shrink-0" />
-                      Sảnh
-                      {isSanhWinner && sanhPtsDisplay > 0 && (
-                        <>
-                          <span className="opacity-30">|</span>
-                          <span>+{sanhPtsDisplay}</span>
-                        </>
-                      )}
-                      {!isSanhWinner && sanhPtsLoss > 0 && (
-                        <>
-                          <span className="opacity-30">|</span>
-                          <span>-{sanhPtsLoss}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {/* Hang 1: badge trang thai + ten + diem (tuong duong dong "Nam" trong mau) */}
-                <div className="flex flex-col items-center gap-0.5">
-                  {isFixed ? (
-                    <span
-                      className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black ${
-                        playerId === nhotterId
-                          ? "bg-white/20 text-white"
-                          : nhotVictimIds.includes(playerId)
-                            ? "bg-white/20 text-white"
-                            : "bg-white/20 text-white"
-                      }`}
-                    >
-                      {playerId === nhotterId ? (
-                        <Crown className="size-3" />
-                      ) : denForIds.includes(playerId) ? (
-                        "-"
-                      ) : nhotVictimIds.includes(playerId) ? (
-                        "x"
-                      ) : (
-                        "3"
-                      )}
-                    </span>
-                  ) : (
-                    isSelected && (
-                      <span className="flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[14px] font-black bg-primary text-primary-foreground">
-                        {order}
-                      </span>
-                    )
+                      {/* Sanh button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTap();
+                          toggleSanhPlayer(playerId);
+                        }}
+                        disabled={nhotVictimIds.includes(playerId)}
+                        className={`flex items-center gap-1 rounded-2xl border px-3 py-1.5 text-[12px] font-black disabled:opacity-40 shadow-lg ${
+                          isSanhWinner
+                            ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-lg"
+                            : sanhTaken
+                              ? "border-destructive/20 bg-destructive/10 text-destructive shadow-lg"
+                              : "border-border/70 bg-background/90 text-muted-foreground"
+                        }`}
+                      >
+                        <Spade className="size-3 shrink-0" />
+                        Sảnh
+                        {isSanhWinner && sanhPtsDisplay > 0 && (
+                          <>
+                            <span className="opacity-30">|</span>
+                            <span>+{sanhPtsDisplay}</span>
+                          </>
+                        )}
+                        {!isSanhWinner && sanhPtsLoss > 0 && (
+                          <>
+                            <span className="opacity-30">|</span>
+                            <span>-{sanhPtsLoss}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   )}
 
-                  <span
-                    className={`truncate font-bold uppercase leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
-                  >
-                    {player.name}
-                  </span>
+                  {/* Hang 1: badge trang thai + ten + diem (tuong duong dong "Nam" trong mau) */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    {isFixed ? (
+                      <span
+                        className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black ${
+                          playerId === nhotterId
+                            ? "bg-white/20 text-white"
+                            : nhotVictimIds.includes(playerId)
+                              ? "bg-white/20 text-white"
+                              : "bg-white/20 text-white"
+                        }`}
+                      >
+                        {playerId === nhotterId ? (
+                          <Crown className="size-3" />
+                        ) : denForIds.includes(playerId) ? (
+                          "-"
+                        ) : nhotVictimIds.includes(playerId) ? (
+                          "x"
+                        ) : (
+                          "3"
+                        )}
+                      </span>
+                    ) : (
+                      isSelected && (
+                        <span className="flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[14px] font-black bg-primary text-primary-foreground">
+                          {order}
+                        </span>
+                      )
+                    )}
 
-                  {/* {label && (
+                    <span
+                      className={`truncate font-bold uppercase leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
+                    >
+                      {player.name}
+                    </span>
+
+                    {/* {label && (
                     <span
                       className="text-[9px] font-bold leading-none"
                       style={{ color: labelColor }}
@@ -498,25 +475,25 @@ export function CircularTable3({
                     </span>
                   )} */}
 
-                  {showAsActive && (
-                    <span
-                      className={`tabular-nums leading-none font-bold text-xl text-shadow-sm ${scoreColor(
-                        score,
-                      )}`}
-                    >
-                      {scoreFmt(score)}
-                    </span>
-                  )}
+                    {showAsActive && (
+                      <span
+                        className={`tabular-nums leading-none font-bold text-xl text-shadow-sm ${scoreColor(
+                          score,
+                        )}`}
+                      >
+                        {scoreFmt(score)}
+                      </span>
+                    )}
 
-                  {!showAsActive && showBonus && (
-                    <span className="size-1.5 rounded-full bg-chart-1" />
-                  )}
-                </div>
+                    {!showAsActive && showBonus && (
+                      <span className="size-1.5 rounded-full bg-chart-1" />
+                    )}
+                  </div>
 
-                {/* Hang 2: nut Khap + Sanh (tuong duong dong "Sanh Khap" trong mau) */}
+                  {/* Hang 2: nut Khap + Sanh (tuong duong dong "Sanh Khap" trong mau) */}
 
-                {/* Hang 3: chip chat heo (chi hien khi co du lieu) */}
-                {/* {(chatHeoAsChatter.length > 0 || chatHeoAsVictim.length > 0) &&
+                  {/* Hang 3: chip chat heo (chi hien khi co du lieu) */}
+                  {/* {(chatHeoAsChatter.length > 0 || chatHeoAsVictim.length > 0) &&
                   showAsActive && (
                     <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-0.5">
                       {chatHeoAsChatter.map((c) => {
@@ -569,11 +546,43 @@ export function CircularTable3({
                       })}
                     </div>
                   )} */}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {khapWinner && (
+        <div className="flex items-center justify-center gap-2">
+          {khapWinner && khapCount > 0 && (
+            <div className="flex items-center gap-2 rounded-2xl border border-chart-4/30 bg-chart-4/10 px-4 py-2">
+              <Flame className="size-5 text-chart-4" />
+              <span className="text-sm font-bold text-chart-4">
+                Khạp x{khapCount * accumulated.khap}
+              </span>
+              <div className="flex items-center gap-1 ml-2">
+                <button
+                  onClick={() => updateKhapCount(-1)}
+                  disabled={khapCount <= 1}
+                  className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
+                >
+                  <Minus className="size-3" />
+                </button>
+                <span className="w-6 text-center font-bold">
+                  {khapCount}
+                </span>
+                <button
+                  onClick={() => updateKhapCount(1)}
+                  disabled={khapCount >= gameConfig.maxKhapAccumulate}
+                  className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
+                >
+                  <Plus className="size-3" />
+                </button>
               </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
+          )}
+        </div>
+      )}
+    </>
   );
 }
