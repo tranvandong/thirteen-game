@@ -298,7 +298,6 @@ export function CircularTable3({
               !isKhapWinner && khapWinner !== null && khapCount > 0
                 ? accumulated.khap * khapCount * gameConfig.khapPoints
                 : 0;
-            const effectiveSanh = isSanhWinner ? accumulated.sanh : 0;
             const sanhPtsDisplay = isSanhWinner
               ? accumulated.sanh * gameConfig.sanhPoints * 3
               : 0;
@@ -312,15 +311,6 @@ export function CircularTable3({
               (selectCounter >= selectableIds.length - 1 &&
                 rankIndex === ranking.length - 1 &&
                 !isFixed);
-
-            const chatHeoAsChatter = chatHeoList.filter(
-              (c) =>
-                c.chatterId === playerId && !nhotVictimIds.includes(c.victimId),
-            );
-            const chatHeoAsVictim = chatHeoList.filter(
-              (c) =>
-                c.victimId === playerId && !nhotVictimIds.includes(c.victimId),
-            );
             const section = SECTIONS[idx];
             return (
               <div
@@ -353,9 +343,6 @@ export function CircularTable3({
                   }}
                 />
 
-                {/* Noi dung cua nguoi choi, tach rieng khoi vung click, dinh vi & xoay
-                  dung nhu .top-content/.right-content/.bottom-content/.left-content
-                  trong file mau, de chu luon doc dung chieu tu huong ngoi cua nguoi do. */}
                 <div
                   className="pointer-events-none absolute z-10 flex flex-col items-center pt-3 gap-0.5 px-2 text-center"
                   style={section.contentStyle}

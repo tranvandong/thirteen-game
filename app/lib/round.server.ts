@@ -47,6 +47,7 @@ export interface RoundResultInput {
   sanhno: number;
   blackPigNo: number;
   redPigNo: number;
+  nhotterId: string;
 }
 
 export interface SaveRoundResult {
@@ -128,6 +129,7 @@ export async function saveRound(
 
   const hadKhap = results.some((r) => r.khapno > 0);
   const hadSanh = results.some((r) => r.sanhno > 0);
+  const hadNhot = results.some((r) => r.nhotterId !== "");
 
   const saved = await db.transaction(async (tx) => {
     const [config] = await tx
@@ -175,6 +177,7 @@ export async function saveRound(
         accumulatedSanh: accumulated.sanh,
         hadKhap,
         hadSanh,
+        hadNhot,
       })
       .returning();
 

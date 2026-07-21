@@ -55,6 +55,7 @@ import {
   heatBackground,
   playTTS,
   PROGRESS_COLORS,
+  reRanking,
 } from "~/helpers/match.helper";
 import { ChatHeoDialog } from "~/components/match/chatheo-dialog";
 import { NhotBaiDialog } from "~/components/match/nhotbai-dialog";
@@ -479,7 +480,7 @@ export default function MatchPage() {
     }
 
     if (nhotCount === 2) {
-      return [nhotterId!, ...nhotVictimIds, ...nhotOthers];
+      return [nhotterId!, ...nhotOthers, ...nhotVictimIds];
     }
 
     const othersOrdered = players
@@ -740,14 +741,25 @@ export default function MatchPage() {
       activeNhot,
     );
 
+    const rankingMap = reRanking(ranking, activeNhot);
+
     const results: RoundResultInput[] = players.map((player) => ({
       playerId: player.id,
-      rank: ranking.indexOf(player.id) + 1,
+      rank: rankingMap.get(player.id) ?? 0,
       score: computedScores[player.id],
-      khapno: khapWinner === player.id ? accumulated.khap * khapCount : 0,
-      sanhno: sanhWinner === player.id ? accumulated.sanh : 0,
+      khapno: khapWinner
+        ? khapWinner === player.id
+          ? accumulated.khap * khapCount
+          : -(accumulated.khap * khapCount)
+        : 0,
+      sanhno: sanhWinner
+        ? sanhWinner === player.id
+          ? accumulated.sanh
+          : -accumulated.sanh
+        : 0,
       blackPigNo: pigCounts[player.id].black,
       redPigNo: pigCounts[player.id].red,
+      nhotterId: activeNhot?.nhotterId ?? "",
     }));
 
     await fetcher.submit(
@@ -1470,7 +1482,9 @@ export default function MatchPage() {
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xóa ván {currentRoundNo}, quay lại ván trước?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Xóa ván {currentRoundNo}, quay lại ván trước?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Hành động này không thể hoàn tác. Điểm số của ván này sẽ bị xóa
               vĩnh viễn.
@@ -1486,7 +1500,7 @@ export default function MatchPage() {
                 );
                 setConfirmDeleteOpen(false);
               }}
-              variant={'destructive'}
+              variant={"destructive"}
             >
               Xóa
             </AlertDialogAction>

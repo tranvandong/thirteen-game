@@ -143,6 +143,21 @@ export const computedScoresHelper = ({
   return s;
 };
 
+export const reRanking = (ranking: string[], activeNhot: NhotBai | null) => {
+  console.log("ranking: ", ranking);
+  console.log("activeNhot: ", activeNhot);
+
+  const rankingMap = new Map(ranking.map((pid, i) => [pid, i + 1]));
+  const lastIndex = ranking.length - 1;
+  if (activeNhot && activeNhot.victims.length === 2) {
+    rankingMap.set(ranking[1], lastIndex);
+    activeNhot.victims.forEach((v) => {
+      rankingMap.set(v.victimId, lastIndex + 1);
+    });
+  }
+  return rankingMap;
+};
+
 export function buildPigCounts(
   playerIds: string[],
   chatHeoList: ChatHeo[],
@@ -153,13 +168,15 @@ export function buildPigCounts(
   );
 
   chatHeoList.forEach((c) => {
-    counts[c.victimId].red += c.heo.do ?? 0;
-    counts[c.victimId].black += c.heo.den ?? 0;
+    counts[c.victimId].red -= c.heo.do ?? 0;
+    counts[c.victimId].black -= c.heo.den ?? 0;
+    counts[c.chatterId].red += c.heo.do ?? 0;
+    counts[c.chatterId].black += c.heo.den ?? 0;
   });
 
   activeNhot?.victims.forEach((v) => {
-    counts[v.victimId].red += v.heo?.do ?? 0;
-    counts[v.victimId].black += v.heo?.den ?? 0;
+    counts[v.victimId].red -= v.heo?.do ?? 0;
+    counts[v.victimId].black -= v.heo?.den ?? 0;
   });
 
   return counts;

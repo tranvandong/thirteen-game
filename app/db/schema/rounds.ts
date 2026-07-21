@@ -1,4 +1,10 @@
-import { boolean, integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgTable,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { sessions } from "./sessions";
 
@@ -26,6 +32,8 @@ export const rounds = pgTable("rounds", {
 
   /** Ván này có người thắng sảnh */
   hadSanh: boolean("had_sanh").notNull().default(false),
+
+  hadNhot: boolean("had_nhot").notNull().default(false),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
