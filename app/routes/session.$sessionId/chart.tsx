@@ -8,7 +8,7 @@ import { rounds } from "~/db/schema/rounds";
 import { players } from "~/db/schema/players";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { TrendingUp, BarChart2, TrendingDown } from "lucide-react";
 import {
   CartesianGrid,
@@ -68,19 +68,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     .where(eq(rounds.sessionId, sessionId))
     .orderBy(rounds.roundNo);
 
-  // 3. Lấy tất cả round_results cho session này
-  //    Join round_results → rounds để lọc theo sessionId
-  const allResults = await db
+  // 3. Chỉ lấy đúng những cột cần cho biểu đồ điểm tích lũy theo từng ván
+  //    (đây là dữ liệu chuỗi thời gian nên bắt buộc phải lấy theo hàng,
+  //    không gộp được bằng SUM/COUNT như các biểu đồ tổng hợp bên dưới)
+  const roundScoreRows = await db
     .select({
-      roundId: roundResults.roundId,
       roundNo: rounds.roundNo,
       playerId: roundResults.playerId,
-      rank: roundResults.rank,
       score: roundResults.score,
-      khapno: roundResults.khapno,
-      sanhno: roundResults.sanhno,
-      blackPigNo: roundResults.blackPigNo,
-      redPigNo: roundResults.redPigNo,
     })
     .from(roundResults)
     .innerJoin(rounds, eq(roundResults.roundId, rounds.id))
@@ -93,8 +88,74 @@ export async function loader({ params }: Route.LoaderArgs) {
     .from(sessionTotals)
     .where(eq(sessionTotals.sessionId, sessionId));
 
+  // 5. Đếm số lần về nhất/nhì/ba/tư theo từng player — dùng COUNT + GROUP BY
+  //    thay vì kéo toàn bộ round_results về rồi filter/đếm ở JS.
+  const rankCounts = await db
+    .select({
+      playerId: roundResults.playerId,
+      rank: roundResults.rank,
+      total: sql<number>`count(*)`.mapWith(Number),
+    })
+    .from(roundResults)
+    .innerJoin(rounds, eq(roundResults.roundId, rounds.id))
+    .where(eq(rounds.sessionId, sessionId))
+    .groupBy(roundResults.playerId, roundResults.rank);
+
+  const rankCountMap = new Map<string, Record<1 | 2 | 3 | 4, number>>();
+  for (const row of rankCounts) {
+    if (row.rank < 1 || row.rank > 4) continue;
+    if (!rankCountMap.has(row.playerId)) {
+      rankCountMap.set(row.playerId, { 1: 0, 2: 0, 3: 0, 4: 0 });
+    }
+    rankCountMap.get(row.playerId)![row.rank as 1 | 2 | 3 | 4] = row.total;
+  }
+
+  // 6. Tổng sảnh/khạp dương & âm theo từng player — dùng SUM có điều kiện
+  //    (CASE WHEN ... > 0 / < 0) ngay trong SQL thay vì reduce ở JS.
+  const bonusSums = await db
+    .select({
+      playerId: roundResults.playerId,
+      sanhDuong:
+        sql<number>`sum(case when ${roundResults.sanhno} > 0 then ${roundResults.sanhno} else 0 end)`.mapWith(
+          Number,
+        ),
+      sanhAm:
+        sql<number>`sum(case when ${roundResults.sanhno} < 0 then ${roundResults.sanhno} else 0 end)`.mapWith(
+          Number,
+        ),
+      khapDuong:
+        sql<number>`sum(case when ${roundResults.khapno} > 0 then ${roundResults.khapno} else 0 end)`.mapWith(
+          Number,
+        ),
+      khapAm:
+        sql<number>`sum(case when ${roundResults.khapno} < 0 then ${roundResults.khapno} else 0 end)`.mapWith(
+          Number,
+        ),
+      redPigDuong:
+        sql<number>`sum(case when ${roundResults.redPigNo} > 0 then ${roundResults.redPigNo} else 0 end)`.mapWith(
+          Number,
+        ),
+      redPigAm:
+        sql<number>`sum(case when ${roundResults.redPigNo} < 0 then ${roundResults.redPigNo} else 0 end)`.mapWith(
+          Number,
+        ),
+      blackPigDuong:
+        sql<number>`sum(case when ${roundResults.blackPigNo} > 0 then ${roundResults.blackPigNo} else 0 end)`.mapWith(
+          Number,
+        ),
+      blackPigAm:
+        sql<number>`sum(case when ${roundResults.blackPigNo} < 0 then ${roundResults.blackPigNo} else 0 end)`.mapWith(
+          Number,
+        ),
+    })
+    .from(roundResults)
+    .innerJoin(rounds, eq(roundResults.roundId, rounds.id))
+    .where(eq(rounds.sessionId, sessionId))
+    .groupBy(roundResults.playerId);
+
+  const bonusSumMap = new Map(bonusSums.map((b) => [b.playerId, b]));
+
   // ── Xây dựng dữ liệu cho Chart 1: Điểm tích lũy qua từng ván ──
-  // Tính cumulative score theo từng ván cho từng player
   const playerIdToKey = (id: string) => {
     const idx = sessionPlayers.findIndex((p) => p.id === id);
     return idx >= 0 ? `p${idx + 1}` : null;
@@ -110,7 +171,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   });
 
   for (const round of sessionRounds) {
-    const resultsForRound = allResults.filter(
+    const resultsForRound = roundScoreRows.filter(
       (r) => r.roundNo === round.roundNo,
     );
     for (const res of resultsForRound) {
@@ -125,25 +186,47 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   const roundScores = Object.values(cumulativeMap);
 
-  // ── Chart 2: Số lần về nhất / về tư ──
-  const rankData = sessionPlayers.map((p, i) => {
-    const key = `p${i + 1}`;
-    const playerResults = allResults.filter((r) => r.playerId === p.id);
+  // ── Chart 2: Số lần về nhất / nhì / ba / tư ──
+  const rankData = sessionPlayers.map((p) => {
+    const counts = rankCountMap.get(p.id) ?? { 1: 0, 2: 0, 3: 0, 4: 0 };
     return {
       name: p.name,
-      key,
-      nhat: playerResults.filter((r) => r.rank === 1).length,
-      tu: playerResults.filter((r) => r.rank === 4).length,
+      nhat: counts[1],
+      nhi: counts[2],
+      ba: counts[3],
+      tu: counts[4],
     };
   });
 
-  // ── Chart 3: Số lượng sảnh / khạp ──
-  const bonusData = sessionPlayers.map((p) => {
-    const playerResults = allResults.filter((r) => r.playerId === p.id);
+  // ── Chart 3a: Sảnh — cột dương / âm riêng theo từng player ──
+  const sanhData = sessionPlayers.map((p) => {
+    const sums = bonusSumMap.get(p.id);
     return {
       name: p.name,
-      sanh: playerResults.reduce((sum, r) => sum + r.sanhno, 0),
-      khap: playerResults.reduce((sum, r) => sum + r.khapno, 0),
+      duong: sums?.sanhDuong ?? 0,
+      am: sums?.sanhAm ?? 0,
+    };
+  });
+
+  // ── Chart 3b: Khạp — cột dương / âm riêng theo từng player ──
+  const khapData = sessionPlayers.map((p) => {
+    const sums = bonusSumMap.get(p.id);
+    return {
+      name: p.name,
+      duong: sums?.khapDuong ?? 0,
+      am: sums?.khapAm ?? 0,
+    };
+  });
+
+  // ── Chart 3c: Heo đỏ & Heo đen — 4 cột riêng theo từng player ──
+  const pigData = sessionPlayers.map((p) => {
+    const sums = bonusSumMap.get(p.id);
+    return {
+      name: p.name,
+      redDuong: sums?.redPigDuong ?? 0,
+      redAm: sums?.redPigAm ?? 0,
+      blackDuong: sums?.blackPigDuong ?? 0,
+      blackAm: sums?.blackPigAm ?? 0,
     };
   });
 
@@ -161,16 +244,25 @@ export async function loader({ params }: Route.LoaderArgs) {
     roundCount: sessionRounds.length,
     roundScores,
     rankData,
-    bonusData,
+    sanhData,
+    khapData,
+    pigData,
     totalScores,
   };
 }
 
 // ── Component ────────────────────────────────────────────────
 export default function ChartPage({ loaderData }: Route.ComponentProps) {
-  const { players, roundCount, roundScores, rankData, bonusData, totalScores } =
-    loaderData;
-    
+  const {
+    players,
+    roundCount,
+    roundScores,
+    rankData,
+    sanhData,
+    khapData,
+    pigData,
+    totalScores,
+  } = loaderData;
 
   // Tạo chart config động từ danh sách players
   const CHART_COLORS = [
@@ -191,12 +283,26 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
 
   const rankChartConfig = {
     nhat: { label: "Về nhất", color: "var(--chart-4)" },
+    nhi: { label: "Về nhì", color: "var(--chart-1)" },
+    ba: { label: "Về ba", color: "var(--chart-3)" },
     tu: { label: "Về tư", color: "var(--destructive)" },
   } satisfies ChartConfig;
 
-  const bonusChartConfig = {
-    sanh: { label: "Sảnh", color: "var(--chart-1)" },
-    khap: { label: "Khạp", color: "var(--chart-4)" },
+  const sanhChartConfig = {
+    duong: { label: "Thắng", color: "var(--chart-2)" },
+    am: { label: "Thua", color: "var(--destructive)" },
+  } satisfies ChartConfig;
+
+  const khapChartConfig = {
+    duong: { label: "Thắng", color: "var(--chart-2)" },
+    am: { label: "Thua", color: "var(--destructive)" },
+  } satisfies ChartConfig;
+
+  const pigChartConfig = {
+    redDuong: { label: "Đỏ thắng", color: "#e7000b" },
+    redAm: { label: "Đỏ thua", color: "#e7000b" },
+    blackDuong: { label: "Đen thắng", color: "#000" },
+    blackAm: { label: "Đen thua", color: "#000" },
   } satisfies ChartConfig;
 
   const totalScoreConfig = {
@@ -270,11 +376,13 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         </CardFooter>
       </Card>
 
-      {/* ── 2. Số lần về nhất / về tư ─────────────────────────── */}
+      {/* ── 2. Số lần về nhất / nhì / ba / tư ─────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Về nhất &amp; Về tư</CardTitle>
-          <CardDescription>Số lần đạt hạng 1 và hạng 4</CardDescription>
+          <CardTitle>Xếp hạng qua các ván</CardTitle>
+          <CardDescription>
+            Số lần đạt hạng 1, 2, 3 và 4 của từng người chơi
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={rankChartConfig} className="relative z-10">
@@ -307,6 +415,22 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                   className="text-card-foreground"
                 />
               </Bar>
+              <Bar dataKey="nhi" fill="var(--color-nhi)" radius={4}>
+                <LabelList
+                  dataKey="nhi"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+              <Bar dataKey="ba" fill="var(--color-ba)" radius={4}>
+                <LabelList
+                  dataKey="ba"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
               <Bar dataKey="tu" fill="var(--color-tu)" radius={4}>
                 <LabelList
                   dataKey="tu"
@@ -332,18 +456,18 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         )}
       </Card>
 
-      {/* ── 3. Số lượng sảnh / khạp ───────────────────────────── */}
+      {/* ── 3a. Sảnh — dương / âm riêng theo từng player ──────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Sảnh &amp; Khạp</CardTitle>
+          <CardTitle>Sảnh</CardTitle>
           <CardDescription>
-            Số lượng sảnh và khạp của từng người chơi
+            Tổng số sảnh thắng và thua của từng người chơi
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={bonusChartConfig} className="relative z-10">
+          <ChartContainer config={sanhChartConfig} className="relative z-10">
             <BarChart
-              data={bonusData}
+              data={sanhData}
               margin={{
                 top: 30,
                 right: 0,
@@ -358,28 +482,24 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 tickMargin={10}
                 axisLine={false}
               />
+              <YAxis tickLine={false} axisLine={false} width={28} />
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent indicator="dashed" />}
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="sanh" fill="var(--color-sanh)" radius={4}>
+              <Bar dataKey="duong" fill="var(--color-duong)" radius={4}>
                 <LabelList
-                  dataKey="sanh"
+                  dataKey="duong"
                   position="top"
                   fontSize={12}
                   className="text-card-foreground"
                 />
               </Bar>
-              <Bar
-                dataKey="khap"
-                fill="var(--color-khap)"
-                radius={4}
-                className="mt-8"
-              >
+              <Bar dataKey="am" fill="var(--color-am)" radius={4}>
                 <LabelList
-                  dataKey="khap"
-                  position="top"
+                  dataKey="am"
+                  position="bottom"
                   fontSize={12}
                   className="text-card-foreground"
                 />
@@ -388,7 +508,141 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </ChartContainer>
         </CardContent>
         <CardFooter className="text-sm text-muted-foreground">
-          Tổng hợp sảnh và khạp trong toàn bộ phiên
+          Tổng hợp sảnh trong toàn bộ phiên
+        </CardFooter>
+      </Card>
+
+      {/* ── 3b. Khạp — dương / âm riêng theo từng player ──────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Khạp</CardTitle>
+          <CardDescription>
+            Tổng số khạp thắng và thua của từng người chơi
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={khapChartConfig} className="relative z-10">
+            <BarChart
+              data={khapData}
+              margin={{
+                top: 30,
+                right: 0,
+                left: 0,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <YAxis tickLine={false} axisLine={false} width={28} />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dashed" />}
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="duong" fill="var(--color-duong)" radius={4}>
+                <LabelList
+                  dataKey="duong"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+              <Bar dataKey="am" fill="var(--color-am)" radius={4}>
+                <LabelList
+                  dataKey="am"
+                  position="bottom"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="text-sm text-muted-foreground">
+          Tổng hợp khạp trong toàn bộ phiên
+        </CardFooter>
+      </Card>
+
+      {/* ── 3c. Heo đỏ & Heo đen — 4 cột riêng theo từng player ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pig Die</CardTitle>
+          <CardDescription>
+            Tổng số heo đỏ và heo đen thắng/thua của từng người chơi
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={pigChartConfig} className="relative z-10">
+            <BarChart
+              data={pigData}
+              margin={{
+                top: 30,
+                right: 0,
+                left: 0,
+                bottom: 5,
+              }}
+              // barGap={0}
+              barCategoryGap="12%"
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <YAxis tickLine={false} axisLine={false} width={28} />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dashed" />}
+              />
+
+              <Bar dataKey="redDuong" fill="var(--color-redDuong)" radius={2}>
+                <LabelList
+                  dataKey="redDuong"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+              <Bar dataKey="redAm" fill="var(--color-redAm)" radius={2}>
+                <LabelList
+                  dataKey="redAm"
+                  position="bottom"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+              <Bar
+                dataKey="blackDuong"
+                fill="var(--color-blackDuong)"
+                radius={2}
+              >
+                <LabelList
+                  dataKey="blackDuong"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+              <Bar dataKey="blackAm" fill="var(--color-blackAm)" radius={2}>
+                <LabelList
+                  dataKey="blackAm"
+                  position="bottom"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="text-sm text-muted-foreground">
+          Tổng hợp heo đỏ và heo đen trong toàn bộ phiên
         </CardFooter>
       </Card>
     </main>
