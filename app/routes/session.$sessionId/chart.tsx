@@ -20,6 +20,7 @@ import {
   BarChart,
   Cell,
   LabelList,
+  ReferenceLine,
 } from "recharts";
 import {
   Card,
@@ -299,10 +300,10 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
   } satisfies ChartConfig;
 
   const pigChartConfig = {
-    redDuong: { label: "Đỏ thắng", color: "#e7000b" },
-    redAm: { label: "Đỏ thua", color: "#e7000b" },
-    blackDuong: { label: "Đen thắng", color: "#000" },
-    blackAm: { label: "Đen thua", color: "#000" },
+    redDuong: { label: "Đỏ thắng", color: "var(--chart-2)" },
+    redAm: { label: "Đỏ thua", color: "var(--destructive)" },
+    blackDuong: { label: "Đen thắng", color: "var(--chart-2)" },
+    blackAm: { label: "Đen thua", color: "var(--destructive)" },
   } satisfies ChartConfig;
 
   const totalScoreConfig = {
@@ -571,7 +572,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
       {/* ── 3c. Heo đỏ & Heo đen — 4 cột riêng theo từng player ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Pig Die</CardTitle>
+          <CardTitle>Pig</CardTitle>
           <CardDescription>
             Tổng số heo đỏ và heo đen thắng/thua của từng người chơi
           </CardDescription>
@@ -588,6 +589,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
               }}
               // barGap={0}
               barCategoryGap="12%"
+              
             >
               <CartesianGrid vertical={false} />
               <XAxis
@@ -602,18 +604,18 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 content={<ChartTooltipContent indicator="dashed" />}
               />
 
-              <Bar dataKey="redDuong" fill="var(--color-redDuong)" radius={2}>
+              <Bar dataKey="redDuong" fill="var(--color-redDuong)" radius={2} stroke="#f00" strokeWidth={1}>
                 <LabelList
                   dataKey="redDuong"
                   position="top"
                   fontSize={12}
-                  className="text-card-foreground"
+                  className="text-card-foreground border-red-500 border-2"
                 />
               </Bar>
-              <Bar dataKey="redAm" fill="var(--color-redAm)" radius={2}>
+              <Bar dataKey="redAm" fill="var(--color-redAm)" radius={2} stroke="#f00" strokeWidth={1}>
                 <LabelList
                   dataKey="redAm"
-                  position="bottom"
+                  position="top"
                   fontSize={12}
                   className="text-card-foreground"
                 />
@@ -622,6 +624,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 dataKey="blackDuong"
                 fill="var(--color-blackDuong)"
                 radius={2}
+                stroke="#000" strokeWidth={1}
               >
                 <LabelList
                   dataKey="blackDuong"
@@ -630,14 +633,16 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                   className="text-card-foreground"
                 />
               </Bar>
-              <Bar dataKey="blackAm" fill="var(--color-blackAm)" radius={2}>
+              <Bar dataKey="blackAm" fill="var(--color-blackAm)" radius={2} stroke="#000" strokeWidth={1}>
                 <LabelList
                   dataKey="blackAm"
-                  position="bottom"
+                  position="top"
                   fontSize={12}
                   className="text-card-foreground"
+                
                 />
               </Bar>
+              {/* <ReferenceLine y={0} stroke="#fff" /> */}
             </BarChart>
           </ChartContainer>
         </CardContent>

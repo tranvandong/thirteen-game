@@ -1482,12 +1482,10 @@ export default function MatchPage() {
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Xóa ván {currentRoundNo}, quay lại ván trước?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Xóa dữ liệu ván trước?</AlertDialogTitle>
             <AlertDialogDescription>
-              Hành động này không thể hoàn tác. Điểm số của ván này sẽ bị xóa
-              vĩnh viễn.
+              Hành động này không thể hoàn tác. <br></br> Điểm số của ván trước
+              sẽ bị xóa vĩnh viễn.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
