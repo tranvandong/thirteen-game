@@ -504,10 +504,10 @@ function RoundTable({
                           : undefined
                       }
                       className={[
-                        "inline-flex size-7 items-center justify-center rounded-xl text-xs font-black",
+                        "inline-flex size-4 items-center justify-center text-sm font-black leading-[normal]",
                         isBonusRound
-                          ? "border-2 border-red-500 bg-amber-500 text-white"
-                          : "bg-primary text-primary-foreground",
+                          ? "border-b-2 pb-0.5 border-amber-50 text-white"
+                          : "",
                       ].join(" ")}
                     >
                       {round.roundNo}

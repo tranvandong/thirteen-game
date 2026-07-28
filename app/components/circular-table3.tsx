@@ -182,11 +182,11 @@ export function CircularTable3({
     if (!active) return undefined;
 
     if (score <= -10) {
-      return "radial-gradient(rgba(255, 0, 0, 0.9), rgba(255,255,255,0))";
+      return "radial-gradient(rgba(255, 0, 0, 1), rgba(255,0,0,0.4))";
     }
 
     if (score >= 10) {
-      return "radial-gradient(rgb(0 255 0 / 0.7), rgba(255,255,255,0))";
+      return "radial-gradient(rgb(216 0 255 / 1), rgba(216,0,255,0.4))";
     }
 
     if (score < 0) {
