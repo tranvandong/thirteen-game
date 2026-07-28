@@ -207,7 +207,7 @@ export function CircularTable3({
 
           <Button
             className={cn(
-              "absolute pointer-events-auto left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-border/60 shadow-xl shadow-primary/20",
+              "absolute pointer-events-auto left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 shadow-xl shadow-primary/20",
               // !disabledSaveButton && "animate-holy-glow",
             )}
             style={{ width: 80, height: 80 }}
@@ -230,25 +230,22 @@ export function CircularTable3({
                 <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
               </div>
             )}
-
-            {!disabledSaveButton || isLoading ? (
-              <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
-                <img
-                  src="/icons/swords.gif"
-                  alt="swords"
-                  className="size-full text-primary/3 rounded-full"
-                />
-              </div>
-            ) : (
-              <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
-                <Swords className="size-14 text-white/50" />
-              </div>
-            )}
+            
+              {!disabledSaveButton || isLoading ? (
+                <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
+                  <img
+                    src="/icons/swords.gif"
+                    alt="swords"
+                    className="size-full text-primary/3 rounded-full"
+                  />
+                </div>
+              ) : (
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
+                  <Swords className="size-14 text-white/50" />
+                </div>
+              )}
+            
           </Button>
-          <div
-            className="absolute pointer-events-none left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 bg-card"
-            style={{ width: 78, height: 78 }}
-          ></div>
           <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
             <Swords className="size-full text-primary/5" />
           </div>
@@ -555,9 +552,7 @@ export function CircularTable3({
                 >
                   <Minus className="size-3" />
                 </button>
-                <span className="w-6 text-center font-bold">
-                  {khapCount}
-                </span>
+                <span className="w-6 text-center font-bold">{khapCount}</span>
                 <button
                   onClick={() => updateKhapCount(1)}
                   disabled={khapCount >= gameConfig.maxKhapAccumulate}
