@@ -22,10 +22,16 @@ import {
   sessions,
   sessionTotals,
   rounds,
+  roundResults,
   playerDevices,
   players,
 } from "~/db/schema";
 import { getRoundMeta } from "./round.server";
+import {
+  sendPushToSession,
+  sendPushToPlayer,
+  PUSH_SWING_THRESHOLD,
+} from "./push.server";
 
 // ── Singleton ─────────────────────────────────────────────────
 
@@ -114,6 +120,88 @@ export async function broadcastRoundSaved(sessionCode: string) {
     totals,
   });
   io.to(room).emit("score:updated", { sessionCode, totals });
+
+  // Web Push OS-level: thông báo thiết bị của người tham gia được kết nối
+  // với nhân vật có biến động điểm lớn / đổi thứ hạng.
+  try {
+    await notifyScoreChanges(sessionDbId, sessionCode, round.id, totals);
+  } catch (err) {
+    console.error("notifyScoreChanges failed:", err);
+  }
+}
+
+/**
+ * Sau khi lưu ván, tính biến động của từng nhân vật (so với totals trước ván)
+ * và gửi Web Push TARGETED tới thiết bị của người đã chọn nhân vật đó.
+ * - prevTotals = newTotals - điểm ván này (tái tạo từ round_results)
+ * - push nếu |Δđiểm| ≥ PUSH_SWING_THRESHOLD HOẶC đổi thứ hạng
+ */
+async function notifyScoreChanges(
+  sessionDbId: string,
+  sessionCode: string,
+  roundId: string,
+  newTotals: Array<{ playerId: string; totalScore: number }>,
+) {
+  const results = await db
+    .select({ playerId: roundResults.playerId, score: roundResults.score })
+    .from(roundResults)
+    .where(eq(roundResults.roundId, roundId));
+  if (!results.length) return;
+
+  const newMap = new Map(
+    newTotals.map((t) => [t.playerId, Number(t.totalScore)]),
+  );
+
+  // Tái tạo totals trước ván: prev = new - điểm ván này
+  const prevMap = new Map<string, number>();
+  for (const [pid, total] of newMap) {
+    const r = results.find((x) => x.playerId === pid);
+    prevMap.set(pid, total - (r ? Number(r.score) : 0));
+  }
+
+  const rankOf = (
+    map: Map<string, number>,
+    playerId: string,
+  ): number | null => {
+    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+    const idx = sorted.findIndex(([id]) => id === playerId);
+    return idx === -1 ? null : idx + 1;
+  };
+
+  // Map tên nhân vật
+  const pls = await db
+    .select({ id: players.id, name: players.name })
+    .from(players)
+    .where(eq(players.sessionId, sessionDbId));
+  const nameMap = new Map(pls.map((p) => [p.id, p.name]));
+
+  for (const r of results) {
+    const pid = r.playerId;
+    const newRank = rankOf(newMap, pid);
+    const prevRank = rankOf(prevMap, pid);
+    const delta = Number(r.score);
+
+    const bigSwing = Math.abs(delta) >= PUSH_SWING_THRESHOLD;
+    const rankChanged =
+      prevRank != null && newRank != null && prevRank !== newRank;
+
+    if (bigSwing || rankChanged) {
+      const name = nameMap.get(pid) ?? "Nhân vật";
+      const parts: string[] = [];
+      if (rankChanged) parts.push(`hạng ${prevRank} → ${newRank}`);
+      if (bigSwing) parts.push(`${delta > 0 ? "+" : ""}${delta} điểm`);
+      console.log(
+        `[Push] notifyScoreChanges → player ${pid} (${name}): ` +
+          `delta=${delta}, rank ${prevRank}→${newRank}, gửi push`,
+      );
+      await sendPushToPlayer(sessionDbId, pid, {
+        title: `${name} có biến động`,
+        body: parts.join(" · "),
+        url: `/session/${sessionCode}`,
+        tag: `player-${pid}`,
+      });
+    }
+  }
 }
 
 /**
@@ -390,6 +478,22 @@ export function initSocketServer(httpServer: HttpServer) {
           playerId,
           playerName: player.name,
         });
+
+        // Web Push OS-level: báo toàn bộ phòng (trừ người vừa chọn).
+        try {
+          await sendPushToSession(
+            sessionDbId,
+            {
+              title: `${participant.displayName} đã chọn nhân vật`,
+              body: player.name,
+              url: `/session/${sessionCode}`,
+              tag: `select-${participantId}`,
+            },
+            participantId,
+          );
+        } catch (err) {
+          console.error("push chọn nhân vật failed:", err);
+        }
       },
     );
 
@@ -431,6 +535,22 @@ export function initSocketServer(httpServer: HttpServer) {
           playerId,
           playerName: player.name,
         });
+
+        // Web Push OS-level: báo toàn bộ phòng (trừ người vừa bỏ chọn).
+        try {
+          await sendPushToSession(
+            sessionDbId,
+            {
+              title: `${participant.displayName} đã bỏ chọn nhân vật`,
+              body: player.name,
+              url: `/session/${sessionCode}`,
+              tag: `select-${participantId}`,
+            },
+            participantId,
+          );
+        } catch (err) {
+          console.error("push bỏ chọn nhân vật failed:", err);
+        }
       },
     );
 

@@ -2,6 +2,7 @@ import {
   pgTable,
   uuid,
   varchar,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -45,8 +46,10 @@ export const playerDevices = pgTable(
     /** Fingerprint thiết bị để nhận diện lại (FingerprintJS hoặc tự sinh) */
     fingerprint: varchar("fingerprint", { length: 255 }).notNull(),
 
-    /** FCM token hoặc APNs token — nullable vì user có thể từ chối notification */
-    pushToken: varchar("push_token", { length: 512 }),
+    /** Push subscription (JSON của PushSubscription) — nullable vì user có
+     *  thể từ chối notification. Dùng kiểu text vì chuỗi subscription
+     *  (endpoint + keys) thường vượt quá 512 ký tự. */
+    pushToken: text("push_token"),
 
     /** 'ios' | 'android' | 'web' */
     platform: varchar("platform", { length: 20 }).notNull(),

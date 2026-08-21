@@ -297,6 +297,17 @@ async function registerDevice(
   sessionId: string,
   participantId: string,
 ): Promise<void> {
+  // Kiểm tra VAPID public key có đúng định dạng:
+  // base64url của public key P-256 uncompressed (0x04 + 32 + 32 = 65 byte).
+  function isValidVapidPublicKey(key: string): boolean {
+    try {
+      const b64 = key.replace(/-/g, "+").replace(/_/g, "/");
+      const bin = atob(b64);
+      return bin.length === 65 && bin.charCodeAt(0) === 0x04;
+    } catch {
+      return false;
+    }
+  }
   const fingerprint = await getOrCreateFingerprint();
 
   // 1. Nhận diện platform
@@ -324,22 +335,55 @@ async function registerDevice(
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return;
 
+  // Chuẩn hoá VAPID public key: bỏ khoảng trắng / xuống dòng / dấu ngoặc
+  // (nguyên nhân hay gặp gây lỗi "applicationServerKey is not valid").
+  const rawKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY as
+    | string
+    | undefined) ?? "";
+  const vapidPublicKey = rawKey.trim().replace(/\s+/g, "");
+
+  if (!vapidPublicKey) {
+    console.warn(
+      "[Push] VITE_VAPID_PUBLIC_KEY chưa cấu hình → bỏ qua đăng ký push.",
+    );
+    return;
+  }
+  if (!isValidVapidPublicKey(vapidPublicKey)) {
+    console.error(
+      "[Push] VITE_VAPID_PUBLIC_KEY không hợp lệ (không phải base64url của public key P-256). " +
+        `Độ dài=${vapidPublicKey.length}. Hãy sinh lại bằng 'npx web-push generate-vapid-keys' và điền đúng Public key.`,
+    );
+    return;
+  }
+
   try {
     const registration = await navigator.serviceWorker.ready;
+    // Nếu đã có subscription cũ (vd: đổi VAPID public key) → huỷ để đăng
+    // ký lại bằng public key mới, tránh lỗi "Existing registration".
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+      await existing.unsubscribe();
+    }
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
+      applicationServerKey: vapidPublicKey,
     });
 
     const pushToken = JSON.stringify(subscription);
+    console.log("[Push] Subscribed OK, endpoint:", subscription.endpoint);
 
     await fetch(`/api/sessions/${sessionId}/devices`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ participantId, fingerprint, platform, pushToken }),
     });
-  } catch {
-    // Push subscription thất bại (user từ chối hoặc không hỗ trợ) — bỏ qua
+  } catch (err) {
+    // Push subscription thất bại (user từ chối, sai VAPID public key,
+    // hoặc không hỗ trợ) — log để dễ debug.
+    console.error(
+      "[Push] subscribe thất bại:",
+      err instanceof Error ? err.message : err,
+    );
   }
 }
 
