@@ -7,7 +7,7 @@ import { db } from "~/db/client.server";
 import { players } from "~/db/schema/players";
 import { sessionTotals } from "~/db/schema/session-totals";
 import { eq } from "drizzle-orm";
-import { onScoreUpdated } from "~/lib/socket.client";
+import { onScoreUpdated, offScoreUpdated } from "~/lib/socket.client";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const { sessionId } = params;
@@ -36,15 +36,23 @@ export default function ScoreBoardPage({ loaderData }: Route.ComponentProps) {
   const [players, setPlayers] = useState(loaderData.playerList);
 
   useEffect(() => {
-    onScoreUpdated(({ totalScores }: any) => {
+    const handler = ({
+      totals,
+    }: {
+      totals: Array<{ playerId: string; totalScore: number }>;
+    }) => {
+      const map = new Map(totals.map((t) => [t.playerId, t.totalScore]));
       const sorted = loaderData.playerList
         .map((p: any) => ({
           ...p,
-          totalScore: totalScores.find((t: any) => t.playerId === p.id)?.totalScore || 0,
+          totalScore: map.get(p.id) ?? p.totalScore,
         }))
         .sort((a: any, b: any) => b.totalScore - a.totalScore);
       setPlayers(sorted);
-    });
+    };
+
+    onScoreUpdated(handler);
+    return () => offScoreUpdated(handler);
   }, [loaderData.playerList]);
 
   return (

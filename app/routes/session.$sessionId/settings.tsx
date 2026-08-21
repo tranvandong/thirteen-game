@@ -9,6 +9,16 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Switch } from "~/components/ui/switch";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
+import {
   Users,
   UserPlus,
   Settings,
@@ -18,6 +28,7 @@ import {
   Pencil,
   Shield,
   LogOut,
+  UserX,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -44,6 +55,13 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import { Move } from "~/components/settings/move";
+import {
+  approveJoinRequest,
+  rejectJoinRequest,
+  kickParticipant,
+  selectPlayer,
+  deselectPlayer,
+} from "~/lib/socket.client";
 
 // ---------------------------------------------------------------------------
 // Loader — chỉ fetch những gì store không có
@@ -122,29 +140,6 @@ export async function action({ request, params }: Route.ActionArgs) {
           eq(participantPlayers.participantId, participantId),
         ),
       );
-
-    return { ok: true };
-  }
-
-  if (intent === "approve-request") {
-    const joinRequestId = form.get("joinRequestId") as string;
-    const approvedBy = form.get("approvedBy") as string;
-
-    await db
-      .update(joinRequests)
-      .set({ status: "approved", approvedBy, approvedAt: new Date() })
-      .where(eq(joinRequests.id, joinRequestId));
-
-    return { ok: true };
-  }
-
-  if (intent === "reject-request") {
-    const joinRequestId = form.get("joinRequestId") as string;
-
-    await db
-      .update(joinRequests)
-      .set({ status: "rejected" })
-      .where(eq(joinRequests.id, joinRequestId));
 
     return { ok: true };
   }
@@ -233,11 +228,40 @@ export default function SettingsPage() {
   const players = usePlayers();
   const currentParticipant = useCurrentParticipant();
   const [visible, setVisible] = useState(false);
+  const [kickTarget, setKickTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const fetcher = useFetcher();
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok) {
+      const intent = fetcher.formData?.get("intent") as string | null;
+
+      // Sau khi action ghi DB xong → báo Socket.IO server broadcast
+      // thông báo chọn/bỏ chọn nhân vật cho toàn bộ room (authoritative).
+      if (session?.code) {
+        if (intent === "select-player") {
+          const participantId = fetcher.formData?.get("participantId") as string;
+          const playerId = fetcher.formData?.get("playerId") as string;
+          if (participantId && playerId) {
+            selectPlayer(session.code, participantId, playerId);
+            // Lưu nhân vật đã chọn của thiết bị này (dùng để push
+            // notification biến động điểm / thứ hạng sau mỗi ván).
+            useSessionStore.getState().setMySelectedPlayer(playerId);
+          }
+        } else if (intent === "reset-player") {
+          const participantId = fetcher.formData?.get("participantId") as string;
+          const playerId = fetcher.formData?.get("playerId") as string;
+          if (participantId && playerId) {
+            deselectPlayer(session.code, participantId, playerId);
+          }
+          // Bỏ chọn → xoá nhân vật đã lưu của thiết bị này.
+          useSessionStore.getState().setMySelectedPlayer(null);
+        }
+      }
+
       if (fetcher.data.finished) {
         navigate("/");
         return;
@@ -245,7 +269,7 @@ export default function SettingsPage() {
       setIsEditing(false);
       setShowFinishConfirm(false);
     }
-  }, [fetcher.state, fetcher.data, navigate]);
+  }, [fetcher.state, fetcher.data, navigate, session?.code]);
 
   const isOwner =
     !!session &&
@@ -278,29 +302,30 @@ export default function SettingsPage() {
     );
   };
 
-  const handleResetPlayer = (participantId: string) => {
+  const handleResetPlayer = (
+    participantId: string,
+    playerId?: string | null,
+  ) => {
     fetcher.submit(
-      { intent: "reset-player", participantId },
+      { intent: "reset-player", participantId, playerId: playerId ?? "" },
       { method: "POST" },
     );
   };
 
-  const handleApprove = (joinRequestId: string) => {
-    fetcher.submit(
-      {
-        intent: "approve-request",
-        joinRequestId,
-        approvedBy: currentParticipant?.id ?? "",
-      },
-      { method: "POST" },
-    );
+  const handleApprove = (joinRequestId: string, displayName: string) => {
+    if (!session?.code) return;
+    approveJoinRequest(session.code, joinRequestId, displayName);
   };
 
-  const handleReject = (joinRequestId: string) => {
-    fetcher.submit(
-      { intent: "reject-request", joinRequestId },
-      { method: "POST" },
-    );
+  const handleReject = (joinRequestId: string, displayName: string) => {
+    if (!session?.code) return;
+    rejectJoinRequest(session.code, joinRequestId, displayName);
+  };
+
+  const handleKick = (participantId: string) => {
+    if (!session?.code) return;
+    kickParticipant(session.code, participantId);
+    setKickTarget(null);
   };
 
   const startEdit = () => {
@@ -419,32 +444,8 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
 
-        {!isOwner ? (
-          <CardContent className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2">
-              {players.map((player, idx) => {
-                const draft = editDrafts[player.id] ?? {
-                  name: player.name,
-                  initialScore: String(player.initialScore ?? 0),
-                };
-                return (
-                  <div
-                    key={player.id}
-                    className="flex items-center gap-2 p-3 rounded-lg bg-muted"
-                  >
-                    <div className="flex flex-1 gap-2 items-center">
-                      <span className="text-[11px]">{postion[idx]}</span>
-                      <Move move={movePlayers} player={player} />
-                      <div className="">{player.name}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        ) : (
-          <CardContent className="flex flex-col gap-3">
-            {isEditing ? (
+        <CardContent className="flex flex-col gap-3">
+          {isOwner && isEditing ? (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 px-3 py-2">
                   <div className="flex flex-1 gap-2">
@@ -583,15 +584,16 @@ export default function SettingsPage() {
                     Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
                   </p>
                 )}
-                {mySelectedPlayerId && !isOwner && (
+                {mySelectedPlayerId && (
                   <p className="text-xs text-muted-foreground text-center">
-                    Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại.
+                    {isOwner
+                      ? "Bạn đã chọn xong."
+                      : "Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại."}
                   </p>
                 )}
               </>
             )}
           </CardContent>
-        )}
       </Card>
 
       {/* ------------------------------------------------------------------ */}
@@ -653,12 +655,30 @@ export default function SettingsPage() {
 
                     {isOwner && selectedPlayer && (
                       <button
-                        onClick={() => handleResetPlayer(participant.id)}
+                        onClick={() =>
+                          handleResetPlayer(participant.id, participant.selectedPlayerId)
+                        }
                         disabled={isBusy}
                         title="Đặt lại lựa chọn"
                         className="flex items-center justify-center size-7 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
                       >
                         <RotateCcw className="size-3.5" />
+                      </button>
+                    )}
+
+                    {isOwner && participant.role !== "owner" && (
+                      <button
+                        onClick={() =>
+                          setKickTarget({
+                            id: participant.id,
+                            name: participant.displayName,
+                          })
+                        }
+                        disabled={isBusy}
+                        title="Đá khỏi phòng"
+                        className="flex items-center justify-center size-7 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                      >
+                        <UserX className="size-3.5" />
                       </button>
                     )}
                   </div>
@@ -705,7 +725,7 @@ export default function SettingsPage() {
                   <Button
                     size="sm"
                     disabled={isBusy}
-                    onClick={() => handleApprove(request.id)}
+                    onClick={() => handleApprove(request.id, request.displayName)}
                     className="bg-chart-2 hover:bg-chart-2/90 h-7 text-xs px-3"
                   >
                     Duyệt
@@ -714,7 +734,7 @@ export default function SettingsPage() {
                     size="sm"
                     variant="destructive"
                     disabled={isBusy}
-                    onClick={() => handleReject(request.id)}
+                    onClick={() => handleReject(request.id, request.displayName)}
                     className="h-7 text-xs px-3"
                   >
                     Từ chối
@@ -815,6 +835,35 @@ export default function SettingsPage() {
           )}
         </div>
       )}
+
+      <AlertDialog
+        open={!!kickTarget}
+        onOpenChange={(open) => {
+          if (!open) setKickTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Đá {kickTarget?.name} khỏi phòng?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Người này sẽ bị xoá khỏi phòng và quay về màn hình tham gia. Họ
+              chỉ có thể vào lại nếu chủ phòng duyệt một yêu cầu mới.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBusy}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isBusy}
+              onClick={() => kickTarget && handleKick(kickTarget.id)}
+            >
+              Đá khỏi phòng
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Lightbox
         open={visible}

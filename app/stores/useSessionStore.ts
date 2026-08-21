@@ -79,6 +79,9 @@ interface SessionState {
   players: Player[];
   currentParticipant: SessionParticipant | null;
 
+  /** Player (nhân vật) mà thiết bị/người tham gia hiện tại đã chọn. */
+  mySelectedPlayerId: string | null;
+
   /** Danh sách ván đã chơi, mới nhất ở đầu */
   rounds: Round[];
 
@@ -108,12 +111,18 @@ interface SessionState {
 
   /**
    * Thêm round mới vào đầu danh sách + cập nhật totals.
-   * Gọi khi nhận event `round-finished` từ socket.
+   * Gọi khi nhận event `round:finished` từ socket.
    */
   addRound: (round: Round) => void;
 
+  /** Xoá 1 round khỏi danh sách (khi nhận event `round:deleted`). */
+  removeRound: (roundId: string) => void;
+
   /** Cập nhật toàn bộ bảng điểm tổng */
   setTotals: (totals: SessionTotal[]) => void;
+
+  /** Gán / xoá nhân vật mà người tham gia hiện tại đã chọn */
+  setMySelectedPlayer: (playerId: string | null) => void;
 
   /** Advance round counter (dùng cho UI navigate) */
   setCurrentRoundNo: (no: number) => void;
@@ -131,6 +140,7 @@ export const useSessionStore = create<SessionState>()(
         config: null,
         players: [],
         currentParticipant: null,
+        mySelectedPlayerId: null,
         rounds: [],
         totals: [],
         currentRoundNo: 0,
@@ -205,7 +215,27 @@ export const useSessionStore = create<SessionState>()(
             "session/addRound",
           ),
 
+        removeRound: (roundId) =>
+          set(
+            (s) => ({
+              rounds: s.rounds.filter((r) => r.id !== roundId),
+              currentRoundNo:
+                s.currentRoundNo > 0
+                  ? Math.max(0, s.rounds.filter((r) => r.id !== roundId).length)
+                  : 0,
+            }),
+            false,
+            "session/removeRound",
+          ),
+
         setTotals: (totals) => set({ totals }, false, "session/setTotals"),
+
+        setMySelectedPlayer: (playerId) =>
+          set(
+            { mySelectedPlayerId: playerId },
+            false,
+            "session/setMySelectedPlayer",
+          ),
 
         setCurrentRoundNo: (no) =>
           set({ currentRoundNo: no }, false, "session/setCurrentRoundNo"),
@@ -232,6 +262,7 @@ export const useSessionStore = create<SessionState>()(
           config: s.config,
           players: s.players,
           currentParticipant: s.currentParticipant,
+          mySelectedPlayerId: s.mySelectedPlayerId,
           rounds: s.rounds,
           totals: s.totals,
           currentRoundNo: s.currentRoundNo,
@@ -249,6 +280,8 @@ export const useGameConfig = () => useSessionStore((s) => s.config);
 export const usePlayers = () => useSessionStore((s) => s.players);
 export const useCurrentParticipant = () =>
   useSessionStore((s) => s.currentParticipant);
+export const useMySelectedPlayer = () =>
+  useSessionStore((s) => s.mySelectedPlayerId);
 export const useRounds = () => useSessionStore((s) => s.rounds);
 export const useTotals = () => useSessionStore((s) => s.totals);
 export const useCurrentRoundNo = () => useSessionStore((s) => s.currentRoundNo);

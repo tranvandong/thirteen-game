@@ -6,7 +6,6 @@ import { rounds } from "~/db/schema/rounds";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
 import { sessions } from "~/db/schema/sessions";
-import { getIO } from "./socket.server";
 
 export interface KhapSanhLimits {
   khapLimit: number;
@@ -228,26 +227,6 @@ export async function saveRound(
 
     return { roundId: round.id, roundNo: round.roundNo, round, totals };
   });
-
-  // const io = getIO();
-  // if (io) {
-  //   const room = `session:${sessionCode}`;
-  //   io.to(room).emit("round-finished", {
-  //     sessionId: session.id,
-  //     sessionCode,
-  //     roundNo: saved.roundNo,
-  //     results: results.map((r) => ({
-  //       playerId: r.playerId,
-  //       rank: r.rank,
-  //       score: r.score,
-  //     })),
-  //     timestamp: new Date(),
-  //   });
-  //   io.to(room).emit("score-updated", {
-  //     totalScores: saved.totals,
-  //     timestamp: new Date(),
-  //   });
-  // }
 
   return saved;
 }

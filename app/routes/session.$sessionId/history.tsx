@@ -506,7 +506,7 @@ function RoundTable({
                       className={[
                         "inline-flex size-4 items-center justify-center text-sm font-black leading-[normal]",
                         isBonusRound
-                          ? "border-b-2 pb-0.5 border-amber-50 text-white"
+                          ? "border-b-2 pb-0.5 border-foreground text-foreground"
                           : "",
                       ].join(" ")}
                     >

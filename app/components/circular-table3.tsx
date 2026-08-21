@@ -230,21 +230,20 @@ export function CircularTable3({
                 <div className="w-full h-full rounded-full border-2 border-transparent border-t-emerald-400 border-r-emerald-300 opacity-70" />
               </div>
             )}
-            
-              {!disabledSaveButton || isLoading ? (
-                <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
-                  <img
-                    src="/icons/swords.gif"
-                    alt="swords"
-                    className="size-full text-primary/3 rounded-full"
-                  />
-                </div>
-              ) : (
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
-                  <Swords className="size-14 text-white/50" />
-                </div>
-              )}
-            
+
+            {!disabledSaveButton || isLoading ? (
+              <div className="absolute inset-0 p-2 w-full h-full flex items-center justify-center z-30 rounded-full">
+                <img
+                  src="/icons/swords.gif"
+                  alt="swords"
+                  className="size-full text-primary/3 rounded-full"
+                />
+              </div>
+            ) : (
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
+                <Swords className="size-14 text-white/50" />
+              </div>
+            )}
           </Button>
           <div className="absolute inset-0 w-full h-full flex items-center justify-center z-0">
             <Swords className="size-full text-primary/5" />
@@ -438,7 +437,12 @@ export function CircularTable3({
                       </span>
                     ) : (
                       isSelected && (
-                        <span className="flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[14px] font-black bg-primary text-primary-foreground">
+                        <span
+                          className={cn(
+                            "flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[16px] font-black leading-normal",
+                            order < 3 ?  "bg-primary text-primary-foreground" : "bg-[red]/70 text-primary-foreground",
+                          )}
+                        >
                           {order}
                         </span>
                       )

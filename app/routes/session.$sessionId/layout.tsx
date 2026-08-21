@@ -4,6 +4,7 @@ import {
   useParams,
   useLocation,
   useNavigate,
+  useRevalidator,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
 import type { Route } from "./+types/layout";
@@ -31,18 +32,46 @@ import {
 import {
   useCurrentParticipant,
   useSession,
+  useMySelectedPlayer,
+  usePlayers,
   useSessionStore,
   type ActiveSession,
   type GameConfig,
   type Player,
   type SessionParticipant,
 } from "~/stores/useSessionStore";
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { joinSession, leaveSession } from "~/lib/socket.client";
+import {
+  onJoinRequestCreated,
+  onParticipantApproved,
+  onJoinRequestRejected,
+  onParticipantKicked,
+  offJoinRequestCreated,
+  offParticipantApproved,
+  offJoinRequestRejected,
+  offParticipantKicked,
+  onPlayerSelected,
+  onPlayerDeselected,
+  offPlayerSelected,
+  offPlayerDeselected,
+  onScoreUpdated,
+  offScoreUpdated,
+  type PlayerSelectedEvent,
+  type PlayerDeselectedEvent,
+  type ScoreUpdatedEvent,
+  approveJoinRequest,
+  rejectJoinRequest,
+} from "~/lib/socket.client";
 import { createFingerprint } from "~/helpers/fingerprint.helper";
 import { Background } from "~/components/background";
 import { Button } from "~/components/ui/button";
+import { Toaster } from "~/components/ui/toaster";
+import {
+  addToast,
+  dismissToastByRequestId,
+  clearToasts,
+} from "~/stores/useToastStore";
 import { playTTS } from "~/helpers/match.helper";
 
 const FINGERPRINT_KEY = "device_fingerprint";
@@ -186,6 +215,12 @@ export async function clientLoader({
     throw redirect(`/join/${sessionCode}`);
   }
 
+  // Lưu nhân vật mà người tham gia này đã chọn (dùng để push notification
+  // khi nhân vật có biến động điểm / thứ hạng sau mỗi ván).
+  useSessionStore
+    .getState()
+    .setMySelectedPlayer(currentParticipant.selectedPlayerId);
+
   const showBackground = localStorage.getItem("showBackground") === "true";
   const enableTTS = localStorage.getItem("textToSpeed") === "true";
   const playerPositions = JSON.parse(
@@ -221,7 +256,7 @@ clientLoader.hydrate = true as const;
 async function resolveParticipant(
   sessionCode: string,
   fingerprint: string,
-): Promise<SessionParticipant | null> {
+): Promise<(SessionParticipant & { selectedPlayerId: string | null }) | null> {
   try {
     const res = await fetch(
       `/api/sessions/${sessionCode}/devices/active?fingerprint=${encodeURIComponent(
@@ -229,7 +264,9 @@ async function resolveParticipant(
       )}`,
     );
     if (!res.ok) return null;
-    const data = (await res.json()) as { participant: SessionParticipant };
+    const data = (await res.json()) as {
+      participant: SessionParticipant & { selectedPlayerId: string | null };
+    };
     return data.participant ?? null;
   } catch {
     return null;
@@ -344,12 +381,25 @@ export default function SessionLayout() {
 
   const session = useSession();
   const currentParticipant = useCurrentParticipant();
+  const mySelectedPlayerId = useMySelectedPlayer();
+  const players = usePlayers();
+
+  // Bảng điểm gần nhất (theo playerId) — dùng để tính biến động khi có
+  // round mới / xoá round. Reset khi đổi nhân vật được chọn.
+  const scoreRef = useRef<Array<{ playerId: string; totalScore: number }> | null>(
+    null,
+  );
 
   // Đăng ký thiết bị sau khi hydrate xong
   useEffect(() => {
     if (!session?.id || !currentParticipant?.id) return;
     registerDevice(session.id, currentParticipant.id);
   }, [session?.id, currentParticipant?.id]);
+
+  // Đổi nhân vật được chọn → xoá lịch sử điểm cũ để tránh tính sai biến động
+  useEffect(() => {
+    scoreRef.current = null;
+  }, [mySelectedPlayerId]);
 
   // Socket
   useEffect(() => {
@@ -365,6 +415,189 @@ export default function SessionLayout() {
       leaveSession(sessionId);
     };
   }, [sessionId, currentParticipant?.id]);
+
+  // Realtime: yêu cầu tham gia / duyệt / từ chối / đá người chơi
+  const revalidator = useRevalidator();
+
+  // Toast là session-scoped: xoá sạch khi rời/switch session (không xoá khi
+  // đổi tab vì layout không unmount). Tránh toast cũ (vd: "bị đá khỏi phòng")
+  // hiện lại khi user bị đá rồi tham gia lại.
+  useEffect(() => {
+    return () => {
+      clearToasts();
+    };
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const code = session?.code ?? sessionId;
+    const isOwner =
+      !!currentParticipant &&
+      session?.ownerParticipantId === currentParticipant.id;
+
+    const handleCreated = ({
+      requestId,
+      displayName,
+    }: {
+      requestId: string;
+      displayName: string;
+    }) => {
+      if (!isOwner) return;
+      addToast({
+        requestId,
+        title: `${displayName} muốn tham gia`,
+        description: "Phê duyệt hoặc từ chối yêu cầu này.",
+        duration: 1000 * 60 * 60 * 24 * 20,
+        actions: [
+          {
+            label: "Duyệt",
+            onClick: () => approveJoinRequest(code, requestId, displayName),
+          },
+          {
+            label: "Từ chối",
+            variant: "destructive",
+            onClick: () => rejectJoinRequest(code, requestId, displayName),
+          },
+        ],
+      });
+      revalidator.revalidate();
+    };
+
+    const handleApproved = ({ requestId }: { requestId: string }) => {
+      dismissToastByRequestId(requestId);
+      revalidator.revalidate();
+    };
+
+    const handleRejected = ({ requestId }: { requestId: string }) => {
+      dismissToastByRequestId(requestId);
+      revalidator.revalidate();
+    };
+
+    const handleKicked = async ({
+      participantId,
+      sessionCode,
+    }: {
+      participantId: string;
+      sessionCode: string;
+    }) => {
+      revalidator.revalidate();
+      if (currentParticipant && participantId === currentParticipant.id) {
+        addToast({
+          title: "Bạn đã bị đá khỏi phòng",
+          variant: "destructive",
+          duration: 4000,
+        });
+        await markDeviceLeft(sessionCode);
+        navigate(`/join/${sessionCode}`);
+      }
+    };
+
+    onJoinRequestCreated(handleCreated);
+    onParticipantApproved(handleApproved);
+    onJoinRequestRejected(handleRejected);
+    onParticipantKicked(handleKicked);
+
+    // Push notification: có người chọn / bỏ chọn nhân vật.
+    // Không toast cho chính người thao tác (họ đã biết), nhưng vẫn broadcast
+    // cho toàn bộ room — nên chủ phòng và mọi người tham gia đều nhận được
+    // thông báo về lựa chọn của người khác.
+    const handlePlayerSelected = (data: PlayerSelectedEvent) => {
+      if (currentParticipant && data.participantId === currentParticipant.id)
+        return;
+      revalidator.revalidate();
+      addToast({
+        title: `${data.displayName} đã chọn nhân vật`,
+        description: data.playerName,
+        duration: 4000,
+      });
+    };
+
+    const handlePlayerDeselected = (data: PlayerDeselectedEvent) => {
+      if (currentParticipant && data.participantId === currentParticipant.id)
+        return;
+      revalidator.revalidate();
+      addToast({
+        title: `${data.displayName} đã bỏ chọn nhân vật`,
+        description: data.playerName,
+        duration: 4000,
+      });
+    };
+
+    onPlayerSelected(handlePlayerSelected);
+    onPlayerDeselected(handlePlayerDeselected);
+
+    // Push notification: nhân vật của người tham gia có biến động điểm lớn
+    // hoặc thay đổi thứ hạng sau mỗi ván (chỉ thông báo thiết bị đã chọn
+    // nhân vật đó).
+    const rankOf = (
+      totals: Array<{ playerId: string; totalScore: number }>,
+      playerId: string,
+    ): number | null => {
+      const sorted = [...totals].sort((a, b) => b.totalScore - a.totalScore);
+      const idx = sorted.findIndex((t) => t.playerId === playerId);
+      return idx === -1 ? null : idx + 1;
+    };
+
+    const handleScoreUpdated = ({ totals }: ScoreUpdatedEvent) => {
+      const myPlayerId =
+        useSessionStore.getState().mySelectedPlayerId;
+      if (!myPlayerId) return;
+
+      const prev = scoreRef.current;
+      const oldTotal = prev
+        ? prev.find((t) => t.playerId === myPlayerId)?.totalScore
+        : undefined;
+      const newTotal = totals.find(
+        (t) => t.playerId === myPlayerId,
+      )?.totalScore;
+      if (newTotal == null) return;
+
+      const oldRank = prev ? rankOf(prev, myPlayerId) : null;
+      const newRank = rankOf(totals, myPlayerId);
+
+      const delta = oldTotal == null ? 0 : newTotal - oldTotal;
+      // Ngưỡng "biến động lớn" — chỉnh ở đây (điểm).
+      const SWING_THRESHOLD = 30;
+      const bigSwing = oldTotal != null && Math.abs(delta) >= SWING_THRESHOLD;
+      const rankChanged =
+        oldRank != null && newRank != null && oldRank !== newRank;
+
+      if (oldRank != null && (bigSwing || rankChanged)) {
+        const player = players.find((p) => p.id === myPlayerId);
+        const name = player?.name ?? "Nhân vật của bạn";
+        const parts: string[] = [];
+        if (rankChanged) parts.push(`hạng ${oldRank} → ${newRank}`);
+        if (bigSwing)
+          parts.push(`${delta > 0 ? "+" : ""}${delta} điểm`);
+        addToast({
+          title: `${name} có biến động`,
+          description: parts.join(" · "),
+          duration: 5000,
+        });
+      }
+
+      scoreRef.current = totals;
+    };
+
+    onScoreUpdated(handleScoreUpdated);
+
+    return () => {
+      offJoinRequestCreated(handleCreated);
+      offParticipantApproved(handleApproved);
+      offJoinRequestRejected(handleRejected);
+      offParticipantKicked(handleKicked);
+      offPlayerSelected(handlePlayerSelected);
+      offPlayerDeselected(handlePlayerDeselected);
+      offScoreUpdated(handleScoreUpdated);
+    };
+  }, [
+    sessionId,
+    session?.code,
+    session?.ownerParticipantId,
+    currentParticipant?.id,
+    revalidator,
+    navigate,
+  ]);
 
   // Thoát phòng: cập nhật trạng thái thiết bị (status = 'left') rồi điều hướng về trang chủ
   const handleLeaveRoom = async () => {
@@ -512,6 +745,8 @@ export default function SessionLayout() {
         </header>
 
         <Outlet />
+
+        <Toaster />
 
         {/* Mobile-first Bottom Tab Bar: 5 equal columns */}
         <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/92 px-2 pb-[calc(0.5rem_+_env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">

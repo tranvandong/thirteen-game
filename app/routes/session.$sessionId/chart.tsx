@@ -9,7 +9,15 @@ import { players } from "~/db/schema/players";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
 import { eq, sql } from "drizzle-orm";
-import { TrendingUp, BarChart2, TrendingDown } from "lucide-react";
+import {
+  TrendingUp,
+  BarChart2,
+  TrendingDown,
+  Crown,
+  Activity,
+  Flame,
+  Spade,
+} from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -18,9 +26,12 @@ import {
   YAxis,
   Bar,
   BarChart,
-  Cell,
   LabelList,
-  ReferenceLine,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from "recharts";
 import {
   Card,
@@ -38,6 +49,40 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "~/components/ui/chart";
+
+// ── Tiện ích hiển thị cho bảng Heo (chặt heo) ────────────────
+const AVATAR_CLS = [
+  "bg-chart-1/15 text-chart-1",
+  "bg-chart-2/15 text-chart-2",
+  "bg-chart-3/15 text-chart-3",
+  "bg-chart-4/15 text-chart-4",
+];
+
+// Ô nhỏ: số đếm + thanh mini tô màu (xanh = thắng, đỏ = thua)
+function PigMiniStat({
+  value,
+  max,
+  tone,
+}: {
+  value: number;
+  max: number;
+  tone: "win" | "loss";
+}) {
+  const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
+  const colorText = tone === "win" ? "text-chart-2" : "text-destructive";
+  const colorBar = tone === "win" ? "bg-chart-2" : "bg-destructive";
+  return (
+    <td className="px-1 py-2 text-center align-middle">
+      <div className={`text-sm font-bold tabular-nums ${colorText}`}>{value}</div>
+      <div className="mx-auto mt-1 h-1 w-7 rounded-full bg-muted">
+        <div
+          className={`h-1 rounded-full ${colorBar}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </td>
+  );
+}
 
 // ── Loader ───────────────────────────────────────────────────
 export async function loader({ params }: Route.LoaderArgs) {
@@ -70,8 +115,6 @@ export async function loader({ params }: Route.LoaderArgs) {
     .orderBy(rounds.roundNo);
 
   // 3. Chỉ lấy đúng những cột cần cho biểu đồ điểm tích lũy theo từng ván
-  //    (đây là dữ liệu chuỗi thời gian nên bắt buộc phải lấy theo hàng,
-  //    không gộp được bằng SUM/COUNT như các biểu đồ tổng hợp bên dưới)
   const roundScoreRows = await db
     .select({
       roundNo: rounds.roundNo,
@@ -89,8 +132,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     .from(sessionTotals)
     .where(eq(sessionTotals.sessionId, sessionId));
 
-  // 5. Đếm số lần về nhất/nhì/ba/tư theo từng player — dùng COUNT + GROUP BY
-  //    thay vì kéo toàn bộ round_results về rồi filter/đếm ở JS.
+  // 5. Đếm số lần về nhất/nhì/ba/tư theo từng player
   const rankCounts = await db
     .select({
       playerId: roundResults.playerId,
@@ -111,8 +153,9 @@ export async function loader({ params }: Route.LoaderArgs) {
     rankCountMap.get(row.playerId)![row.rank as 1 | 2 | 3 | 4] = row.total;
   }
 
-  // 6. Tổng sảnh/khạp dương & âm theo từng player — dùng SUM có điều kiện
-  //    (CASE WHEN ... > 0 / < 0) ngay trong SQL thay vì reduce ở JS.
+  // 6. Tổng hợp thưởng phụ (sảnh / khạp / heo đỏ / heo đen)
+  //    Lưu ý: các cột này lưu SỐ LƯỢNG có dấu (dương = thắng, âm = thua),
+  //    không phải điểm. Điểm được tính sau qua game_config.
   const bonusSums = await db
     .select({
       playerId: roundResults.playerId,
@@ -156,16 +199,13 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   const bonusSumMap = new Map(bonusSums.map((b) => [b.playerId, b]));
 
-  // ── Xây dựng dữ liệu cho Chart 1: Điểm tích lũy qua từng ván ──
+  // ── Chart 1: Điểm tích lũy qua từng ván ──
   const playerIdToKey = (id: string) => {
     const idx = sessionPlayers.findIndex((p) => p.id === id);
     return idx >= 0 ? `p${idx + 1}` : null;
   };
 
-  // Map: roundNo → { van, p1, p2, p3, p4, ... }
   const cumulativeMap: Record<number, Record<string, string | number>> = {};
-
-  // Khởi tạo accumulator
   const accScore: Record<string, number> = {};
   sessionPlayers.forEach((p, i) => {
     accScore[`p${i + 1}`] = 0;
@@ -199,7 +239,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     };
   });
 
-  // ── Chart 3a: Sảnh — cột dương / âm riêng theo từng player ──
+  // ── Chart 3a: Sảnh — số lượng thắng / thua ──
   const sanhData = sessionPlayers.map((p) => {
     const sums = bonusSumMap.get(p.id);
     return {
@@ -209,7 +249,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     };
   });
 
-  // ── Chart 3b: Khạp — cột dương / âm riêng theo từng player ──
+  // ── Chart 3b: Khạp — số lượng thắng / thua ──
   const khapData = sessionPlayers.map((p) => {
     const sums = bonusSumMap.get(p.id);
     return {
@@ -219,15 +259,18 @@ export async function loader({ params }: Route.LoaderArgs) {
     };
   });
 
-  // ── Chart 3c: Heo đỏ & Heo đen — 4 cột riêng theo từng player ──
+  // ── Chart 3c: Heo — SỐ LƯỢNG heo đỏ / đen thắng & thua (mới) ──
+  //    redPigNo / blackPigNo lưu số lượng có dấu:
+  //    dương = chặt được (thắng), âm = bị chặt (thua).
   const pigData = sessionPlayers.map((p) => {
     const sums = bonusSumMap.get(p.id);
     return {
       name: p.name,
-      redDuong: sums?.redPigDuong ?? 0,
-      redAm: sums?.redPigAm ?? 0,
-      blackDuong: sums?.blackPigDuong ?? 0,
-      blackAm: sums?.blackPigAm ?? 0,
+      // dương (thắng) vẽ lên, âm (thua) giữ nguyên để vẽ xuống dưới
+      doThang: sums?.redPigDuong ?? 0,
+      doThua: sums?.redPigAm ?? 0,
+      denThang: sums?.blackPigDuong ?? 0,
+      denThua: sums?.blackPigAm ?? 0,
     };
   });
 
@@ -240,6 +283,32 @@ export async function loader({ params }: Route.LoaderArgs) {
     };
   });
 
+  // ── Chart 5: Điểm trung bình mỗi ván ──
+  const avgData = sessionPlayers.map((p) => {
+    const total = totals.find((t) => t.playerId === p.id)?.totalScore ?? 0;
+    const counts = rankCountMap.get(p.id) ?? { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const games = counts[1] + counts[2] + counts[3] + counts[4];
+    return {
+      name: p.name,
+      avg: games > 0 ? Math.round((total / games) * 10) / 10 : 0,
+      games,
+    };
+  });
+
+  // ── Chart 6: Tỷ lệ xếp hạng (win-rate %) ──
+  const winRateData = sessionPlayers.map((p) => {
+    const counts = rankCountMap.get(p.id) ?? { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const games = counts[1] + counts[2] + counts[3] + counts[4];
+    const pct = (n: number) => (games > 0 ? Math.round((n / games) * 100) : 0);
+    return {
+      name: p.name,
+      nhat: pct(counts[1]),
+      nhi: pct(counts[2]),
+      ba: pct(counts[3]),
+      tu: pct(counts[4]),
+    };
+  });
+
   return {
     players: sessionPlayers,
     roundCount: sessionRounds.length,
@@ -249,6 +318,8 @@ export async function loader({ params }: Route.LoaderArgs) {
     khapData,
     pigData,
     totalScores,
+    avgData,
+    winRateData,
   };
 }
 
@@ -263,17 +334,43 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
     khapData,
     pigData,
     totalScores,
+    avgData,
+    winRateData,
   } = loaderData;
 
-  // Tạo chart config động từ danh sách players
+  // ── Empty state ──
+  if (roundCount === 0) {
+    return (
+      <main className="p-4 flex flex-col gap-4 pb-6">
+        <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
+            <BarChart2 className="size-4" />
+          </div>
+          <h1 className="text-lg font-semibold">Biểu Đồ</h1>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <BarChart2 className="size-10 text-muted-foreground/50" />
+            <p className="text-sm font-medium text-foreground">
+              Chưa có dữ liệu thống kê
+            </p>
+            <p className="max-w-xs text-xs text-muted-foreground">
+              Hãy hoàn thành ít nhất một ván đấu để xem biểu đồ điểm tích lũy,
+              xếp hạng và các chỉ số phụ.
+            </p>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  // Màu nhất quán giữa line, radar và legend
   const CHART_COLORS = [
     "var(--chart-1)",
     "var(--chart-2)",
     "var(--chart-3)",
     "var(--chart-4)",
   ];
-
-  const specificColors = ["#ef4444", "#22c55e", "#eab308", "#3b82f6"];
 
   const lineChartConfig = Object.fromEntries(
     players.map((p, i) => [
@@ -299,28 +396,129 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
     am: { label: "Thua", color: "var(--destructive)" },
   } satisfies ChartConfig;
 
-  const pigChartConfig = {
-    redDuong: { label: "Đỏ thắng", color: "var(--chart-2)" },
-    redAm: { label: "Đỏ thua", color: "var(--destructive)" },
-    blackDuong: { label: "Đen thắng", color: "var(--chart-2)" },
-    blackAm: { label: "Đen thua", color: "var(--destructive)" },
+  const avgChartConfig = {
+    avg: { label: "Điểm TB/ván", color: "var(--chart-4)" },
   } satisfies ChartConfig;
+
+  const winRateChartConfig = rankChartConfig;
 
   const totalScoreConfig = {
-    diem: { label: "Tổng điểm" },
+    diem: { label: "Tổng điểm", color: "var(--chart-2)" },
   } satisfies ChartConfig;
 
-  // Tìm người dẫn đầu số lần về nhất
+  // Radar: hồ sơ người chơi (các chỉ số được chuẩn hóa 0-100)
+  const maxAvg = Math.max(1, ...avgData.map((a) => a.avg));
+  const netBonusByPlayer = players.map((_, i) => {
+    const s = sanhData[i].duong + sanhData[i].am;
+    const k = khapData[i].duong + khapData[i].am;
+    const pg = pigData[i].doThang + pigData[i].doThua + pigData[i].denThang + pigData[i].denThua;
+    return s + k + pg;
+  });
+  const maxBonus = Math.max(
+    1,
+    ...netBonusByPlayer.map((n) => Math.max(0, n)),
+  );
+
+  const playerMetric = (fn: (i: number) => number) =>
+    Object.fromEntries(players.map((_, i) => [`p${i + 1}`, fn(i)]));
+
+  const radarData = [
+    {
+      metric: "Về nhất",
+      ...playerMetric((i) => winRateData[i].nhat),
+    },
+    {
+      metric: "Top 2",
+      ...playerMetric((i) => winRateData[i].nhat + winRateData[i].nhi),
+    },
+    {
+      metric: "Điểm TB",
+      ...playerMetric((i) =>
+        Math.round((avgData[i].avg / maxAvg) * 100),
+      ),
+    },
+    {
+      metric: "Thưởng",
+      ...playerMetric((i) =>
+        Math.round((Math.max(0, netBonusByPlayer[i]) / maxBonus) * 100),
+      ),
+    },
+  ];
+
+  const radarChartConfig = Object.fromEntries(
+    players.map((p, i) => [
+      `p${i + 1}`,
+      { label: p.name, color: CHART_COLORS[i % CHART_COLORS.length] },
+    ]),
+  ) satisfies ChartConfig;
+
+  // ── KPI insights ──
+  const leader = totalScores.reduce(
+    (best, cur) => (cur.diem > (best?.diem ?? -Infinity) ? cur : best),
+    totalScores[0],
+  );
   const topRank = rankData.reduce(
     (best, cur) => (cur.nhat > (best?.nhat ?? -1) ? cur : best),
     rankData[0],
   );
-
-  // Tìm người dẫn đầu số lần về bét
   const topRank2 = rankData.reduce(
     (best, cur) => (cur.tu > (best?.tu ?? -1) ? cur : best),
     rankData[0],
   );
+  const topAvg = avgData.reduce(
+    (best, cur) => (cur.avg > (best?.avg ?? -Infinity) ? cur : best),
+    avgData[0],
+  );
+  const totalPool = totalScores.reduce((sum, t) => sum + t.diem, 0);
+
+  const kpis: {
+    label: string;
+    name?: string;
+    value: string;
+    icon: typeof Crown;
+    cls: string;
+  }[] = [
+    {
+      label: "Dẫn đầu",
+      name: leader?.name,
+      value: leader ? `${leader.diem}` : "—",
+      icon: Crown,
+      cls: "bg-chart-2/10 text-chart-2",
+    },
+    {
+      label: "Về nhất nhiều nhất",
+      name: topRank?.name,
+      value: topRank ? `${topRank.nhat} lần` : "—",
+      icon: TrendingUp,
+      cls: "bg-chart-4/10 text-chart-4",
+    },
+    {
+      label: "Về tư nhiều nhất",
+      name: topRank2?.name,
+      value: topRank2 ? `${topRank2.tu} lần` : "—",
+      icon: TrendingDown,
+      cls: "bg-destructive/10 text-destructive",
+    },
+    {
+      label: "Điểm TB/ván cao nhất",
+      name: topAvg?.name,
+      value: topAvg ? `${topAvg.avg}` : "—",
+      icon: Activity,
+      cls: "bg-chart-1/10 text-chart-1",
+    },
+  ];
+
+  // Tổng heo toàn bàn (để hiển thị ở footer chart Heo)
+  const totalRedThang = pigData.reduce((s, d) => s + d.doThang, 0);
+  const totalRedThua = pigData.reduce((s, d) => s + Math.abs(d.doThua), 0);
+  const totalDenThang = pigData.reduce((s, d) => s + d.denThang, 0);
+  const totalDenThua = pigData.reduce((s, d) => s + Math.abs(d.denThua), 0);
+
+  // Mức tối đa mỗi chỉ số — dùng để tỷ lệ thanh mini trong bảng Heo
+  const maxRedWon = Math.max(1, ...pigData.map((d) => d.doThang));
+  const maxRedLost = Math.max(1, ...pigData.map((d) => Math.abs(d.doThua)));
+  const maxBlackWon = Math.max(1, ...pigData.map((d) => d.denThang));
+  const maxBlackLost = Math.max(1, ...pigData.map((d) => Math.abs(d.denThua)));
 
   return (
     <main className="p-4 flex flex-col gap-4 pb-6">
@@ -332,7 +530,78 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         <h1 className="text-lg font-semibold">Biểu Đồ</h1>
       </div>
 
-      {/* ── 1. Điểm tích lũy qua các ván ─────────────────────── */}
+      {/* ── KPI insights ── */}
+      <div className="grid grid-cols-2 gap-2">
+        {kpis.map((k) => {
+          const Icon = k.icon;
+          return (
+            <Card key={k.label} className="border-border/70">
+              <CardContent className="flex items-center gap-3 p-3">
+                <div
+                  className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${k.cls}`}
+                >
+                  <Icon className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {k.label}
+                  </p>
+                  <p className="truncate text-sm font-bold text-foreground">
+                    {k.name}
+                  </p>
+                  <p className={`text-xs font-semibold ${k.cls}`}>
+                    {k.value}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* ── 0. Tổng điểm (nâng cấp từ chart cũ) ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tổng điểm</CardTitle>
+          <CardDescription>
+            Tổng điểm tích lũy của từng người chơi sau {roundCount} ván
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={totalScoreConfig} className="relative z-10">
+            <BarChart
+              data={totalScores}
+              margin={{ top: 20, right: 0, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <YAxis tickLine={false} axisLine={false} width={28} />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dashed" />}
+              />
+              <Bar dataKey="diem" fill="var(--color-diem)" radius={4}>
+                <LabelList
+                  dataKey="diem"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="text-sm text-muted-foreground">
+          Tổng điểm toàn bàn: {totalPool} điểm
+        </CardFooter>
+      </Card>
+
+      {/* ── 1. Điểm tích lũy (đã sửa: màu đồng bộ, hiện nhãn trục X) ── */}
       <Card>
         <CardHeader>
           <CardTitle>Điểm tích lũy</CardTitle>
@@ -347,14 +616,9 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(v: string) => ""}
+                tickFormatter={(v: string) => v.replace("Ván ", "")}
               />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={4}
-                width={28}
-              />
+              <YAxis tickLine={false} axisLine={false} tickMargin={4} width={28} />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
               <ChartLegend content={<ChartLegendContent />} />
               {players.map((p, i) => (
@@ -362,11 +626,10 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                   key={p.id}
                   dataKey={`p${i + 1}`}
                   type="monotone"
-                  stroke={specificColors[i] ?? `var(--color-p${i + 1})`}
+                  stroke={`var(--color-p${i + 1})`}
                   strokeWidth={2}
                   dot={{ r: 0 }}
                   activeDot={{ r: 5 }}
-                  markerEnd="s"
                 />
               ))}
             </LineChart>
@@ -377,7 +640,139 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         </CardFooter>
       </Card>
 
-      {/* ── 2. Số lần về nhất / nhì / ba / tư ─────────────────── */}
+      {/* ── 2. Tỷ lệ xếp hạng (win-rate 100% stacked) ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tỷ lệ xếp hạng</CardTitle>
+          <CardDescription>
+            Phần trăm các hạng đạt được trong tổng số ván tham gia
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={winRateChartConfig} className="relative z-10">
+            <BarChart
+              data={winRateData}
+              margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
+              stackOffset="expand"
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                width={28}
+                tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dashed" />}
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="nhat" stackId="a" fill="var(--color-nhat)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="nhi" stackId="a" fill="var(--color-nhi)" />
+              <Bar dataKey="ba" stackId="a" fill="var(--color-ba)" />
+              <Bar dataKey="tu" stackId="a" fill="var(--color-tu)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="text-sm text-muted-foreground">
+          Chuẩn hóa theo số ván mỗi người tham gia
+        </CardFooter>
+      </Card>
+
+      {/* ── 3. Điểm trung bình mỗi ván ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Điểm trung bình mỗi ván</CardTitle>
+          <CardDescription>
+            Tổng điểm chia cho số ván tham gia — so sánh công bằng khi vào muộn
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={avgChartConfig} className="relative z-10">
+            <BarChart
+              data={avgData}
+              margin={{ top: 20, right: 0, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <YAxis tickLine={false} axisLine={false} width={28} />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dashed" />}
+              />
+              <Bar dataKey="avg" fill="var(--color-avg)" radius={4}>
+                <LabelList
+                  dataKey="avg"
+                  position="top"
+                  fontSize={12}
+                  className="text-card-foreground"
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="text-sm text-muted-foreground">
+          Trung bình toàn bàn:{" "}
+          {avgData.length > 0
+            ? `${Math.round(
+                (avgData.reduce((s, a) => s + a.avg, 0) / avgData.length) * 10,
+              ) / 10}`
+            : "0"}{" "}
+          điểm/ván
+        </CardFooter>
+      </Card>
+
+      {/* ── 4. Hồ sơ người chơi (radar) ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hồ sơ người chơi</CardTitle>
+          <CardDescription>
+            So sánh các chỉ số (chuẩn hóa 0–100): về nhất, top 2, điểm TB, thưởng
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={radarChartConfig} className="relative z-10">
+            <RadarChart data={radarData}>
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dashed" />}
+              />
+              <PolarGrid />
+              <PolarAngleAxis dataKey="metric" />
+              <PolarRadiusAxis
+                angle={90}
+                domain={[0, 100]}
+                tick={false}
+                axisLine={false}
+              />
+              {players.map((p, i) => (
+                <Radar
+                  key={p.id}
+                  dataKey={`p${i + 1}`}
+                  stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                  fill={CHART_COLORS[i % CHART_COLORS.length]}
+                  fillOpacity={0.08}
+                  strokeWidth={2}
+                />
+              ))}
+              <ChartLegend content={<ChartLegendContent />} />
+            </RadarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
+      {/* ── 5. Xếp hạng qua các ván ── */}
       <Card>
         <CardHeader>
           <CardTitle>Xếp hạng qua các ván</CardTitle>
@@ -389,12 +784,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           <ChartContainer config={rankChartConfig} className="relative z-10">
             <BarChart
               data={rankData}
-              margin={{
-                top: 30,
-                right: 0,
-                left: 0,
-                bottom: 5,
-              }}
+              margin={{ top: 30, right: 0, left: 0, bottom: 5 }}
             >
               <CartesianGrid vertical={false} />
               <XAxis
@@ -443,38 +833,35 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
             </BarChart>
           </ChartContainer>
         </CardContent>
-        {topRank && (
-          <CardFooter className="flex flex-col gap-2 text-sm">
-            <div className="flex gap-1 text-chart-2 text-sm">
-              <TrendingUp className="size-4" />
-              {topRank.name} dẫn đầu số lần về nhất ({topRank.nhat} lần)
-            </div>
-            <div className="flex items-center gap-1 text-destructive text-sm">
-              <TrendingDown className="size-4" />
-              {topRank2.name} dẫn đầu số lần về tư ({topRank2.tu} lần)
-            </div>
-          </CardFooter>
-        )}
+        <CardFooter className="flex flex-col gap-2 text-sm">
+          <div className="flex gap-1 text-chart-2 text-sm">
+            <TrendingUp className="size-4" />
+            {topRank.name} dẫn đầu số lần về nhất ({topRank.nhat} lần)
+          </div>
+          <div className="flex items-center gap-1 text-destructive text-sm">
+            <TrendingDown className="size-4" />
+            {topRank2.name} dẫn đầu số lần về tư ({topRank2.tu} lần)
+          </div>
+        </CardFooter>
       </Card>
 
-      {/* ── 3a. Sảnh — dương / âm riêng theo từng player ──────── */}
+      {/* ── 6a. Sảnh — số lượng thắng / thua ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Sảnh</CardTitle>
+          <CardTitle>
+            <span className="inline-flex items-center gap-1">
+              <Spade className="size-4 text-chart-1" /> Sảnh
+            </span>
+          </CardTitle>
           <CardDescription>
-            Tổng số sảnh thắng và thua của từng người chơi
+            Số lần thắng và thua sảnh của từng người chơi
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={sanhChartConfig} className="relative z-10">
             <BarChart
               data={sanhData}
-              margin={{
-                top: 30,
-                right: 0,
-                left: 0,
-                bottom: 5,
-              }}
+              margin={{ top: 30, right: 0, left: 0, bottom: 5 }}
             >
               <CartesianGrid vertical={false} />
               <XAxis
@@ -513,24 +900,23 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         </CardFooter>
       </Card>
 
-      {/* ── 3b. Khạp — dương / âm riêng theo từng player ──────── */}
+      {/* ── 6b. Khạp — số lượng thắng / thua ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Khạp</CardTitle>
+          <CardTitle>
+            <span className="inline-flex items-center gap-1">
+              <Flame className="size-4 text-chart-4" /> Khạp
+            </span>
+          </CardTitle>
           <CardDescription>
-            Tổng số khạp thắng và thua của từng người chơi
+            Số lần thắng và thua khạp của từng người chơi
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={khapChartConfig} className="relative z-10">
             <BarChart
               data={khapData}
-              margin={{
-                top: 30,
-                right: 0,
-                left: 0,
-                bottom: 5,
-              }}
+              margin={{ top: 30, right: 0, left: 0, bottom: 5 }}
             >
               <CartesianGrid vertical={false} />
               <XAxis
@@ -569,85 +955,105 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         </CardFooter>
       </Card>
 
-      {/* ── 3c. Heo đỏ & Heo đen — 4 cột riêng theo từng player ── */}
+      {/* ── 6c. Heo — bảng lai: số lượng + thanh mini (mới) ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Pig</CardTitle>
+          <CardTitle>Heo (chặt heo)</CardTitle>
           <CardDescription>
-            Tổng số heo đỏ và heo đen thắng/thua của từng người chơi
+            Số lượng heo đỏ / đen chặt được (thắng) và bị chặt (thua). T = thắng,
+            Th = thua.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={pigChartConfig} className="relative z-10">
-            <BarChart
-              data={pigData}
-              margin={{
-                top: 30,
-                right: 0,
-                left: 0,
-                bottom: 5,
-              }}
-              // barGap={0}
-              barCategoryGap="12%"
-              
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="name"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <YAxis tickLine={false} axisLine={false} width={28} />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="dashed" />}
-              />
-
-              <Bar dataKey="redDuong" fill="var(--color-redDuong)" radius={2} stroke="#f00" strokeWidth={1}>
-                <LabelList
-                  dataKey="redDuong"
-                  position="top"
-                  fontSize={12}
-                  className="text-card-foreground border-red-500 border-2"
-                />
-              </Bar>
-              <Bar dataKey="redAm" fill="var(--color-redAm)" radius={2} stroke="#f00" strokeWidth={1}>
-                <LabelList
-                  dataKey="redAm"
-                  position="top"
-                  fontSize={12}
-                  className="text-card-foreground"
-                />
-              </Bar>
-              <Bar
-                dataKey="blackDuong"
-                fill="var(--color-blackDuong)"
-                radius={2}
-                stroke="#000" strokeWidth={1}
-              >
-                <LabelList
-                  dataKey="blackDuong"
-                  position="top"
-                  fontSize={12}
-                  className="text-card-foreground"
-                />
-              </Bar>
-              <Bar dataKey="blackAm" fill="var(--color-blackAm)" radius={2} stroke="#000" strokeWidth={1}>
-                <LabelList
-                  dataKey="blackAm"
-                  position="top"
-                  fontSize={12}
-                  className="text-card-foreground"
-                
-                />
-              </Bar>
-              {/* <ReferenceLine y={0} stroke="#fff" /> */}
-            </BarChart>
-          </ChartContainer>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <th className="py-2 pr-2 text-left font-medium">Người</th>
+                  <th className="px-1 py-2 text-center font-medium text-chart-2">
+                    Đỏ T
+                  </th>
+                  <th className="px-1 py-2 text-center font-medium text-destructive">
+                    Đỏ Th
+                  </th>
+                  <th className="px-1 py-2 text-center font-medium text-chart-2">
+                    Đen T
+                  </th>
+                  <th className="px-1 py-2 text-center font-medium text-destructive">
+                    Đen Th
+                  </th>
+                  <th className="px-1 py-2 text-center font-medium">Hiệu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((p, i) => {
+                  const d = pigData[i];
+                  const won = d.doThang + d.denThang;
+                  const lost = Math.abs(d.doThua) + Math.abs(d.denThua);
+                  const hieu = won - lost;
+                  return (
+                    <tr key={p.id} className="border-t border-border/60">
+                      <td className="py-2 pr-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${AVATAR_CLS[i % AVATAR_CLS.length]}`}
+                          >
+                            {p.name.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="truncate text-xs font-medium">
+                            {p.name}
+                          </span>
+                        </div>
+                      </td>
+                      <PigMiniStat
+                        value={d.doThang}
+                        max={maxRedWon}
+                        tone="win"
+                      />
+                      <PigMiniStat
+                        value={Math.abs(d.doThua)}
+                        max={maxRedLost}
+                        tone="loss"
+                      />
+                      <PigMiniStat
+                        value={d.denThang}
+                        max={maxBlackWon}
+                        tone="win"
+                      />
+                      <PigMiniStat
+                        value={Math.abs(d.denThua)}
+                        max={maxBlackLost}
+                        tone="loss"
+                      />
+                      <td className="px-1 py-2 text-center align-middle">
+                        <span
+                          className={`text-sm font-bold tabular-nums ${
+                            hieu > 0
+                              ? "text-chart-2"
+                              : hieu < 0
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {hieu > 0 ? `+${hieu}` : hieu}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
-        <CardFooter className="text-sm text-muted-foreground">
-          Tổng hợp heo đỏ và heo đen trong toàn bộ phiên
+        <CardFooter className="flex flex-col gap-1 text-sm text-muted-foreground">
+          <span>
+            Tổng heo đỏ: thắng {totalRedThang} / thua {totalRedThua} — Tổng heo
+            đen: thắng {totalDenThang} / thua {totalDenThua}
+          </span>
+          <span>
+            Cả bàn: đỏ {totalRedThang + totalRedThua} con, đen{" "}
+            {totalDenThang + totalDenThua} con
+          </span>
         </CardFooter>
       </Card>
     </main>
