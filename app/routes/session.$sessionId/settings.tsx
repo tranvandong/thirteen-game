@@ -290,6 +290,29 @@ export default function SettingsPage() {
   const isFinishing =
     isBusy && (fetcher.formData?.get("intent") as string) === "finish-session";
 
+  const [pushTestStatus, setPushTestStatus] = useState<string | null>(null);
+  const handleTestPush = async () => {
+    const code = session?.code;
+    if (!code) return;
+    setPushTestStatus("Đang gửi test push…");
+    try {
+      const res = await fetch("/api/debug/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionCode: code,
+          playerId: mySelectedPlayerId ?? undefined,
+        }),
+      });
+      const data = await res.json();
+      setPushTestStatus(
+        `HTTP ${res.status}\n${JSON.stringify(data.result ?? data, null, 2)}`,
+      );
+    } catch (e) {
+      setPushTestStatus("Lỗi: " + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
   const handleSelectPlayer = (playerId: string) => {
     if (mySelectedPlayerId || !currentParticipant) return;
     fetcher.submit(
@@ -591,6 +614,26 @@ export default function SettingsPage() {
                       : "Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại."}
                   </p>
                 )}
+
+                <div className="mt-3 flex flex-col items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestPush}
+                    disabled={isBusy}
+                  >
+                    🔔 Gửi test push
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Gửi push OS thật tới thiết bị đã chọn nhân vật này
+                    {!mySelectedPlayerId && " (chưa chọn → gửi cho cả phòng)"}
+                  </p>
+                  {pushTestStatus && (
+                    <pre className="w-full max-w-sm rounded-lg bg-muted p-2 text-[11px] text-muted-foreground overflow-auto">
+                      {pushTestStatus}
+                    </pre>
+                  )}
+                </div>
               </>
             )}
           </CardContent>

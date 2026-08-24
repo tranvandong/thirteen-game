@@ -40,4 +40,5 @@ export default [
     "routes/session.$sessionId/devices/reconnect.ts",
   ),
   route("api/tts", "routes/api.tts.ts"),
+  route("api/debug/push", "routes/api.debug.push.ts"),
 ] satisfies RouteConfig;

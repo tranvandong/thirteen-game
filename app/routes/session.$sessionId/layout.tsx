@@ -51,14 +51,8 @@ import {
   offParticipantApproved,
   offJoinRequestRejected,
   offParticipantKicked,
-  onPlayerSelected,
-  onPlayerDeselected,
-  offPlayerSelected,
-  offPlayerDeselected,
   onScoreUpdated,
   offScoreUpdated,
-  type PlayerSelectedEvent,
-  type PlayerDeselectedEvent,
   type ScoreUpdatedEvent,
   approveJoinRequest,
   rejectJoinRequest,
@@ -73,6 +67,7 @@ import {
   clearToasts,
 } from "~/stores/useToastStore";
 import { playTTS } from "~/helpers/match.helper";
+import { buildScoreChangeNotification } from "~/lib/push-rules";
 
 const FINGERPRINT_KEY = "device_fingerprint";
 
@@ -541,81 +536,43 @@ export default function SessionLayout() {
     onJoinRequestRejected(handleRejected);
     onParticipantKicked(handleKicked);
 
-    // Push notification: có người chọn / bỏ chọn nhân vật.
-    // Không toast cho chính người thao tác (họ đã biết), nhưng vẫn broadcast
-    // cho toàn bộ room — nên chủ phòng và mọi người tham gia đều nhận được
-    // thông báo về lựa chọn của người khác.
-    const handlePlayerSelected = (data: PlayerSelectedEvent) => {
-      if (currentParticipant && data.participantId === currentParticipant.id)
-        return;
-      revalidator.revalidate();
-      addToast({
-        title: `${data.displayName} đã chọn nhân vật`,
-        description: data.playerName,
-        duration: 4000,
-      });
-    };
-
-    const handlePlayerDeselected = (data: PlayerDeselectedEvent) => {
-      if (currentParticipant && data.participantId === currentParticipant.id)
-        return;
-      revalidator.revalidate();
-      addToast({
-        title: `${data.displayName} đã bỏ chọn nhân vật`,
-        description: data.playerName,
-        duration: 4000,
-      });
-    };
-
-    onPlayerSelected(handlePlayerSelected);
-    onPlayerDeselected(handlePlayerDeselected);
-
     // Push notification: nhân vật của người tham gia có biến động điểm lớn
     // hoặc thay đổi thứ hạng sau mỗi ván (chỉ thông báo thiết bị đã chọn
     // nhân vật đó).
-    const rankOf = (
-      totals: Array<{ playerId: string; totalScore: number }>,
-      playerId: string,
-    ): number | null => {
-      const sorted = [...totals].sort((a, b) => b.totalScore - a.totalScore);
-      const idx = sorted.findIndex((t) => t.playerId === playerId);
-      return idx === -1 ? null : idx + 1;
-    };
-
     const handleScoreUpdated = ({ totals }: ScoreUpdatedEvent) => {
-      const myPlayerId =
-        useSessionStore.getState().mySelectedPlayerId;
+      const myPlayerId = useSessionStore.getState().mySelectedPlayerId;
       if (!myPlayerId) return;
 
       const prev = scoreRef.current;
-      const oldTotal = prev
-        ? prev.find((t) => t.playerId === myPlayerId)?.totalScore
-        : undefined;
       const newTotal = totals.find(
         (t) => t.playerId === myPlayerId,
       )?.totalScore;
       if (newTotal == null) return;
 
-      const oldRank = prev ? rankOf(prev, myPlayerId) : null;
-      const newRank = rankOf(totals, myPlayerId);
+      const oldTotal = prev
+        ? prev.find((t) => t.playerId === myPlayerId)?.totalScore
+        : undefined;
+      // Lần đầu nhận totals (chưa có prev) → chỉ lưu, không thông báo.
+      if (oldTotal == null) {
+        scoreRef.current = totals;
+        return;
+      }
 
-      const delta = oldTotal == null ? 0 : newTotal - oldTotal;
-      // Ngưỡng "biến động lớn" — chỉnh ở đây (điểm).
-      const SWING_THRESHOLD = 30;
-      const bigSwing = oldTotal != null && Math.abs(delta) >= SWING_THRESHOLD;
-      const rankChanged =
-        oldRank != null && newRank != null && oldRank !== newRank;
+      const delta = newTotal - oldTotal;
+      const player = players.find((p) => p.id === myPlayerId);
+      const name = player?.name ?? "Nhân vật của bạn";
 
-      if (oldRank != null && (bigSwing || rankChanged)) {
-        const player = players.find((p) => p.id === myPlayerId);
-        const name = player?.name ?? "Nhân vật của bạn";
-        const parts: string[] = [];
-        if (rankChanged) parts.push(`hạng ${oldRank} → ${newRank}`);
-        if (bigSwing)
-          parts.push(`${delta > 0 ? "+" : ""}${delta} điểm`);
+      // CÙNG rule với OS push (app/lib/push-rules.ts): ngưỡng 10 + đổi dấu âm/dương.
+      const notif = buildScoreChangeNotification({
+        name,
+        delta,
+        prevTotal: oldTotal,
+        newTotal,
+      });
+      if (notif.shouldNotify) {
         addToast({
-          title: `${name} có biến động`,
-          description: parts.join(" · "),
+          title: notif.title,
+          description: notif.body,
           duration: 5000,
         });
       }
@@ -630,8 +587,6 @@ export default function SessionLayout() {
       offParticipantApproved(handleApproved);
       offJoinRequestRejected(handleRejected);
       offParticipantKicked(handleKicked);
-      offPlayerSelected(handlePlayerSelected);
-      offPlayerDeselected(handlePlayerDeselected);
       offScoreUpdated(handleScoreUpdated);
     };
   }, [

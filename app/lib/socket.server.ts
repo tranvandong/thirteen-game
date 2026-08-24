@@ -27,11 +27,8 @@ import {
   players,
 } from "~/db/schema";
 import { getRoundMeta } from "./round.server";
-import {
-  sendPushToSession,
-  sendPushToPlayer,
-  PUSH_SWING_THRESHOLD,
-} from "./push.server";
+import { sendPushToPlayer } from "./push.server";
+import { buildScoreChangeNotification } from "./push-rules";
 
 // ── Singleton ─────────────────────────────────────────────────
 
@@ -134,7 +131,8 @@ export async function broadcastRoundSaved(sessionCode: string) {
  * Sau khi lưu ván, tính biến động của từng nhân vật (so với totals trước ván)
  * và gửi Web Push TARGETED tới thiết bị của người đã chọn nhân vật đó.
  * - prevTotals = newTotals - điểm ván này (tái tạo từ round_results)
- * - push nếu |Δđiểm| ≥ PUSH_SWING_THRESHOLD HOẶC đổi thứ hạng
+ * - push nếu |Δđiểm| ≥ PUSH_SWING_THRESHOLD HOẶC tổng điểm đổi dấu (âm↔dương).
+ *   Cùng rule với toast in-app (xem app/lib/push-rules.ts).
  */
 async function notifyScoreChanges(
   sessionDbId: string,
@@ -159,15 +157,6 @@ async function notifyScoreChanges(
     prevMap.set(pid, total - (r ? Number(r.score) : 0));
   }
 
-  const rankOf = (
-    map: Map<string, number>,
-    playerId: string,
-  ): number | null => {
-    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
-    const idx = sorted.findIndex(([id]) => id === playerId);
-    return idx === -1 ? null : idx + 1;
-  };
-
   // Map tên nhân vật
   const pls = await db
     .select({ id: players.id, name: players.name })
@@ -177,30 +166,28 @@ async function notifyScoreChanges(
 
   for (const r of results) {
     const pid = r.playerId;
-    const newRank = rankOf(newMap, pid);
-    const prevRank = rankOf(prevMap, pid);
+    const name = nameMap.get(pid) ?? "Nhân vật";
     const delta = Number(r.score);
+    const prevTotal = prevMap.get(pid) ?? 0;
+    const newTotal = newMap.get(pid) ?? 0;
 
-    const bigSwing = Math.abs(delta) >= PUSH_SWING_THRESHOLD;
-    const rankChanged =
-      prevRank != null && newRank != null && prevRank !== newRank;
+    // Dùng chung rule với toast in-app (app/lib/push-rules.ts):
+    // thông báo khi |Δđiểm| ≥ ngưỡng HOẶC tổng điểm đổi dấu (âm↔dương).
+    const notif = buildScoreChangeNotification({ name, delta, prevTotal, newTotal });
+    if (!notif.shouldNotify) continue;
 
-    if (bigSwing || rankChanged) {
-      const name = nameMap.get(pid) ?? "Nhân vật";
-      const parts: string[] = [];
-      if (rankChanged) parts.push(`hạng ${prevRank} → ${newRank}`);
-      if (bigSwing) parts.push(`${delta > 0 ? "+" : ""}${delta} điểm`);
-      console.log(
-        `[Push] notifyScoreChanges → player ${pid} (${name}): ` +
-          `delta=${delta}, rank ${prevRank}→${newRank}, gửi push`,
-      );
-      await sendPushToPlayer(sessionDbId, pid, {
-        title: `${name} có biến động`,
-        body: parts.join(" · "),
-        url: `/session/${sessionCode}`,
-        tag: `player-${pid}`,
-      });
-    }
+    const pushResult = await sendPushToPlayer(sessionDbId, pid, {
+      title: notif.title,
+      body: notif.body,
+      url: `/session/${sessionCode}`,
+      tag: `player-${pid}`,
+    });
+    console.log(
+      `[Push] notifyScoreChanges → player ${pid} (${name}): ` +
+        `delta=${delta}, total ${prevTotal}→${newTotal}, ` +
+        `push sent=${pushResult.sent}/${pushResult.targeted} ` +
+        `(failed=${pushResult.failed}, invalid=${pushResult.invalid})`,
+    );
   }
 }
 
@@ -478,22 +465,6 @@ export function initSocketServer(httpServer: HttpServer) {
           playerId,
           playerName: player.name,
         });
-
-        // Web Push OS-level: báo toàn bộ phòng (trừ người vừa chọn).
-        try {
-          await sendPushToSession(
-            sessionDbId,
-            {
-              title: `${participant.displayName} đã chọn nhân vật`,
-              body: player.name,
-              url: `/session/${sessionCode}`,
-              tag: `select-${participantId}`,
-            },
-            participantId,
-          );
-        } catch (err) {
-          console.error("push chọn nhân vật failed:", err);
-        }
       },
     );
 
@@ -535,22 +506,6 @@ export function initSocketServer(httpServer: HttpServer) {
           playerId,
           playerName: player.name,
         });
-
-        // Web Push OS-level: báo toàn bộ phòng (trừ người vừa bỏ chọn).
-        try {
-          await sendPushToSession(
-            sessionDbId,
-            {
-              title: `${participant.displayName} đã bỏ chọn nhân vật`,
-              body: player.name,
-              url: `/session/${sessionCode}`,
-              tag: `select-${participantId}`,
-            },
-            participantId,
-          );
-        } catch (err) {
-          console.error("push bỏ chọn nhân vật failed:", err);
-        }
       },
     );
 

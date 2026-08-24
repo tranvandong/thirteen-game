@@ -127,7 +127,7 @@ Push thông báo hệ điều hành (Web Push API + VAPID) tới thiết bị pa
   - `sendPushToPlayer(sessionId, playerId, payload)` — TARGETED: chỉ thiết bị của người đã chọn nhân vật `playerId` (join `participant_players` → `player_devices` active).
 - **Trigger**:
   - `player:select` / `player:deselect` (socket handler) → `sendPushToSession(..., exceptParticipantId)`.
-  - `broadcastRoundSaved` → `notifyScoreChanges`: tính `prevTotals = newTotals − điểm ván này` (từ `round_results`), so sánh `|Δđiểm| ≥ PUSH_SWING_THRESHOLD (30)` hoặc đổi thứ hạng → `sendPushToPlayer` cho nhân vật đó.
+  - `broadcastRoundSaved` → `notifyScoreChanges`: tính `prevTotals = newTotals − điểm ván này` (từ `round_results`), so sánh `|Δđiểm| ≥ PUSH_SWING_THRESHOLD (10)` hoặc đổi dấu âm/dương (âm↔dương). **Cùng rule với toast in-app** (định nghĩa chung ở `app/lib/push-rules.ts` → `buildScoreChangeNotification`) → `sendPushToPlayer` cho nhân vật đó.
 - **Service Worker** (`public/sw.js`): `push` handler hiện notification, **nhưng bỏ qua nếu app đang mở & focus** (tránh trùng với toast realtime in-app); `notificationclick` focus/navigate tab hiện có hoặc mở mới.
 - **Env (cùng 1 cặp VAPID)**: `VITE_VAPID_PUBLIC_KEY` (client), `VAPID_PRIVATE_KEY` (server), `VAPID_SUBJECT`. Sinh: `npx web-push generate-vapid-keys`.
 - **Schema**: `player_devices.pushToken` đổi `varchar(512)` → `text` (subscription vượt 512 ký tự). Chạy `npm run db:push`.

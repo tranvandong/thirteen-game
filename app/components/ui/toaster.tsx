@@ -85,7 +85,7 @@ export function Toaster() {
         </Toast.Root>
       ))}
 
-      <Toast.Viewport className="fixed bottom-[calc(6.75rem_+_env(safe-area-inset-bottom))] left-1/2 z-[100] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2 p-4 outline-none" />
+      <Toast.Viewport className="fixed top-[calc(4.5rem_+_env(safe-area-inset-top))] left-1/2 z-[100] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2 p-4 outline-none" />
     </Toast.Provider>
   );
 }

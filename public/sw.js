@@ -60,12 +60,15 @@ self.addEventListener("push", (event) => {
     (async () => {
       // Nếu app đang mở và được focus → không hiện OS notification
       // (app đã cập nhật realtime / toast rồi) để tránh trùng lặp.
+      // Riêng push TEST (debug, tag = "debug-push") luôn hiển thị để dễ
+      // xác minh trên thiết bị bất kể tab có đang focus hay không.
       const allClients = await clients.matchAll({
         type: "window",
         includeUncontrolled: true,
       });
       const focused = allClients.some((c) => c.focused);
-      if (focused) return;
+      const isDebug = data.tag === "debug-push";
+      if (focused && !isDebug) return;
 
       await self.registration.showNotification(data.title, {
         body: data.body,

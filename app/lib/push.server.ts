@@ -26,7 +26,7 @@ import { participants } from "~/db/schema/participants";
 import { eq, and, ne } from "drizzle-orm";
 
 /** Ngưỡng "biến động điểm lớn" (điểm) để push thông báo. */
-export const PUSH_SWING_THRESHOLD = 30;
+export { PUSH_SWING_THRESHOLD } from "./push-rules";
 
 export interface PushPayload {
   title: string;
@@ -34,6 +34,27 @@ export interface PushPayload {
   url?: string;
   /** Nhóm notification (tag) — các push cùng tag sẽ thay thế nhau. */
   tag?: string;
+}
+
+/** Kết quả gửi tới 1 thiết bị cụ thể. */
+export interface PushSendTarget {
+  endpoint: string;
+  ok: boolean;
+  status?: number;
+  reason?: string;
+}
+
+/** Báo cáo tổng hợp của 1 lượt gửi push — dùng cho debug / endpoint test. */
+export interface PushSendResult {
+  /** Số thiết bị có pushToken hợp lệ được thử gửi. */
+  targeted: number;
+  /** Gửi thành công. */
+  sent: number;
+  /** Lỗi gửi (bao gồm cả subscription không hợp lệ). */
+  failed: number;
+  /** Subscription 404/410 — cần dọn pushToken trong DB. */
+  invalid: number;
+  targets: PushSendTarget[];
 }
 
 let vapidReady = false;
@@ -78,61 +99,51 @@ function parseSubscription(token: string | null) {
 async function sendOne(
   token: string | null,
   payload: PushPayload,
-): Promise<void> {
+): Promise<PushSendTarget> {
   const sub = parseSubscription(token);
-  if (!sub) return;
+  const endpoint = (sub?.endpoint || "(no-endpoint)").slice(0, 48);
+  if (!sub) {
+    return { endpoint: "(missing-token)", ok: false, reason: "missing-token" };
+  }
   try {
     await webpush.sendNotification(sub, JSON.stringify(payload));
-    console.log(
-      "[Push] sent OK →",
-      (sub.endpoint || "").slice(0, 48) + "…",
-    );
+    console.log(`[Push] ✓ gửi OK → ${endpoint}`);
+    return { endpoint, ok: true };
   } catch (err: any) {
     // 404/410 = subscription không còn hợp lệ (user huỷ quyền / gỡ app) →
     // nên xoá pushToken trong DB. Ở đây chỉ log, không block luồng khác.
     const status = err?.statusCode ?? err?.status;
-    const body =
+    const bodyText =
       typeof err?.body === "string" ? err.body.slice(0, 240) : "";
     if (status === 404 || status === 410) {
-      console.warn("[Push] subscription không hợp lệ (404/410) — cần dọn pushToken.");
-    } else {
-      console.error(
-        `[Push] sendNotification thất bại: status=${status} ` +
-          `msg=${err?.message ?? err} body=${body}`,
+      console.warn(
+        `[Push] ✗ subscription không hợp lệ (${status}) → ${endpoint} — cần dọn pushToken trong DB.`,
       );
+      return { endpoint, ok: false, status, reason: "invalid-subscription" };
     }
+    console.error(
+      `[Push] ✗ sendNotification thất bại: status=${status} ` +
+        `msg=${err?.message ?? err} body=${bodyText}`,
+    );
+    return {
+      endpoint,
+      ok: false,
+      status,
+      reason: String(err?.message ?? err),
+    };
   }
-}
-
-/** Gửi push tới 1 participant (tất cả thiết bị active của họ). */
-export async function sendPushToParticipant(
-  participantId: string,
-  payload: PushPayload,
-): Promise<void> {
-  ensureVapid();
-  const devices = await db
-    .select({ pushToken: playerDevices.pushToken })
-    .from(playerDevices)
-    .where(
-      and(
-        eq(playerDevices.participantId, participantId),
-        eq(playerDevices.status, "active"),
-      ),
-    )
-    .limit(50);
-  await Promise.all(devices.map((d) => sendOne(d.pushToken, payload)));
 }
 
 /**
  * Gửi push TARGETED tới thiết bị của người tham gia đã chọn nhân vật
- * (playerId) trong session. Đây là cơ chế "thông báo tới thiết bị được
- * kết nối với nhân vật".
+ * (playerId) trong session. Trả về báo cáo (targeted/sent/failed/invalid)
+ * để dễ debug / test thực tế trên thiết bị.
  */
 export async function sendPushToPlayer(
   sessionId: string,
   playerId: string,
   payload: PushPayload,
-): Promise<void> {
+): Promise<PushSendResult> {
   ensureVapid();
   const rows = await db
     .select({ pushToken: playerDevices.pushToken })
@@ -147,21 +158,40 @@ export async function sendPushToPlayer(
     )
     .where(eq(participantPlayers.playerId, playerId))
     .limit(50);
+
+  const result: PushSendResult = {
+    targeted: 0,
+    sent: 0,
+    failed: 0,
+    invalid: 0,
+    targets: [],
+  };
+  for (const r of rows) {
+    const t = await sendOne(r.pushToken, payload);
+    if (t.reason === "missing-token") continue;
+    result.targeted++;
+    result.targets.push(t);
+    if (t.ok) result.sent++;
+    else {
+      result.failed++;
+      if (t.reason === "invalid-subscription") result.invalid++;
+    }
+  }
   console.log(
-    `[Push] sendPushToPlayer player=${playerId}: tìm thấy ${rows.length} thiết bị`,
+    `[Push] sendPushToPlayer player=${playerId}: targeted=${result.targeted} sent=${result.sent} failed=${result.failed} invalid=${result.invalid}`,
   );
-  await Promise.all(rows.map((r) => sendOne(r.pushToken, payload)));
+  return result;
 }
 
 /**
  * Gửi push cho mọi participant trong session. Truyền `exceptParticipantId`
- * để không push cho chính người thao tác.
+ * để không push cho chính người thao tác. Trả về báo cáo để dễ debug.
  */
 export async function sendPushToSession(
   sessionId: string,
   payload: PushPayload,
   exceptParticipantId?: string,
-): Promise<void> {
+): Promise<PushSendResult> {
   ensureVapid();
   const where = exceptParticipantId
     ? and(
@@ -176,7 +206,38 @@ export async function sendPushToSession(
     .where(where)
     .limit(200);
 
-  await Promise.all(
-    list.map((p) => sendPushToParticipant(p.id, payload)),
+  const result: PushSendResult = {
+    targeted: 0,
+    sent: 0,
+    failed: 0,
+    invalid: 0,
+    targets: [],
+  };
+  for (const p of list) {
+    const devs = await db
+      .select({ pushToken: playerDevices.pushToken })
+      .from(playerDevices)
+      .where(
+        and(
+          eq(playerDevices.participantId, p.id),
+          eq(playerDevices.status, "active"),
+        ),
+      )
+      .limit(50);
+    for (const d of devs) {
+      const t = await sendOne(d.pushToken, payload);
+      if (t.reason === "missing-token") continue;
+      result.targeted++;
+      result.targets.push(t);
+      if (t.ok) result.sent++;
+      else {
+        result.failed++;
+        if (t.reason === "invalid-subscription") result.invalid++;
+      }
+    }
+  }
+  console.log(
+    `[Push] sendPushToSession session=${sessionId}: targeted=${result.targeted} sent=${result.sent} failed=${result.failed} invalid=${result.invalid}`,
   );
+  return result;
 }
