@@ -99,6 +99,7 @@ function parseSubscription(token: string | null) {
 async function sendOne(
   token: string | null,
   payload: PushPayload,
+  deviceId?: string,
 ): Promise<PushSendTarget> {
   const sub = parseSubscription(token);
   const endpoint = (sub?.endpoint || "(no-endpoint)").slice(0, 48);
@@ -111,14 +112,23 @@ async function sendOne(
     return { endpoint, ok: true };
   } catch (err: any) {
     // 404/410 = subscription không còn hợp lệ (user huỷ quyền / gỡ app) →
-    // nên xoá pushToken trong DB. Ở đây chỉ log, không block luồng khác.
+    // dọn pushToken trong DB để lần sau thiết bị re-subscribe (tránh treo vĩnh viễn).
     const status = err?.statusCode ?? err?.status;
     const bodyText =
       typeof err?.body === "string" ? err.body.slice(0, 240) : "";
     if (status === 404 || status === 410) {
       console.warn(
-        `[Push] ✗ subscription không hợp lệ (${status}) → ${endpoint} — cần dọn pushToken trong DB.`,
+        `[Push] ✗ subscription không hợp lệ (${status}) → ${endpoint}.`,
       );
+      if (deviceId) {
+        await db
+          .update(playerDevices)
+          .set({ pushToken: null })
+          .where(eq(playerDevices.id, deviceId));
+        console.warn(
+          `[Push] ✗ đã dọn pushToken của device ${deviceId} → thiết bị sẽ re-subscribe ở lần mở sau.`,
+        );
+      }
       return { endpoint, ok: false, status, reason: "invalid-subscription" };
     }
     console.error(
@@ -146,7 +156,7 @@ export async function sendPushToPlayer(
 ): Promise<PushSendResult> {
   ensureVapid();
   const rows = await db
-    .select({ pushToken: playerDevices.pushToken })
+    .select({ id: playerDevices.id, pushToken: playerDevices.pushToken })
     .from(participantPlayers)
     .innerJoin(
       playerDevices,
@@ -167,7 +177,7 @@ export async function sendPushToPlayer(
     targets: [],
   };
   for (const r of rows) {
-    const t = await sendOne(r.pushToken, payload);
+    const t = await sendOne(r.pushToken, payload, r.id);
     if (t.reason === "missing-token") continue;
     result.targeted++;
     result.targets.push(t);
@@ -215,7 +225,7 @@ export async function sendPushToSession(
   };
   for (const p of list) {
     const devs = await db
-      .select({ pushToken: playerDevices.pushToken })
+      .select({ id: playerDevices.id, pushToken: playerDevices.pushToken })
       .from(playerDevices)
       .where(
         and(
@@ -225,7 +235,7 @@ export async function sendPushToSession(
       )
       .limit(50);
     for (const d of devs) {
-      const t = await sendOne(d.pushToken, payload);
+      const t = await sendOne(d.pushToken, payload, d.id);
       if (t.reason === "missing-token") continue;
       result.targeted++;
       result.targets.push(t);

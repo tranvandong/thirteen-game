@@ -76,6 +76,7 @@ self.addEventListener("push", (event) => {
         badge: "/icons/icon-72x72.png",
         data: data.url ?? "/",
         tag: data.tag, // cùng tag → thay thế notification cũ
+        requireInteraction: true, // giữ notification tới khi user tương tác (nổi bật hơn)
       });
     })(),
   );
