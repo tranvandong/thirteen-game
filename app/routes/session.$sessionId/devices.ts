@@ -39,6 +39,13 @@ export async function action({ request, params }: Route.ActionArgs) {
     return new Response("Missing required fields", { status: 400 });
   }
 
+  // pushToken có thể:
+  //  - undefined : KHÔNG gửi (chỉ upsert thiết bị, không đổi token hiện tại)
+  //  - string    : đăng ký subscription mới
+  //  - null      : huỷ đăng ký (xoá token)
+  // Phân biệt undefined vs null để nút "Tắt thông báo" thực sự xoá token.
+  const hasPushTokenField = "pushToken" in body;
+
   // Kiểm tra participant thuộc session này
   const [participant] = await db
     .select({ id: participants.id })
@@ -71,7 +78,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       target: [playerDevices.sessionId, playerDevices.fingerprint], // unique constraint
       set: {
         participantId,
-        ...(pushToken ? { pushToken } : {}),
+        ...(hasPushTokenField ? { pushToken: pushToken ?? null } : {}),
         updatedAt: new Date(),
       },
     });

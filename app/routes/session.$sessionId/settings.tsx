@@ -33,6 +33,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
+import { PushNotificationsCard } from "~/components/push-notifications";
 import {
   useSession,
   usePlayers,
@@ -829,6 +830,11 @@ export default function SettingsPage() {
           />
         </Field>
       </FieldLabel>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Thông báo đẩy (Web Push) — nút bật từ cú tap, thoả mãn gesture iOS */}
+      {/* ------------------------------------------------------------------ */}
+      <PushNotificationsCard />
 
       {/* ------------------------------------------------------------------ */}
       {/* Kết thúc phiên (chỉ chủ phòng)                                     */}
