@@ -615,26 +615,6 @@ export default function SettingsPage() {
                       : "Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại."}
                   </p>
                 )}
-
-                <div className="mt-3 flex flex-col items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleTestPush}
-                    disabled={isBusy}
-                  >
-                    🔔 Gửi test push
-                  </Button>
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    Gửi push OS thật tới thiết bị đã chọn nhân vật này
-                    {!mySelectedPlayerId && " (chưa chọn → gửi cho cả phòng)"}
-                  </p>
-                  {pushTestStatus && (
-                    <pre className="w-full max-w-sm rounded-lg bg-muted p-2 text-[11px] text-muted-foreground overflow-auto">
-                      {pushTestStatus}
-                    </pre>
-                  )}
-                </div>
               </>
             )}
           </CardContent>

@@ -67,8 +67,8 @@ export function buildScoreChangeNotification(
 
   // Nội dung: nếu biến động lớn → thông điệp tích lũy điểm lớn.
   const body = bigSwing
-    ? `Tuyệt vời, bạn vừa tích lũy được số điểm lớn (${delta > 0 ? "+" : ""}${delta} điểm.`
-    : `Tổng điểm của bạn hiện là ${newTotal} điểm.`;
+    ? `Tuyệt vời, bạn vừa giành được (${delta > 0 ? "+" : ""}${delta} điểm). Tổng tích lũy ${newTotal} điểm.`
+    : `Tổng tích lũy của bạn hiện là ${newTotal} điểm.`;
 
   return { shouldNotify: true, title, body };
 }

@@ -17,10 +17,6 @@ export const IMAGE_NAMES = [
   "bg10",
   "bg11",
   "bg12",
-  "bg13",
-  "bg14",
-  "bg15",
-  "bg16",
 ];
 
 export function Background() {
