@@ -14,6 +14,11 @@
 /** Ngưỡng "biến động điểm lớn" (điểm) để thông báo. */
 export const PUSH_SWING_THRESHOLD = 10;
 
+/** Nhãn app hiển thị trong tiêu đề thông báo (thay thế "from thirteen").
+ *  iOS lấy tên người gửi push từ manifest nên không thể đổi riêng; ta chèn
+ *  nhãn này vào tiêu đề để '"Chặt heo"' xuất hiện trong thông báo. */
+export const APP_PUSH_LABEL = "Chặt heo";
+
 export interface ScoreChangeInput {
   /** Tên nhân vật. */
   name: string;
@@ -41,7 +46,7 @@ export interface ScoreChangeNotification {
 export function buildScoreChangeNotification(
   input: ScoreChangeInput,
 ): ScoreChangeNotification {
-  const { name, delta, prevTotal, newTotal } = input;
+  const { delta, prevTotal, newTotal } = input;
 
   const bigSwing = Math.abs(delta) >= PUSH_SWING_THRESHOLD;
   const flippedPositive = prevTotal < 0 && newTotal > 0;
@@ -52,27 +57,19 @@ export function buildScoreChangeNotification(
     return { shouldNotify: false, title: "", body: "" };
   }
 
-  let body: string;
-  if (flippedPositive) {
-    // Lội ngược lên dương
-    if (Math.abs(delta) >= PUSH_SWING_THRESHOLD) {
-      body =
-        `Chúc mừng bạn đã được ${delta} điểm. ` +
-        `Điểm tích lũy đã được nâng lên ${newTotal}. Thế như đang chẻ tre`;
-    } else {
-      body =
-        `Chúc mừng bạn đã tích lũy được ${newTotal}. ` +
-        `Thừa thắng xông tới nào`;
-    }
-  } else if (flippedNegative) {
-    // Rớt xuống âm
-    body =
-      `Điểm tích lũy của bạn đã đi vào lòng đất ${newTotal} điểm. ` +
-      `Hãy tận dụng cơ hội nhỏ nhất lật ngược tình hình nào`;
-  } else {
-    // Swing thuần (không đổi dấu)
-    body = `${name} ${delta > 0 ? "+" : ""}${delta} điểm (tổng ${newTotal})`;
-  }
+  // Tiêu đề: dựa trên dấu của biến động điểm (dương → về bờ, âm → lòng đất).
+  // Được chèn nhãn app phía trước để thông báo hiện "Chặt heo" (thay cho
+  // "from thirteen" của hệ thống).
+  const titleCore =
+    delta >= 0
+      ? "Chúc mừng bạn đã về bờ"
+      : "Thật đen đủi, bạn đã về với lòng đất";
+  const title = `${APP_PUSH_LABEL} · ${titleCore}`;
 
-  return { shouldNotify: true, title: name, body };
+  // Nội dung: nếu biến động lớn → thông điệp tích lũy điểm lớn.
+  const body = bigSwing
+    ? `Tuyệt vời, bạn vừa tích lũy được số điểm lớn (${delta > 0 ? "+" : ""}${delta}, tổng ${newTotal}).`
+    : `Tổng điểm của bạn hiện là ${newTotal}.`;
+
+  return { shouldNotify: true, title, body };
 }
