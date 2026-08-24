@@ -93,7 +93,10 @@ async function resolveSessionDbId(
  * Sau khi 1 ván được lưu: đọc lại totals + round mới nhất + roundMeta
  * từ DB rồi broadcast cho room.
  */
-export async function broadcastRoundSaved(sessionCode: string) {
+export async function broadcastRoundSaved(
+  sessionCode: string,
+  exceptParticipantId?: string,
+) {
   const io = getIOSafe();
   if (!io) return;
 
@@ -116,12 +119,25 @@ export async function broadcastRoundSaved(sessionCode: string) {
     roundMeta,
     totals,
   });
-  io.to(room).emit("score:updated", { sessionCode, totals });
+  // actorParticipantId để client bỏ qua toast thông báo trên thiết bị của
+  // người vừa ghi ván (họ đã biết kết quả).
+  io.to(room).emit("score:updated", {
+    sessionCode,
+    totals,
+    actorParticipantId: exceptParticipantId,
+  });
 
   // Web Push OS-level: thông báo thiết bị của người tham gia được kết nối
-  // với nhân vật có biến động điểm lớn / đổi thứ hạng.
+  // với nhân vật có biến động điểm lớn / đổi thứ hạng. Loại thiết bị của
+  // người vừa ghi ván (exceptParticipantId).
   try {
-    await notifyScoreChanges(sessionDbId, sessionCode, round.id, totals);
+    await notifyScoreChanges(
+      sessionDbId,
+      sessionCode,
+      round.id,
+      totals,
+      exceptParticipantId,
+    );
   } catch (err) {
     console.error("notifyScoreChanges failed:", err);
   }
@@ -139,6 +155,7 @@ async function notifyScoreChanges(
   sessionCode: string,
   roundId: string,
   newTotals: Array<{ playerId: string; totalScore: number }>,
+  exceptParticipantId?: string,
 ) {
   const results = await db
     .select({ playerId: roundResults.playerId, score: roundResults.score })
@@ -176,12 +193,17 @@ async function notifyScoreChanges(
     const notif = buildScoreChangeNotification({ name, delta, prevTotal, newTotal });
     if (!notif.shouldNotify) continue;
 
-    const pushResult = await sendPushToPlayer(sessionDbId, pid, {
-      title: notif.title,
-      body: notif.body,
-      url: `/session/${sessionCode}`,
-      tag: `player-${pid}`,
-    });
+    const pushResult = await sendPushToPlayer(
+      sessionDbId,
+      pid,
+      {
+        title: notif.title,
+        body: notif.body,
+        url: `/session/${sessionCode}`,
+        tag: `player-${pid}`,
+      },
+      exceptParticipantId,
+    );
     console.log(
       `[Push] notifyScoreChanges → player ${pid} (${name}): ` +
         `delta=${delta}, total ${prevTotal}→${newTotal}, ` +
@@ -403,13 +425,22 @@ export function initSocketServer(httpServer: HttpServer) {
      * Client vừa lưu xong 1 ván (action đã commit DB thành công).
      * Process này đọc lại DB rồi broadcast cho cả room.
      */
-    socket.on("round:publish", async ({ sessionCode }: { sessionCode: string }) => {
-      try {
-        await broadcastRoundSaved(sessionCode);
-      } catch (err) {
-        console.error("broadcastRoundSaved failed:", err);
-      }
-    });
+    socket.on(
+      "round:publish",
+      async ({
+        sessionCode,
+        actorParticipantId,
+      }: {
+        sessionCode: string;
+        actorParticipantId?: string;
+      }) => {
+        try {
+          await broadcastRoundSaved(sessionCode, actorParticipantId);
+        } catch (err) {
+          console.error("broadcastRoundSaved failed:", err);
+        }
+      },
+    );
 
     /**
      * Client vừa xoá 1 ván. Broadcast round:deleted + score:updated.

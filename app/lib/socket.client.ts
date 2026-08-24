@@ -91,8 +91,11 @@ export function kickParticipant(sessionCode: string, participantId: string) {
  * Server sẽ đọc lại DB và broadcast `round:finished` + `score:updated`
  * cho toàn bộ room (authoritative, không tin payload client).
  */
-export function publishRound(sessionCode: string) {
-  getSocket().emit("round:publish", { sessionCode });
+export function publishRound(
+  sessionCode: string,
+  actorParticipantId?: string,
+) {
+  getSocket().emit("round:publish", { sessionCode, actorParticipantId });
 }
 
 /**
@@ -150,6 +153,8 @@ export interface RoundFinishedEvent {
 export interface ScoreUpdatedEvent {
   sessionCode: string;
   totals: Array<{ playerId: string; totalScore: number }>;
+  /** Participant vừa ghi ván — thiết bị của họ bỏ qua toast thông báo. */
+  actorParticipantId?: string;
 }
 
 export interface RoundDeletedEvent {

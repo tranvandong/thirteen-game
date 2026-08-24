@@ -60,16 +60,15 @@ export function buildScoreChangeNotification(
   // Tiêu đề: dựa trên dấu của biến động điểm (dương → về bờ, âm → lòng đất).
   // Được chèn nhãn app phía trước để thông báo hiện "Chặt heo" (thay cho
   // "from thirteen" của hệ thống).
-  const titleCore =
+  const title =
     delta >= 0
       ? "Chúc mừng bạn đã về bờ"
-      : "Thật đen đủi, bạn đã về với lòng đất";
-  const title = `${APP_PUSH_LABEL} · ${titleCore}`;
+      : "Bạn đã về với lòng đất";
 
   // Nội dung: nếu biến động lớn → thông điệp tích lũy điểm lớn.
   const body = bigSwing
-    ? `Tuyệt vời, bạn vừa tích lũy được số điểm lớn (${delta > 0 ? "+" : ""}${delta}, tổng ${newTotal}).`
-    : `Tổng điểm của bạn hiện là ${newTotal}.`;
+    ? `Tuyệt vời, bạn vừa tích lũy được số điểm lớn (${delta > 0 ? "+" : ""}${delta} điểm.`
+    : `Tổng điểm của bạn hiện là ${newTotal} điểm.`;
 
   return { shouldNotify: true, title, body };
 }

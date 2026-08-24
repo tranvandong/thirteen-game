@@ -476,9 +476,23 @@ export default function SessionLayout() {
     // Push notification: nhân vật của người tham gia có biến động điểm lớn
     // hoặc thay đổi thứ hạng sau mỗi ván (chỉ thông báo thiết bị đã chọn
     // nhân vật đó).
-    const handleScoreUpdated = ({ totals }: ScoreUpdatedEvent) => {
+    const handleScoreUpdated = ({
+      totals,
+      actorParticipantId,
+    }: ScoreUpdatedEvent) => {
       const myPlayerId = useSessionStore.getState().mySelectedPlayerId;
       if (!myPlayerId) return;
+
+      // Người vừa ghi ván (thêm ván đấu) đã biết kết quả → bỏ qua toast
+      // thông báo trên thiết bị của chính họ (vẫn cập nhật baseline điểm).
+      if (
+        actorParticipantId &&
+        currentParticipant &&
+        actorParticipantId === currentParticipant.id
+      ) {
+        scoreRef.current = totals;
+        return;
+      }
 
       const prev = scoreRef.current;
       const newTotal = totals.find(

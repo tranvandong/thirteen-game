@@ -265,7 +265,8 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     resetScoringState();
 
     // Báo Socket.IO server để broadcast cho cả phòng (authoritative).
-    if (sessionCode) publishRound(sessionCode);
+    // Truyền participantId người ghi ván để họ không nhận thông báo (đã biết).
+    if (sessionCode) publishRound(sessionCode, currentParticipant?.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data, sessionCode]);
 

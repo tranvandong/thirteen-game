@@ -153,6 +153,7 @@ export async function sendPushToPlayer(
   sessionId: string,
   playerId: string,
   payload: PushPayload,
+  exceptParticipantId?: string,
 ): Promise<PushSendResult> {
   ensureVapid();
   const rows = await db
@@ -164,6 +165,11 @@ export async function sendPushToPlayer(
         eq(playerDevices.participantId, participantPlayers.participantId),
         eq(playerDevices.sessionId, sessionId),
         eq(playerDevices.status, "active"),
+        // Loại thiết bị của người vừa ghi ván (thêm ván đấu) — họ đã biết
+        // kết quả rồi, không cần nhận push.
+        ...(exceptParticipantId
+          ? [ne(participantPlayers.participantId, exceptParticipantId)]
+          : []),
       ),
     )
     .where(eq(participantPlayers.playerId, playerId))
