@@ -68,12 +68,15 @@ function PigMiniStat({
   max: number;
   tone: "win" | "loss";
 }) {
-  const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
+  const pct =
+    max > 0 ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
   const colorText = tone === "win" ? "text-chart-2" : "text-destructive";
   const colorBar = tone === "win" ? "bg-chart-2" : "bg-destructive";
   return (
     <td className="px-1 py-2 text-center align-middle">
-      <div className={`text-sm font-bold tabular-nums ${colorText}`}>{value}</div>
+      <div className={`text-sm font-bold tabular-nums ${colorText}`}>
+        {value}
+      </div>
       <div className="mx-auto mt-1 h-1 w-7 rounded-full bg-muted">
         <div
           className={`h-1 rounded-full ${colorBar}`}
@@ -411,13 +414,14 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
   const netBonusByPlayer = players.map((_, i) => {
     const s = sanhData[i].duong + sanhData[i].am;
     const k = khapData[i].duong + khapData[i].am;
-    const pg = pigData[i].doThang + pigData[i].doThua + pigData[i].denThang + pigData[i].denThua;
+    const pg =
+      pigData[i].doThang +
+      pigData[i].doThua +
+      pigData[i].denThang +
+      pigData[i].denThua;
     return s + k + pg;
   });
-  const maxBonus = Math.max(
-    1,
-    ...netBonusByPlayer.map((n) => Math.max(0, n)),
-  );
+  const maxBonus = Math.max(1, ...netBonusByPlayer.map((n) => Math.max(0, n)));
 
   const playerMetric = (fn: (i: number) => number) =>
     Object.fromEntries(players.map((_, i) => [`p${i + 1}`, fn(i)]));
@@ -433,9 +437,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
     },
     {
       metric: "Điểm TB",
-      ...playerMetric((i) =>
-        Math.round((avgData[i].avg / maxAvg) * 100),
-      ),
+      ...playerMetric((i) => Math.round((avgData[i].avg / maxAvg) * 100)),
     },
     {
       metric: "Thưởng",
@@ -549,9 +551,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                   <p className="truncate text-sm font-bold text-foreground">
                     {k.name}
                   </p>
-                  <p className={`text-xs font-semibold ${k.cls}`}>
-                    {k.value}
-                  </p>
+                  <p className={`text-xs font-semibold ${k.cls}`}>{k.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -618,7 +618,12 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 tickMargin={8}
                 tickFormatter={(v: string) => v.replace("Ván ", "")}
               />
-              <YAxis tickLine={false} axisLine={false} tickMargin={4} width={28} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={4}
+                width={28}
+              />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
               <ChartLegend content={<ChartLegendContent />} />
               {players.map((p, i) => (
@@ -673,10 +678,20 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
                 content={<ChartTooltipContent indicator="dashed" />}
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="nhat" stackId="a" fill="var(--color-nhat)" radius={[0, 0, 0, 0]} />
+              <Bar
+                dataKey="nhat"
+                stackId="a"
+                fill="var(--color-nhat)"
+                radius={[0, 0, 0, 0]}
+              />
               <Bar dataKey="nhi" stackId="a" fill="var(--color-nhi)" />
               <Bar dataKey="ba" stackId="a" fill="var(--color-ba)" />
-              <Bar dataKey="tu" stackId="a" fill="var(--color-tu)" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="tu"
+                stackId="a"
+                fill="var(--color-tu)"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ChartContainer>
         </CardContent>
@@ -690,7 +705,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         <CardHeader>
           <CardTitle>Điểm trung bình mỗi ván</CardTitle>
           <CardDescription>
-            Tổng điểm chia cho số ván tham gia — so sánh công bằng khi vào muộn
+            Tổng điểm chia cho số ván tham gia
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -725,9 +740,12 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         <CardFooter className="text-sm text-muted-foreground">
           Trung bình toàn bàn:{" "}
           {avgData.length > 0
-            ? `${Math.round(
-                (avgData.reduce((s, a) => s + a.avg, 0) / avgData.length) * 10,
-              ) / 10}`
+            ? `${
+                Math.round(
+                  (avgData.reduce((s, a) => s + a.avg, 0) / avgData.length) *
+                    10,
+                ) / 10
+              }`
             : "0"}{" "}
           điểm/ván
         </CardFooter>
@@ -738,7 +756,8 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         <CardHeader>
           <CardTitle>Hồ sơ người chơi</CardTitle>
           <CardDescription>
-            So sánh các chỉ số (chuẩn hóa 0–100): về nhất, top 2, điểm TB, thưởng
+            So sánh các chỉ số (chuẩn hóa 0–100): về nhất, top 2, điểm TB,
+            thưởng
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -960,29 +979,40 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         <CardHeader>
           <CardTitle>Heo (chặt heo)</CardTitle>
           <CardDescription>
-            Số lượng heo đỏ / đen chặt được (thắng) và bị chặt (thua). T = thắng,
-            Th = thua.
+            Số lượng heo đỏ / đen chặt (thắng) và bị chặt (thua).
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+            <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <th className="py-2 pr-2 text-left font-medium">Người</th>
-                  <th className="px-1 py-2 text-center font-medium text-chart-2">
-                    Đỏ T
+                <tr className="border-b border-border/60">
+                  <th rowSpan={2} className="py-1 pr-2 text-left font-medium">
+                    Người chơi
                   </th>
-                  <th className="px-1 py-2 text-center font-medium text-destructive">
-                    Đỏ Th
+                  <th colSpan={2} className="py-1 pr-2 text-center font-medium">
+                    Heo đỏ
                   </th>
-                  <th className="px-1 py-2 text-center font-medium text-chart-2">
-                    Đen T
+                  <th colSpan={2} className="py-1 pr-2 text-center font-medium">
+                    Heo đen
                   </th>
-                  <th className="px-1 py-2 text-center font-medium text-destructive">
-                    Đen Th
+                  <th rowSpan={2} className="px-1 py-2 text-center font-medium">
+                    Hiệu
                   </th>
-                  <th className="px-1 py-2 text-center font-medium">Hiệu</th>
+                </tr>
+                <tr className="text-[11px] tracking-wide text-muted-foreground">
+                  <th className="px-1 py-1 text-center font-medium text-chart-2">
+                    Thắng
+                  </th>
+                  <th className="px-1 py-1 text-center font-medium text-destructive">
+                    Thua
+                  </th>
+                  <th className="px-1 py-1 text-center font-medium text-chart-2">
+                    Thắng
+                  </th>
+                  <th className="px-1 py-1 text-center font-medium text-destructive">
+                    Thua
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1045,16 +1075,6 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
             </table>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-1 text-sm text-muted-foreground">
-          <span>
-            Tổng heo đỏ: thắng {totalRedThang} / thua {totalRedThua} — Tổng heo
-            đen: thắng {totalDenThang} / thua {totalDenThua}
-          </span>
-          <span>
-            Cả bàn: đỏ {totalRedThang + totalRedThua} con, đen{" "}
-            {totalDenThang + totalDenThua} con
-          </span>
-        </CardFooter>
       </Card>
     </main>
   );
