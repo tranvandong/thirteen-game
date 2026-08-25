@@ -1,6 +1,6 @@
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { Crown, Lock, X } from "lucide-react";
+import { Crown, Lock, UserRoundX, X } from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
 import type { GameConfigs, NhotBai } from "~/types/match.type";
 
@@ -121,8 +121,8 @@ export function NhotBaiResultCard({
                     >
                       {caseLabel}
                     </span>
-                    <p className="mt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                      Người nhốt
+                    <p className="mt-2 text-xs flex items-end gap-2 font-bold uppercase tracking-wide text-muted-foreground">
+                      <UserRoundX className="size-5 text-chart-1" /> Người nhốt
                     </p>
                     <div className="mt-1 inline-flex items-center gap-2 rounded-2xl border border-primary/20 bg-background px-3 py-2 font-black text-primary">
                       <Crown className="size-3.5" />

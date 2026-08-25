@@ -7,7 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Scissors } from "lucide-react";
+import {
+  ArrowBigDownDash,
+  ArrowDown,
+  Check,
+  PiggyBank,
+  Scissors,
+  UserRoundMinus,
+  UserRoundPlus,
+} from "lucide-react";
 import type { HeoType } from "~/types/match.type";
 
 /**
@@ -114,11 +122,11 @@ export function ChatHeoDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 px-4 pb-4">
-          <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-6 px-4 pb-4">
+          <div className="flex flex-col gap-6">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                Người chặt
+              <p className="text-xs flex items-end gap-2 font-bold uppercase tracking-wide text-muted-foreground">
+                <UserRoundPlus className="size-6 text-chart-1" /> Người chặt
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {players
@@ -136,12 +144,13 @@ export function ChatHeoDialog({
                               : f.victimId,
                         }))
                       }
-                      className={`relative z-10 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
+                      className={`relative z-10 flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
                         chatForm.chatterId === p.id
                           ? "border border-primary bg-chart-1/10 text-chart-1"
-                          : "border-border bg-background/10 text-foreground hover:border-primary/40"
+                          : "border-border bg-background/10 hover:border-primary/40 text-chart-1/70"
                       }`}
                     >
+                      {chatForm.chatterId === p.id && <Check size={18} />}
                       {pShort(p.id)}
                     </button>
                   ))}
@@ -149,8 +158,9 @@ export function ChatHeoDialog({
             </div>
 
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                Người bị chặt
+              <p className="text-xs flex items-end gap-2 font-bold uppercase tracking-wide text-muted-foreground">
+                <UserRoundMinus className="size-6 text-destructive" /> Người bị
+                chặt
               </p>
               <div className="relative z-10 mt-2 flex flex-wrap gap-2">
                 {players
@@ -165,12 +175,13 @@ export function ChatHeoDialog({
                       onClick={() =>
                         setChatForm((f) => ({ ...f, victimId: p.id }))
                       }
-                      className={`relative z-10 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
+                      className={`relative z-10 flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
                         chatForm.victimId === p.id
                           ? "border-destructive bg-destructive/10 text-destructive"
-                          : "border-border bg-background/10 text-foreground hover:border-destructive/30"
+                          : "border-border bg-background/10 hover:border-destructive/30 text-destructive/70"
                       }`}
                     >
+                      {chatForm.victimId === p.id && <Check size={18} />}
                       {pShort(p.id)}
                     </button>
                   ))}
@@ -178,8 +189,8 @@ export function ChatHeoDialog({
             </div>
 
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                Số lượng heo
+              <p className="text-xs font-bold flex items-end gap-2 uppercase tracking-wide text-muted-foreground">
+                <PiggyBank className="size-6" /> Số lượng heo
               </p>
               <div className="mt-2 flex gap-4">
                 {(["do", "den"] as HeoType[]).map((t) => (
@@ -188,7 +199,7 @@ export function ChatHeoDialog({
                     className="flex flex-1 items-center justify-between gap-0.5 rounded-2xl border border-border/70 bg-background p-2"
                   >
                     <span
-                      className={`rounded-full px-2 py-1.5 text-[12px] font-black ${
+                      className={`rounded-full w-9 h-9 leading-[2.2] text-[16px] text-center font-black ${
                         t === "den"
                           ? "bg-foreground text-background"
                           : "bg-red-500 text-white"
@@ -198,16 +209,16 @@ export function ChatHeoDialog({
                     </span>
                     <button
                       onClick={() => updateChatFormHeo(t, -1)}
-                      className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
+                      className="relative z-10 size-8 rounded-full bg-muted/70 font-black"
                     >
                       −
                     </button>
-                    <span className="w-5 text-center text-sm font-black">
+                    <span className="w-5 text-center text-base font-black">
                       {chatForm.heo[t]}
                     </span>
                     <button
                       onClick={() => updateChatFormHeo(t, 1)}
-                      className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
+                      className="relative z-10 size-8 rounded-full bg-muted/70 font-black"
                     >
                       +
                     </button>

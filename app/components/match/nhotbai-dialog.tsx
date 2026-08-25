@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Lock, Plus, X } from "lucide-react";
+import { Check, Lock, Plus, UserLock, UserRoundX, X } from "lucide-react";
 import type { HeoType, VictimHeo } from "~/types/match.type";
 
 /**
@@ -132,8 +132,8 @@ export function NhotBaiDialog({
 
         <div className="flex flex-col gap-3 px-4 pb-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Người nhốt
+            <p className="text-xs flex items-end gap-2 font-bold uppercase tracking-wide text-muted-foreground">
+              <UserLock className="size-6 text-chart-1" /> Người nhốt
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {players.map((p) => (
@@ -146,12 +146,13 @@ export function NhotBaiDialog({
                       victims: f.victims.filter((v) => v.victimId !== p.id),
                     }))
                   }
-                  className={`relative z-10 uppercase tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors ${
+                  className={`relative z-10 uppercase flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors ${
                     nhotForm.nhotterId === p.id
                       ? "border border-primary bg-chart-1/10 text-chart-1"
-                      : "border-border bg-background/10 text-foreground hover:border-primary/40"
+                      : "border-border bg-background/10 hover:border-primary/40 text-chart-1/70"
                   }`}
                 >
+                  {nhotForm.nhotterId === p.id && <Check size={18} />}
                   {pShort(p.id)}
                 </button>
               ))}
@@ -159,10 +160,10 @@ export function NhotBaiDialog({
           </div>
 
           <div>
-            <p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Người bị nhốt
+            <p className="mt-4 text-xs flex items-end gap-2 font-bold uppercase tracking-wide text-muted-foreground">
+              <UserRoundX className="size-6 text-destructive" /> Người bị nhốt
             </p>
-            <div className="mt-2 flex flex-col gap-1">
+            <div className="mt-2 flex flex-col gap-2">
               {players
                 .filter((p) => p.id !== nhotForm.nhotterId)
                 .map((p) => {
@@ -177,35 +178,35 @@ export function NhotBaiDialog({
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center justify-between gap-3 rounded-2xl border p-3 ${
+                      className={`flex items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 ${
                         isVictim
                           ? "border-destructive/25 bg-destructive/5"
                           : "border-border bg-background"
                       }`}
                     >
                       <div
-                        className={`relative z-10 uppercase tracking-wider flex-1 font-black  ${isVictim ? "text-destructive" : "text-foreground"}`}
+                        className={`flex gap-0.5 relative z-10 uppercase tracking-wider flex-1 font-black  text-destructive/70`}
                         onClick={() => toggleNhotVictim(p.id)}
                       >
-                        {pShort(p.id)}
+                       {isVictim && <Check size={18} />}  {pShort(p.id)}
                       </div>
                       {isVictim && (
                         <div className="flex gap-4">
                           {(["do", "den"] as HeoType[]).map((t) => (
                             <div
                               key={t}
-                              className="flex items-center gap-1 text-xs"
+                              className="flex items-center gap-1 text-base"
                             >
                               <span
-                                className={`rounded-full px-2 py-1 font-black border-2 border-white text-white leading-[normal] ${
+                                className={`rounded-full w-7 h-7 font-black border-2 border-white text-white leading-[normal] ${
                                   t === "den" ? "bg-black" : "bg-red-500"
                                 }`}
                               >
-                                {vicTimHeoCount?.[t] ?? 0}
+                                {/* {vicTimHeoCount?.[t] ?? 0} */}
                               </span>
                               <button
                                 onClick={() => updateVictimHeo(p.id, t, -1)}
-                                className="relative z-10 size-6 rounded-full bg-muted/70 font-black"
+                                className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
                               >
                                 −
                               </button>
@@ -214,7 +215,7 @@ export function NhotBaiDialog({
                               </span>
                               <button
                                 onClick={() => updateVictimHeo(p.id, t, 1)}
-                                className="relative z-10 size-6 rounded-full bg-muted/70 font-black"
+                                className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
                               >
                                 +
                               </button>
