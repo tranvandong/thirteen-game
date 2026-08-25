@@ -143,6 +143,8 @@ export async function loader({
       khapLimit: config.khapLimit,
       sanhScore: config.sanhScore,
       sanhLimit: config.sanhLimit,
+      scoreMultiplier: config.scoreMultiplier,
+      nhotBystanderPenalty: config.nhotBystanderPenalty,
     },
     players: playerList.map((p) => ({
       id: p.id,

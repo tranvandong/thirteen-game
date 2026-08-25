@@ -136,7 +136,15 @@ function ScorePill({
   );
 }
 
-function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
+function ScoreRow({
+  player,
+  rank,
+  multiplier,
+}: {
+  player: PlayerTotal;
+  rank: number;
+  multiplier: number;
+}) {
   const score = player.totalScore ?? 0;
   const isLeader = rank === 0;
 
@@ -176,7 +184,8 @@ function ScoreRow({ player, rank }: { player: PlayerTotal; rank: number }) {
           </span>
         </div>
       )}
-      <span className="text-gray-500">{score * 3}</span>
+       {/* Hệ số nhân điểm tổng (lưu trong game_configs, thiết lập khi tạo phòng, mặc định 3) */}
+      <span className="text-gray-500">{score * multiplier}</span>
       <ScorePill score={score} />
     </div>
   );
@@ -256,7 +265,8 @@ export default function SessionScoreboard({
       maxSanhAccumulate: config?.sanhLimit ?? 3,
       heoDoPoints: config?.redPigScore ?? 3,
       heodenPoints: config?.blackPigScore ?? 5,
-      nhotBystanderPenalty: 2,
+      nhotBystanderPenalty:
+        config?.nhotBystanderPenalty ?? Math.abs(config?.thirdPlaceScore ?? 2),
     }),
     [config],
   );
@@ -342,7 +352,12 @@ export default function SessionScoreboard({
             <EmptyState />
           ) : (
             sorted.map((player, index) => (
-              <ScoreRow key={player.playerId} player={player} rank={index} />
+              <ScoreRow
+                key={player.playerId}
+                player={player}
+                rank={index}
+                multiplier={config?.scoreMultiplier ?? 3}
+              />
             ))
           )}
         </CardContent>

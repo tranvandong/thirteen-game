@@ -33,4 +33,18 @@ export const gameConfigs = pgTable("game_configs", {
   sanhScore: integer("sanh_score").notNull().default(1),
 
   sanhLimit: integer("sanh_limit").notNull().default(2),
+
+  /**
+   * Hệ số nhân điểm tổng (điểm hiển thị = totalScore * scoreMultiplier).
+   * Thiết lập khi tạo phòng, mặc định 3.
+   */
+  scoreMultiplier: integer("score_multiplier").notNull().default(3),
+
+  /**
+   * Phạt người ngoài (bystander) khi nhốt 2 victim. Thiết lập khi tạo
+   * phòng, mặc định lấy giá trị tuyệt đối của thirdPlaceScore.
+   */
+  nhotBystanderPenalty: integer("nhot_bystander_penalty")
+    .notNull()
+    .default(2),
 });

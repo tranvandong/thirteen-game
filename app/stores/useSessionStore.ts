@@ -20,6 +20,10 @@ export interface GameConfig {
   khapLimit: number;
   sanhScore: number;
   sanhLimit: number;
+  /** Hệ số nhân điểm tổng (mặc định 3) */
+  scoreMultiplier: number;
+  /** Phạt người ngoài khi nhốt 2 victim (mặc định = |thirdPlaceScore|) */
+  nhotBystanderPenalty: number;
   showBackground?: boolean;
   enableTTS?: boolean; 
 }

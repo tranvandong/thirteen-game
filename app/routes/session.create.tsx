@@ -74,10 +74,12 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Vui long dien day du thong tin" };
   }
 
+  const thirdPlaceScore = parseIntField(data, "thirdPlaceScore", -2);
+
   const gameConfigValues = {
     firstPlaceScore: parseIntField(data, "firstPlaceScore", 3),
     secondPlaceScore: parseIntField(data, "secondPlaceScore", 2),
-    thirdPlaceScore: parseIntField(data, "thirdPlaceScore", -2),
+    thirdPlaceScore,
     fourthPlaceScore: parseIntField(data, "fourthPlaceScore", -3),
     redPigScore: parseIntField(data, "redPigScore", 3),
     blackPigScore: parseIntField(data, "blackPigScore", 2),
@@ -86,6 +88,13 @@ export async function action({ request }: Route.ActionArgs) {
     khapLimit: parseIntField(data, "khapLimit", 10),
     sanhScore: parseIntField(data, "sanhScore", 1),
     sanhLimit: parseIntField(data, "sanhLimit", 10),
+    scoreMultiplier: parseIntField(data, "scoreMultiplier", 3),
+    // Phạt người ngoài khi nhốt 2 victim: mặc định lấy |thirdPlaceScore|
+    nhotBystanderPenalty: parseIntField(
+      data,
+      "nhotPenalty",
+      Math.abs(thirdPlaceScore),
+    ),
   };
 
   // ── 2. Tạo tất cả trong một transaction ─────────────────
@@ -305,6 +314,7 @@ export default function CreateSession() {
     khapLimit: 10,
     sanhScore: 1,
     sanhLimit: 10,
+    scoreMultiplier: 3,
     nhotPenalty: 2,
     fingerprint: "",
   });
@@ -721,6 +731,36 @@ export default function CreateSession() {
                           {formData.nhotPenalty}đ
                         </strong>{" "}
                         cố định.
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Hệ số điểm */}
+                  <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-muted/30 p-4">
+                    <div className="flex items-center gap-2">
+                      <Zap className="size-4 text-primary" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Hệ số điểm
+                      </p>
+                    </div>
+                    <ScoreInput
+                      id="scoreMultiplier"
+                      label="Hệ số nhân"
+                      name="scoreMultiplier"
+                      hint="x điểm"
+                      value={formData.scoreMultiplier}
+                      onChange={(v) => set("scoreMultiplier", v)}
+                    />
+                    <div className="flex gap-2 rounded-2xl bg-primary/10 p-3 text-xs text-muted-foreground ring-1 ring-primary/15">
+                      <Zap className="size-4 shrink-0 text-primary" />
+                      <span>
+                        Điểm tổng hiển thị được nhân với hệ số{" "}
+                        <strong className="text-primary">
+                          x{formData.scoreMultiplier}
+                        </strong>
+                        . Mặc định x3.
                       </span>
                     </div>
                   </div>

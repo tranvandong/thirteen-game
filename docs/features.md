@@ -41,7 +41,7 @@ Routes được định nghĩa trong `app/routes.ts` (React Router v7, `route()`
 **File:** `app/routes/session.$sessionId/index.tsx`
 
 - Bảng xếp hạng live (tab mặc định). `loader()`: session + `playerTotals` (join `players`↔`sessionTotals`) + `getRoundMeta`.
-- `ScoreRow`/`ScorePill` (`scoreTone` xanh/đỏ/trung tính), highlight nhất, badge `initialScore`, hiển thị `score * 3`.
+- `ScoreRow`/`ScorePill` (`scoreTone` xanh/đỏ/trung tính), highlight nhất, badge `initialScore`, hiển thị `score * scoreMultiplier` (hệ số lưu trong `game_configs`, mặc định 3, thiết lập khi tạo phòng).
 - 2 progress card Khạp (`Flame`) / Sảnh (`Spade`). Revalidate khi `visibilitychange`.
 
 ---

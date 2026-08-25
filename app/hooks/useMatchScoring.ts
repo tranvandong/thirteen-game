@@ -139,7 +139,8 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
       maxSanhAccumulate: config?.sanhLimit ?? 3,
       heoDoPoints: config?.redPigScore ?? 3,
       heodenPoints: config?.blackPigScore ?? 5,
-      nhotBystanderPenalty: 2,
+      nhotBystanderPenalty:
+        config?.nhotBystanderPenalty ?? Math.abs(config?.thirdPlaceScore ?? 2),
     }),
     [config],
   );
