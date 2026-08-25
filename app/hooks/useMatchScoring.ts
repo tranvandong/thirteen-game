@@ -29,6 +29,9 @@ import {
   offRoundDeleted,
   publishRound,
   publishRoundDeleted,
+  setSessionPaused,
+  onSessionPaused,
+  offSessionPaused,
 } from "~/lib/socket.client";
 import {
   buildPigCounts,
@@ -77,6 +80,19 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
   const isDeletingRound = deleteFetcher.state !== "idle";
   const handledSaveRoundRef = useRef<number | null>(null);
   const deletedRoundIdRef = useRef<string | null>(null);
+
+  // ── Trạng thái tạm dừng (realtime, từ socket) ────────────────
+  const isPaused = session?.paused ?? false;
+  const isOwner =
+    !!currentParticipant &&
+    !!session &&
+    session.ownerParticipantId === currentParticipant.id;
+
+  /** Chủ phòng toggle tạm dừng / tiếp tục phiên chơi. */
+  const togglePause = () => {
+    if (!isOwner) return;
+    setSessionPaused(sessionCode, !isPaused);
+  };
 
   // ── Realtime overrides (cập nhật tức thì từ socket, không refetch) ──
   const [totalsOverride, setTotalsOverride] = useState<Record<
@@ -314,6 +330,22 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
       offScoreUpdated(handleScoreUpdated);
       offRoundDeleted(handleRoundDeleted);
     };
+  }, [session?.code]);
+
+  // ── Realtime: cập nhật trạng thái tạm dừng từ socket ──────────
+  useEffect(() => {
+    if (!session?.code) return;
+
+    const handlePaused = (payload: {
+      sessionCode: string;
+      paused: boolean;
+    }) => {
+      if (payload.sessionCode !== session.code) return;
+      useSessionStore.getState().setPaused(payload.paused);
+    };
+
+    onSessionPaused(handlePaused);
+    return () => offSessionPaused(handlePaused);
   }, [session?.code]);
 
   // ── Derived nhot state ────────────────────────────────────
@@ -675,7 +707,7 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
   };
 
   const handleSave = async () => {
-    if (!currentParticipant || !rankingComplete || isSaving) return;
+    if (!currentParticipant || !rankingComplete || isSaving || isPaused) return;
 
     const pigCounts = buildPigCounts(
       players.map((p) => p.id),
@@ -814,7 +846,8 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     isSaving ||
     (submitted && fetcher.data?.success) ||
     !rankingComplete ||
-    !currentParticipant;
+    !currentParticipant ||
+    isPaused;
   const saveError = fetcher.data?.error;
 
   return {
@@ -835,6 +868,9 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     isSaving,
     disabledSaveButton,
     saveError,
+    isPaused,
+    isOwner,
+    togglePause,
     deleteRound: (roundId: string) => {
       deletedRoundIdRef.current = roundId;
       deleteFetcher.submit(

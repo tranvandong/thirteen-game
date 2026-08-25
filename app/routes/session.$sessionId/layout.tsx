@@ -128,6 +128,7 @@ export async function loader({
       status: session.status as ActiveSession["status"],
       ownerParticipantId: session.ownerParticipantId!,
       createdAt: session.createdAt.toISOString(),
+      paused: session.paused ?? false,
     },
     config: {
       id: config.id,

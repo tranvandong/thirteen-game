@@ -131,6 +131,15 @@ export function deselectPlayer(
   getSocket().emit("player:deselect", { sessionCode, participantId, playerId });
 }
 
+/**
+ * Chủ phòng tạm dừng / tiếp tục phiên chơi.
+ * Server (owner-checked) cập nhật DB rồi broadcast `session:paused`
+ * cho toàn bộ room — mọi thiết bị (kể cả chủ phòng) cập nhật store.
+ */
+export function setSessionPaused(sessionCode: string, paused: boolean) {
+  getSocket().emit("session:set-paused", { sessionCode, paused });
+}
+
 // ─────────────────────────────────────────────
 // Server -> Client (Events)
 //
@@ -270,6 +279,15 @@ export function onPlayerDeselected(
   getSocket().on("player:deselected", callback);
 }
 
+export interface SessionPausedEvent {
+  sessionCode: string;
+  paused: boolean;
+}
+
+export function onSessionPaused(callback: (data: SessionPausedEvent) => void) {
+  getSocket().on("session:paused", callback);
+}
+
 // ─────────────────────────────────────────────
 // Cleanup
 // ─────────────────────────────────────────────
@@ -312,6 +330,9 @@ export const offPlayerSelected = (cb?: (data: PlayerSelectedEvent) => void) =>
 export const offPlayerDeselected = (
   cb?: (data: PlayerDeselectedEvent) => void,
 ) => off("player:deselected", cb);
+
+export const offSessionPaused = (cb?: (data: SessionPausedEvent) => void) =>
+  off("session:paused", cb);
 
 export function disconnectSocket() {
   socket?.disconnect();

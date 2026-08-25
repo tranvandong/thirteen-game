@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
 
 export const sessionStatusEnum = pgEnum("session_status", [
   "active",    // Phiên đang diễn ra
@@ -21,6 +21,12 @@ export const sessions = pgTable("sessions", {
   })
     .default("active")
     .notNull(),
+
+  /**
+   * Phiên tạm dừng (chỉ chủ phòng mới được toggle). Khi paused = true,
+   * không người chơi nào được phép lưu / xoá ván đấu.
+   */
+  paused: boolean("paused").default(false).notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 

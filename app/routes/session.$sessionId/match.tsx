@@ -10,6 +10,8 @@ import {
   Spade,
   ArrowUpIcon,
   Loader2,
+  Pause,
+  Play,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { redirect } from "react-router";
@@ -76,6 +78,42 @@ export async function loader({
 
 export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData();
+
+  const sessionCode = params.sessionId!;
+
+  // Kiểm tra phiên tồn tại
+  const [sessionRow] = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.code, sessionCode))
+    .limit(1);
+
+  if (!sessionRow) {
+    throw redirect("/");
+  }
+
+  // Đọc trạng thái tạm dừng của phiên để chặn ghi/xoá ván khi đang pause
+  // (authoritative — bảo vệ cả khi UI bị lách). Chỉ chủ phòng mới được
+  // bỏ pause, nên mọi người chơi (kể cả chủ) đều bị chặn khi paused.
+  // try/catch để tương thích ngược: nếu chưa chạy `db:push` thêm cột
+  // `paused`, phiên được coi là không tạm dừng (không gãy tính năng lưu).
+  let paused = false;
+  try {
+    const [p] = await db
+      .select({ paused: sessions.paused })
+      .from(sessions)
+      .where(eq(sessions.code, sessionCode))
+      .limit(1);
+    paused = p?.paused ?? false;
+  } catch {
+    paused = false;
+  }
+
+  if (paused) {
+    return {
+      error: "Phiên đang tạm dừng, không thể lưu hoặc xoá ván đấu",
+    };
+  }
 
   if (formData.get("intent") === "delete-round") {
     const roundId = formData.get("roundId") as string;
@@ -146,6 +184,12 @@ export default function MatchPage() {
   return (
     <>
       <main className="relative mx-auto flex max-w-3xl flex-col gap-4 px-3 pb-4 pt-6 sm:px-4">
+        {m.isPaused && (
+          <div className="flex items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-sm font-semibold text-amber-600 dark:text-amber-400">
+            <Pause className="size-4 shrink-0" />
+            Phiên chơi đang tạm dừng
+          </div>
+        )}
         {/* Header */}
         <section
           style={{
@@ -163,11 +207,31 @@ export default function MatchPage() {
                   Ván {m.currentRoundNo}
                 </h1>
                 <div className="flex gap-2">
+                  {m.isOwner && (
+                    <Button
+                      variant={m.isPaused ? 'destructive' : 'outline'}
+                      size="sm"
+                      onClick={m.togglePause}
+                      title={
+                        m.isPaused
+                          ? "Tiếp tục phiên chơi"
+                          : "Tạm dừng phiên chơi"
+                      }
+                      className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
+                    >
+                      {m.isPaused ? (
+                        <Play className="size-3.5" />
+                      ) : (
+                        <Pause className="size-3.5" />
+                      )}
+                      
+                    </Button>
+                  )}
                   {m.currentRoundId !== undefined && m.currentRoundNo > 1 && (
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={m.isDeletingRound}
+                      disabled={m.isDeletingRound || m.isPaused}
                       onClick={() => m.setConfirmDeleteOpen(true)}
                       className="relative z-10 h-9 gap-1.5 text-xs font-bold sm:h-10"
                     >

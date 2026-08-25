@@ -540,6 +540,35 @@ export function initSocketServer(httpServer: HttpServer) {
       },
     );
 
+    /**
+     * Chủ phòng tạm dừng / tiếp tục phiên chơi (toggle). Chỉ owner
+     * (socket đang mang participantId của owner) mới được thực hiện.
+     * Sau khi cập nhật DB, broadcast `session:paused` cho toàn bộ room
+     * để mọi thiết bị (kể cả chủ phòng) đồng bộ trạng thái tạm dừng.
+     */
+    socket.on(
+      "session:set-paused",
+      async ({
+        sessionCode,
+        paused,
+      }: {
+        sessionCode: string;
+        paused: boolean;
+      }) => {
+        const sessionDbId = await resolveSessionDbId(sessionCode);
+        if (!sessionDbId) return;
+        if (!(await assertOwner(sessionDbId))) return;
+
+        await db
+          .update(sessions)
+          .set({ paused })
+          .where(eq(sessions.code, sessionCode));
+
+        const room = sessionRoom(sessionCode);
+        io!.to(room).emit("session:paused", { sessionCode, paused });
+      },
+    );
+
     socket.on("disconnect", () => {
       console.log(`[Socket] Disconnected: ${socket.id}`);
     });

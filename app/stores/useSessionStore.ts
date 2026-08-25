@@ -43,6 +43,8 @@ export interface ActiveSession {
   status: "waiting" | "playing" | "finished";
   ownerParticipantId: string;
   createdAt: string;
+  /** Phiên đang tạm dừng? Nếu true, không ai được lưu/xoá ván. */
+  paused: boolean;
 }
 
 export interface RoundResult {
@@ -106,6 +108,8 @@ interface SessionState {
   }) => void;
 
   setSessionStatus: (status: ActiveSession["status"]) => void;
+  /** Chuyển trạng thái tạm dừng của phiên (real-time, từ socket). */
+  setPaused: (paused: boolean) => void;
   updateConfig: (patch: Partial<GameConfig>) => void;
   upsertPlayer: (player: Player) => void;
 
@@ -172,6 +176,13 @@ export const useSessionStore = create<SessionState>()(
             (s) => (s.session ? { session: { ...s.session, status } } : s),
             false,
             "session/setStatus",
+          ),
+
+        setPaused: (paused) =>
+          set(
+            (s) => (s.session ? { session: { ...s.session, paused } } : s),
+            false,
+            "session/setPaused",
           ),
 
         updateConfig: (patch) =>
