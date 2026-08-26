@@ -197,13 +197,13 @@ export default function MatchPage() {
           }}
           className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm"
         >
-          <div className="relative p-5">
-            <div className="absolute -right-14 -top-14 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
-            <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/10 blur-3xl" />
+          <div className="relative px-2 pt-4">
+            <div className="absolute -right-14 top-26 h-36 w-36 rounded-full bg-chart-2/30 blur-3xl" />
+            <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/20 blur-3xl" />
 
             <div className="relative flex items-start justify-between gap-4">
               <div className="flex justify-between w-full">
-                <h1 className="text-2xl font-black tracking-tight text-foreground">
+                <h1 className="text-2xl font-black tracking-tight text-foreground ml-2">
                   Ván {m.currentRoundNo}
                 </h1>
                 <div className="flex gap-2">
@@ -254,7 +254,7 @@ export default function MatchPage() {
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-4 mb-4 grid grid-cols-2 gap-3">
               <div className="overflow-hidden rounded-3xl border border-chart-4/20 bg-chart-4/10 p-4 ring-1 ring-chart-4/10">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -328,24 +328,6 @@ export default function MatchPage() {
                   )}
                 </div>
               </div>
-            </div>
-            <div className="grid grid-cols-4 gap-2 my-4">
-              {m.sorted.map((player, index) => {
-                const score = player.totalScore ?? 0;
-                return (
-                  <div
-                    key={player.playerId}
-                    className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-2 text-center transition-colors ${m.scoreBoxClass(score)}`}
-                  >
-                    <span className="text-xs tracking-wider font-black uppercase opacity-70 text-card-foreground">
-                      {m.pShort(player.playerId)}
-                    </span>
-                    <span className="text-xl font-black tabular-nums">
-                      {m.scoreFmt(score)}
-                    </span>
-                  </div>
-                );
-              })}
             </div>
             <CircularTable3
               players={players}

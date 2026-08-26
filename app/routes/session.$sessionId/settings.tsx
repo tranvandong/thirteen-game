@@ -29,8 +29,8 @@ import {
   Shield,
   LogOut,
   UserX,
-  ChevronDown,
-  ChevronUp,
+  Wallpaper,
+  Megaphone,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
 import { PushNotificationsCard } from "~/components/push-notifications";
@@ -43,7 +43,7 @@ import {
   type Player,
 } from "~/stores/useSessionStore";
 import { playerDevices, players, sessions } from "~/db/schema";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Field,
   FieldContent,
@@ -55,7 +55,7 @@ import { IMAGE_NAMES } from "~/components/background";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
-import { Move } from "~/components/settings/move";
+import { DiamondTable } from "~/components/match/diamond-table";
 import {
   approveJoinRequest,
   rejectJoinRequest,
@@ -235,6 +235,7 @@ export default function SettingsPage() {
   } | null>(null);
 
   const fetcher = useFetcher();
+  const seatFetcher = useFetcher();
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok) {
@@ -244,7 +245,9 @@ export default function SettingsPage() {
       // thông báo chọn/bỏ chọn nhân vật cho toàn bộ room (authoritative).
       if (session?.code) {
         if (intent === "select-player") {
-          const participantId = fetcher.formData?.get("participantId") as string;
+          const participantId = fetcher.formData?.get(
+            "participantId",
+          ) as string;
           const playerId = fetcher.formData?.get("playerId") as string;
           if (participantId && playerId) {
             selectPlayer(session.code, participantId, playerId);
@@ -253,7 +256,9 @@ export default function SettingsPage() {
             useSessionStore.getState().setMySelectedPlayer(playerId);
           }
         } else if (intent === "reset-player") {
-          const participantId = fetcher.formData?.get("participantId") as string;
+          const participantId = fetcher.formData?.get(
+            "participantId",
+          ) as string;
           const playerId = fetcher.formData?.get("playerId") as string;
           if (participantId && playerId) {
             deselectPlayer(session.code, participantId, playerId);
@@ -411,6 +416,70 @@ export default function SettingsPage() {
     sortPlayers(players);
     if (!isOwner) updatePositionPlayerLocal(players);
   };
+
+  /**
+   * Thay đổi vị trí chỗ ngồi (orderNo) cho TẤT CẢ người tham gia:
+   * - Người chơi thường: chỉ lưu vào localStorage (`player-positions`) của
+   *   thiết bị này → ảnh hưởng góc nhìn cục bộ của họ (giống chủ phòng nhưng
+   *   không đổi dữ liệu chung).
+   * - Chủ phòng: lưu localStorage VÀ đồng bộ lên DB (update-players) để mọi
+   *   người đều thấy chung một sơ đồ chỗ ngồi.
+   * Store `players` được cập nhật ngay để DiamondTable preview phản ánh tức thì.
+   */
+  const reorderSeat = (newPlayers: Player[]) => {
+    sortPlayers(newPlayers);
+    setLocalStoragePlayers(newPlayers);
+    if (!isOwner) return;
+    const updates = newPlayers.map((p) => {
+      const orig = players.find((x) => x.id === p.id) ?? p;
+      return {
+        id: p.id,
+        name: orig.name,
+        initialScore: orig.initialScore ?? 0,
+        orderNo: p.orderNo,
+      };
+    });
+    seatFetcher.submit(
+      { intent: "update-players", updates: JSON.stringify(updates) },
+      { method: "POST" },
+    );
+  };
+
+  /**
+   * Đổi chỗ một ghế với ghế lân cận theo hướng mũi tên:
+   * - Ghế Trên/Dưới (ngang): "right" → đổi với ghế Phải (orderNo 2),
+   *   "left" → đổi với ghế Trái (orderNo 4).
+   * - Ghế Phải/Trái (dọc): "up" → đổi với ghế Trên (orderNo 1),
+   *   "down" → đổi với ghế Dưới (orderNo 3).
+   * Sau khi hoán đổi orderNo, gọi `reorderSeat` để lưu (localStorage /
+   * DB với chủ phòng) và cập nhật store.
+   */
+  const handleMoveSeat = (
+    playerId: string,
+    direction: "up" | "down" | "left" | "right",
+  ) => {
+    const current = players.find((p) => p.id === playerId);
+    if (!current) return;
+    const seatType = (current.orderNo - 1 + 4) % 4; // 0 Trên,1 Phải,2 Dưới,3 Trái
+    const neighborOrderNo =
+      seatType === 0 || seatType === 2
+        ? direction === "right"
+          ? 2
+          : 4
+        : direction === "up"
+          ? 1
+          : 3;
+
+    const neighbor = players.find((p) => p.orderNo === neighborOrderNo);
+    if (!neighbor) return;
+
+    const newPlayers = players.map((p) => {
+      if (p.id === current.id) return { ...p, orderNo: neighbor.orderNo };
+      if (p.id === neighbor.id) return { ...p, orderNo: current.orderNo };
+      return p;
+    });
+    reorderSeat(newPlayers);
+  };
   return (
     <main className="p-4 flex flex-col gap-4">
       {/* Header */}
@@ -470,154 +539,187 @@ export default function SettingsPage() {
 
         <CardContent className="flex flex-col gap-3">
           {isOwner && isEditing ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <div className="flex flex-1 gap-2">
-                    <div className="flex-1 min-w-0 rounded-md text-sm">
-                      Tên nhân vật
-                    </div>
-                    <div className="w-20 shrink-0 rounded-md text-sm text-right">
-                      Giáp
-                    </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 px-3 py-2">
+                <div className="flex flex-1 gap-2">
+                  <div className="flex-1 min-w-0 rounded-md text-sm">
+                    Tên nhân vật
+                  </div>
+                  <div className="w-20 shrink-0 rounded-md text-sm text-right">
+                    Giáp
                   </div>
                 </div>
-                {players.map((player, idx) => {
-                  const draft = editDrafts[player.id] ?? {
-                    name: player.name,
-                    initialScore: String(player.initialScore ?? 0),
-                  };
-                  return (
-                    <div
-                      key={player.id}
-                      className="flex items-center gap-2 p-3 rounded-lg bg-muted"
-                    >
-                      <div className="flex flex-1 gap-2 items-center">
-                        <span className="text-[11px]">{postion[idx]}</span>
-                        <Move move={movePlayers} player={player} />
-                        <input
-                          type="text"
-                          value={draft.name}
-                          maxLength={100}
-                          placeholder="Tên nhân vật"
-                          onChange={(e) =>
-                            setEditDrafts((prev) => ({
-                              ...prev,
-                              [player.id]: {
-                                ...prev[player.id],
-                                name: e.target.value,
-                              },
-                            }))
-                          }
-                          className="relative z-10 flex-1 min-w-0 rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        />
-                        <input
-                          type="number"
-                          value={draft.initialScore}
-                          placeholder="Điểm"
-                          onChange={(e) =>
-                            setEditDrafts((prev) => ({
-                              ...prev,
-                              [player.id]: {
-                                ...prev[player.id],
-                                initialScore: e.target.value,
-                              },
-                            }))
-                          }
-                          className="relative z-10 w-20 shrink-0 rounded-md border bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                <p className="text-xs text-muted-foreground text-center">
-                  Sửa tên và điểm ban đầu cho từng nhân vật.
-                </p>
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  {playerList.map((player) => {
-                    const isSelectedByMe = mySelectedPlayerId === player.id;
-                    const isTaken = takenPlayerIds.has(player.id);
-                    const takenBy = isTaken
-                      ? participantsWithPlayer.find(
-                          (p) => p.selectedPlayerId === player.id,
-                        )
-                      : null;
+              {players.map((player, idx) => {
+                const draft = editDrafts[player.id] ?? {
+                  name: player.name,
+                  initialScore: String(player.initialScore ?? 0),
+                };
+                return (
+                  <div
+                    key={player.id}
+                    className="flex items-center gap-2 p-3 rounded-lg bg-muted"
+                  >
+                    <div className="flex flex-1 gap-2 items-center">
+                      <input
+                        type="text"
+                        value={draft.name}
+                        maxLength={100}
+                        placeholder="Tên nhân vật"
+                        onChange={(e) =>
+                          setEditDrafts((prev) => ({
+                            ...prev,
+                            [player.id]: {
+                              ...prev[player.id],
+                              name: e.target.value,
+                            },
+                          }))
+                        }
+                        className="relative z-10 flex-1 min-w-0 rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      <input
+                        type="number"
+                        value={draft.initialScore}
+                        placeholder="Điểm"
+                        onChange={(e) =>
+                          setEditDrafts((prev) => ({
+                            ...prev,
+                            [player.id]: {
+                              ...prev[player.id],
+                              initialScore: e.target.value,
+                            },
+                          }))
+                        }
+                        className="relative z-10 w-20 shrink-0 rounded-md border bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-xs text-muted-foreground text-center">
+                Sửa tên và điểm ban đầu cho từng nhân vật.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                {playerList.map((player) => {
+                  const isSelectedByMe = mySelectedPlayerId === player.id;
+                  const isTaken = takenPlayerIds.has(player.id);
+                  const takenBy = isTaken
+                    ? participantsWithPlayer.find(
+                        (p) => p.selectedPlayerId === player.id,
+                      )
+                    : null;
 
-                    return (
-                      <button
-                        key={player.id}
-                        disabled={!!mySelectedPlayerId || isTaken || isBusy}
-                        onClick={() => handleSelectPlayer(player.id)}
+                  return (
+                    <button
+                      key={player.id}
+                      disabled={!!mySelectedPlayerId || isTaken || isBusy}
+                      onClick={() => handleSelectPlayer(player.id)}
+                      className={[
+                        "relative flex flex-col items-center gap-1 p-3 rounded-lg border text-sm font-medium transition-colors",
+                        isSelectedByMe
+                          ? "bg-primary/10 border-primary text-primary"
+                          : isTaken
+                            ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed opacity-60"
+                            : mySelectedPlayerId
+                              ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed"
+                              : "bg-muted border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
+                      ].join(" ")}
+                    >
+                      {isSelectedByMe && (
+                        <CheckCircle2 className="absolute top-2 right-2 size-4 text-primary" />
+                      )}
+                      <div
                         className={[
-                          "relative flex flex-col items-center gap-1 p-3 rounded-lg border text-sm font-medium transition-colors",
+                          "flex items-center justify-center size-10 rounded-full text-base font-bold",
                           isSelectedByMe
-                            ? "bg-primary/10 border-primary text-primary"
-                            : isTaken
-                              ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed opacity-60"
-                              : mySelectedPlayerId
-                                ? "bg-muted/40 border-transparent text-muted-foreground cursor-not-allowed"
-                                : "bg-muted border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer",
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background text-foreground",
                         ].join(" ")}
                       >
-                        {isSelectedByMe && (
-                          <CheckCircle2 className="absolute top-2 right-2 size-4 text-primary" />
-                        )}
-                        <div
-                          className={[
-                            "flex items-center justify-center size-10 rounded-full text-base font-bold",
-                            isSelectedByMe
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-background text-foreground",
-                          ].join(" ")}
-                        >
-                          {player.name.charAt(0).toUpperCase()}
+                        {player.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span>
+                        {player.name}{" "}
+                        <strong className="text-xs">
+                          ({postion[player.orderNo - 1]})
+                        </strong>
+                      </span>
+                      {(player.initialScore ?? 0) !== 0 && (
+                        <div className="relative inline-flex items-center justify-center">
+                          <Shield className="size-8 text-muted-foreground" />
+                          <span className="absolute text-[9px] font-bold text-muted-foreground leading-none">
+                            {player.initialScore}
+                          </span>
                         </div>
-                        <span>
-                          {player.name}{" "}
-                          <strong className="text-xs">
-                            ({postion[player.orderNo - 1]})
-                          </strong>
+                      )}
+                      {isTaken && takenBy && (
+                        <span className="text-xs text-muted-foreground">
+                          ← {takenBy.displayName}
                         </span>
-                        {(player.initialScore ?? 0) !== 0 && (
-                          <div className="relative inline-flex items-center justify-center">
-                            <Shield className="size-8 text-muted-foreground" />
-                            <span className="absolute text-[9px] font-bold text-muted-foreground leading-none">
-                              {player.initialScore}
-                            </span>
-                          </div>
-                        )}
-                        {isTaken && takenBy && (
-                          <span className="text-xs text-muted-foreground">
-                            ← {takenBy.displayName}
-                          </span>
-                        )}
-                        {isSelectedByMe && (
-                          <span className="text-xs text-primary font-normal">
-                            Bạn đang chọn
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                      )}
+                      {isSelectedByMe && (
+                        <span className="text-xs text-primary font-normal">
+                          Bạn đang chọn
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-                {!mySelectedPlayerId && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
-                  </p>
-                )}
-                {mySelectedPlayerId && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    {isOwner
-                      ? "Bạn đã chọn xong."
-                      : "Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại."}
-                  </p>
-                )}
-              </>
+              {!mySelectedPlayerId && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Chọn nhân vật của bạn. Mỗi người chỉ chọn được một lần.
+                </p>
+              )}
+              {mySelectedPlayerId && (
+                <p className="text-xs text-muted-foreground text-center">
+                  {isOwner
+                    ? "Bạn đã chọn xong."
+                    : "Bạn đã chọn xong. Chỉ chủ phòng mới có thể đặt lại."}
+                </p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Vị trí chỗ ngồi (tất cả người tham gia đều chỉnh được)              */}
+      {/* ------------------------------------------------------------------ */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary">
+                <Settings className="size-4" />
+              </div>
+              Vị trí chỗ ngồi
+            </div>
+            {isOwner && (
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Đồng bộ phòng
+              </span>
             )}
-          </CardContent>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <DiamondTable
+            players={players}
+            myPlayerId={mySelectedPlayerId}
+            onMoveSeat={handleMoveSeat}
+            className="max-w-70"
+          />
+
+          <p className="text-xs text-muted-foreground text-center">
+            {isOwner
+              ? "Chủ phòng thay đổi sẽ áp dụng chung cho cả phòng. Thứ tự ghế: Trên → Phải → Dưới → Trái."
+              : "Thay đổi của bạn chỉ lưu trên thiết bị này (localStorage), không ảnh hưởng người khác."}
+          </p>
+        </CardContent>
       </Card>
 
       {/* ------------------------------------------------------------------ */}
@@ -680,7 +782,10 @@ export default function SettingsPage() {
                     {isOwner && selectedPlayer && (
                       <button
                         onClick={() =>
-                          handleResetPlayer(participant.id, participant.selectedPlayerId)
+                          handleResetPlayer(
+                            participant.id,
+                            participant.selectedPlayerId,
+                          )
                         }
                         disabled={isBusy}
                         title="Đặt lại lựa chọn"
@@ -749,7 +854,9 @@ export default function SettingsPage() {
                   <Button
                     size="sm"
                     disabled={isBusy}
-                    onClick={() => handleApprove(request.id, request.displayName)}
+                    onClick={() =>
+                      handleApprove(request.id, request.displayName)
+                    }
                     className="bg-chart-2 hover:bg-chart-2/90 h-7 text-xs px-3"
                   >
                     Duyệt
@@ -758,7 +865,9 @@ export default function SettingsPage() {
                     size="sm"
                     variant="destructive"
                     disabled={isBusy}
-                    onClick={() => handleReject(request.id, request.displayName)}
+                    onClick={() =>
+                      handleReject(request.id, request.displayName)
+                    }
                     className="h-7 text-xs px-3"
                   >
                     Từ chối
@@ -773,7 +882,12 @@ export default function SettingsPage() {
       <FieldLabel htmlFor="switch-share">
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldTitle>Cho phép hiển thị hình nền</FieldTitle>
+            <FieldTitle className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
+                <Wallpaper className="size-4" />
+              </div>
+              <span>Hiển thị hình nền</span>
+            </FieldTitle>
             <FieldDescription>
               Hình nền hiển thị và tự động thay đổi sau một thời gian.
               <Button
@@ -797,9 +911,15 @@ export default function SettingsPage() {
       <FieldLabel htmlFor="switch-share">
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldTitle>Cho phép thông báo trong ván đấu</FieldTitle>
+            <FieldTitle className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
+                <Megaphone className="size-4" />
+              </div>
+              <span>Thông báo khạp sảnh</span>
+            </FieldTitle>
+            <FieldDescription></FieldDescription>
             <FieldDescription>
-              Đọc số khạp, sảnh mỗi tích lũy mỗi ván đấu
+              Đọc số khạp, sảnh mỗi tích lũy mỗi khi bắt đầu ván đấu
             </FieldDescription>
           </FieldContent>
           <Switch

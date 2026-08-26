@@ -51,6 +51,7 @@ Routes được định nghĩa trong `app/routes.ts` (React Router v7, `route()`
 
 - `SessionQRCode` (QR + copy/share).
 - **Cấu hình nhân vật**: owner sửa tên + `initialScore`; reorder bằng `Move` (lưu `player-positions` localStorage). Non-owner chọn player 1 lần (`select-player` fetcher).
+- **Vị trí chỗ ngồi** (card mới, dành cho TẤT CẢ người tham gia): xem trước bàn hình thoi (`DiamondTable`) + sắp xếp 4 ghế (Trên/Phải/Dưới/Trái) bằng `Move`. Người chơi thường chỉ lưu `player-positions` vào localStorage (góc nhìn cục bộ); chủ phòng đồng bộ thêm lên DB (`update-players`). `orderNo` được ánh xạ thành 4 đỉnh thoi trên trang Ván Đấu.
 - **Người tham gia**: owner `reset-player` / `kick-participant` (`AlertDialog`).
 - **Yêu cầu tham gia**: owner duyệt/từ chối realtime.
 - Toggle `showBackground` (`updateConfig`), `enableTTS`.

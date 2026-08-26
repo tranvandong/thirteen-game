@@ -299,10 +299,10 @@ function PlayerRow({
 export default function CreateSession() {
   const [formData, setFormData] = useState({
     ownerName: "Chu Phong",
-    player1: "An",
-    player2: "Binh",
-    player3: "Cuong",
-    player4: "Dung",
+    player1: "ATien",
+    player2: "XTien",
+    player3: "Dong",
+    player4: "Vu",
     firstPlaceScore: 3,
     secondPlaceScore: 2,
     thirdPlaceScore: -2,
