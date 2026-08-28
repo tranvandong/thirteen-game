@@ -201,7 +201,7 @@ export function CircularTable3({
   };
   return (
     <>
-      <div className="relative z-10 mx-auto w-full mb-4">
+      <div className="relative z-10 mx-auto w-full">
         <div className="relative mx-auto w-full aspect-square">
           {/* Center hub */}
 
@@ -541,7 +541,7 @@ export function CircularTable3({
         </div>
       </div>
       {khapWinner && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2 mt-4">
           {khapWinner && khapCount > 0 && (
             <div className="flex items-center gap-2 rounded-2xl border border-chart-4/30 bg-chart-4/10 px-4 py-2">
               <Flame className="size-5 text-chart-4" />

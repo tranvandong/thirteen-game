@@ -375,7 +375,7 @@ export default function MatchPage() {
               isLoading={m.isSaving}
             />
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20 mb-4">
+          <div className="flex flex-col gap-2 mt-4 sm:flex-row sm:items-center sm:justify-between relative z-20 mb-4">
             <div className="flex items-center justify-center gap-2 w-full">
               <div className="flex gap-4">
                 <Button
