@@ -32,7 +32,7 @@ Routes được định nghĩa trong `app/routes.ts` (React Router v7, `route()`
 - `loader()`: session + config + players từ code; redirect `/` nếu không tồn tại / `finished`.
 - `clientLoader()` (`hydrate`): re-check `finished`; `resolveParticipant()` qua `GET /api/sessions/{code}/devices/active?fingerprint=`; redirect `/join/{code}` nếu chưa có participant; đọc `localStorage` (`showBackground`, `textToSpeed`, `player-positions`); `useSessionStore.hydrate(loaderData)`.
 - `registerDevice()` (POST `/devices`), `markDeviceLeft()` (PATCH `/devices/leave`, `keepalive`).
-- Socket events: `onJoinRequestCreated` (owner toast Duyệt/Từ chối), `onParticipantApproved`/`onParticipantRejected`, `onParticipantKicked` (toast + leave + navigate `/join`).
+- Socket events: `onParticipantJoined` (revalidate danh sách), `onParticipantKicked` (toast + leave + navigate `/join`).
 - Header (logo, mã phòng, `ModeToggle`, nút rời). `Background` + bottom **tab 5 cột**: Xếp hạng(`/`), Lịch Sử(`/history`), FAB Ván Đấu(`/match`), Thống Kê(`/chart`), Cấu Hình(`/settings`). `<Toaster />` + `ThemeProvider`.
 
 ---
@@ -53,7 +53,7 @@ Routes được định nghĩa trong `app/routes.ts` (React Router v7, `route()`
 - **Cấu hình nhân vật**: owner sửa tên + `initialScore`; reorder bằng `Move` (lưu `player-positions` localStorage). Non-owner chọn player 1 lần (`select-player` fetcher).
 - **Vị trí chỗ ngồi** (card mới, dành cho TẤT CẢ người tham gia): xem trước bàn hình thoi (`DiamondTable`) + sắp xếp 4 ghế (Trên/Phải/Dưới/Trái) bằng `Move`. Người chơi thường chỉ lưu `player-positions` vào localStorage (góc nhìn cục bộ); chủ phòng đồng bộ thêm lên DB (`update-players`). `orderNo` được ánh xạ thành 4 đỉnh thoi trên trang Ván Đấu.
 - **Người tham gia**: owner `reset-player` / `kick-participant` (`AlertDialog`).
-- **Yêu cầu tham gia**: owner duyệt/từ chối realtime.
+- **Tham gia trực tiếp**: người chơi nhập tên là vào phòng ngay (không cần chủ phòng duyệt).
 - Toggle `showBackground` (`updateConfig`), `enableTTS`.
 - **Kết thúc phiên** (owner): `finish-session` (verify owner qua `playerDevices`+fingerprint) → `sessions.status = finished`.
 - `action` intents: `select-player`, `reset-player`, `update-players`, `finish-session`.
@@ -101,7 +101,7 @@ Routes được định nghĩa trong `app/routes.ts` (React Router v7, `route()`
 
 - `loader()`: session; redirect `/` nếu thiếu/`finished`.
 - `clientLoader()`: thử `POST /api/sessions/{code}/devices/reconnect` → vào thẳng nếu ok.
-- `JoinStatus`: `idle | waiting | approved | rejected`. `sendJoinRequest(code, name)`; `onParticipantApproved` → `registerDevice` → navigate; `onJoinRequestRejected` → lỗi.
+- `JoinStatus`: `idle | joining | success | error`. `joinSessionDirect(code, name, fingerprint, platform)`; `onJoinDirectSuccess` → navigate vào session.
 
 ---
 

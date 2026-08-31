@@ -33,8 +33,10 @@ Thiết bị/người truy cập session.
 
 ---
 
-## join_requests
-Yêu cầu tham gia chờ duyệt.
+## join_requests (đã không dùng — deprecated)
+Bảng này từng lưu yêu cầu tham gia chờ duyệt. Từ khi bỏ tính năng phê duyệt (tham
+gia trực tiếp qua `join-session-direct`), bảng không còn được ghi nữa. Giữ lại để
+không phá DB hiện tại; có thể xoá khi chạy migration dọn dẹp.
 
 | Cột | Kiểu | Ghi chú |
 |-----|------|---------|

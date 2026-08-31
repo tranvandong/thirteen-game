@@ -92,7 +92,7 @@ Xem chi tiết: `docs/architecture.md`.
 | Khái niệm | Ý nghĩa |
 |-----------|---------|
 | **Session** | Một bàn chơi. Mọi dữ liệu (config, players, rounds, totals) gắn với session. Có `code` (shareable) và `status` (`active`/`finished`). |
-| **Participant** | Thiết bị/người đang truy cập session (có thể không phải player). Có `role` (`owner`/`member`). Owner được duyệt/từ chối/kick. |
+| **Participant** | Thiết bị/người đang truy cập session (có thể không phải player). Có `role` (`owner`/`member`). Owner được kick. |
 | **Player** | Người được tính điểm trong trận. Thuộc session, có `orderNo` và `initialScore`. |
 | **ParticipantPlayer** | Ánh xạ 1-1: mỗi participant chọn 1 player, mỗi player bị chọn bởi 1 participant (trong 1 session). |
 | **PlayerDevice** | Thiết bị (fingerprint) tham gia session. Unique `(sessionId, fingerprint)`. Ràng buộc "1 thiết bị chỉ `active` trong 1 session" được **app logic** (leave/reconnect) đảm bảo, **không** bởi DDL (không có partial unique index). |
@@ -123,13 +123,13 @@ Chi tiết toán học: `docs/scoring.md`.
 |-------|-------|-----------------|
 | `/` | Home | Trang chủ, tạo/ vào session, danh sách session gần của thiết bị. |
 | `/session/create` | Tạo phòng | Form chủ phòng, danh sách player, cấu hình luật, tạo session + owner participant. |
-| `/session/:sessionId` | Lobby | Chia sẻ link/QR, danh sách participant, join requests, duyệt/từ chối/kick, chọn player. |
+| `/session/:sessionId` | Lobby | Chia sẻ link/QR, danh sách participant, kick, chọn player. |
 | `/session/:sessionId/settings` | Cài đặt | Sửa luật, background, TTS, xoá/sắp xếp player, kết thúc session. |
 | `/session/:sessionId/match` | Ghi ván | Nhập kết quả ván, tính điểm realtime (nhốt, khạp, sảnh, chặt heo), lưu/xoá ván, TTS đọc kết quả. |
 | `/session/:sessionId/chart` | Biểu đồ | Recharts theo dõi điểm số qua các ván. |
 | `/session/:sessionId/history` | Lịch sử | Danh sách toàn bộ ván đã chơi. |
 | `/session/:sessionId/history/:roundId` | Chi tiết ván | Kết quả chi tiết từng player trong ván. |
-| `/join/:sessionId` | Tham gia | Form tên hiển thị → gửi join request realtime. |
+| `/join/:sessionId` | Tham gia | Form tên hiển thị → tham gia trực tiếp (không cần duyệt). |
 | `/api/sessions/:sessionId/devices/*` | Device API | active / leave / reconnect thiết bị trong session. |
 | `/api/sessions/active-by-device` | Device API | Lấy session đang active của 1 thiết bị (fingerprint). |
 | `/api/tts` | TTS | POST text → trả audio để phát qua client. |
@@ -140,11 +140,11 @@ Chi tiết từng trang: `docs/features.md`.
 
 ## Realtime Events (hợp đồng Socket.IO)
 
-**Client → Server (commands)**: `join-session`, `leave-session`, `send-join-request`, `approve-join-request`, `reject-join-request`, `kick-participant`, `round:publish`, `round:delete`.
+**Client → Server (commands)**: `join-session`, `leave-session`, `join-session-direct` (tham gia trực tiếp, không cần duyệt), `kick-participant`, `round:publish`, `round:delete`.
 
-**Server → Client (events)**: `join-request-sent`, `join-request-created`, `participant-approved`, `join-request-rejected`, `participant-kicked`, `participant-joined`, `round:finished`, `score:updated`, `round:deleted`.
+**Server → Client (events)**: `join-direct-success`, `participant-joined`, `participant-kicked`, `round:finished`, `score:updated`, `round:deleted`.
 
-Chỉ owner (participant mang `ownerParticipantId`) mới được approve/reject/kick. Chi tiết payload: `docs/architecture.md`.
+Tham gia phòng chỉ cần nhập tên + fingerprint thiết bị (socket `join-session-direct` tạo participant + đăng ký device). Chỉ owner (participant mang `ownerParticipantId`) mới được kick. Chi tiết payload: `docs/architecture.md`.
 
 ---
 
@@ -190,7 +190,7 @@ Multi-stage build: cài deps, build (client + server), chạy `npm start` (Expre
 ## Non-Functional Notes
 
 - **Performance**: bảng điểm tổng (`session_totals`) được denormalize để đọc nhanh, không aggregate từ lịch sử mỗi request. Realtime broadcast từ server (authoritative) đọc lại DB.
-- **Security (MVP)**: không có authentication. Phân quyền qua `role` + so khớp `ownerParticipantId` ở Socket server. Chỉ participant được duyệt mới truy cập quản lý điểm.
+- **Security (MVP)**: không có authentication. Phân quyền qua `role` + so khớp `ownerParticipantId` ở Socket server. Chỉ participant (tham gia trực tiếp qua `join-session-direct`) mới truy cập quản lý điểm.
 - **PWA**: cài được vào màn hình chính, standalone, manifest + service worker (`public/sw.js`, `public/manifest.json`).
 - **Thiết bị**: fingerprint nhận diện thiết bị; 1 thiết bị chỉ `active` trong 1 session nhờ logic app (`leave`/`reconnect` cập nhật `status`), không phải ràng buộc DB.
 

@@ -17,7 +17,6 @@ import { desc, eq, and } from "drizzle-orm";
 
 import { db } from "~/db/client.server";
 import {
-  joinRequests,
   participants,
   sessions,
   sessionTotals,
@@ -265,7 +264,7 @@ export function initSocketServer(httpServer: HttpServer) {
     });
 
     // ── Helpers: chỉ chủ phòng (socket đang mang participantId của owner)
-    //    mới được duyệt / từ chối / đá người chơi. ──────────────────────────
+    //    mới được đá người chơi. ─────────────────────────────────────────────
     async function assertOwner(sessionDbId: string): Promise<boolean> {
       const [session] = await db
         .select({ ownerParticipantId: sessions.ownerParticipantId })
@@ -280,113 +279,68 @@ export function initSocketServer(httpServer: HttpServer) {
       );
     }
 
-    // ── Người lạ gửi yêu cầu tham gia (realtime) ──────────────────────────
+    // ── Người lạ tham gia trực tiếp (không cần phê duyệt) ────────────────
+    // Chỉ cần nhập tên hiển thị + fingerprint thiết bị là được tham gia.
     socket.on(
-      "send-join-request",
-      async ({ sessionCode, displayName }) => {
+      "join-session-direct",
+      async ({ sessionCode, displayName, fingerprint, platform }) => {
+        const name = (displayName ?? "").toString().trim().slice(0, 100);
+        if (!name) return;
+
+        const fp = (fingerprint ?? "").toString();
+        if (!fp || !platform) return;
+
         const sessionDbId = await resolveSessionDbId(sessionCode);
         if (!sessionDbId) return;
 
-        const [req] = await db
-          .insert(joinRequests)
-          .values({
-            sessionId: sessionDbId,
-            displayName,
-            status: "pending",
-            requestToken: crypto.randomUUID(),
-          })
-          .returning();
-
-        const room = sessionRoom(sessionCode);
-        // Requester tham gia room để nhận event approve/reject realtime
-        socket.join(room);
-        socket.data.sessionCode = sessionCode;
-
-        // Báo riêng cho người gửi biết id request vừa tạo (để match sau này)
-        socket.emit("join-request-sent", {
-          requestId: req.id,
-          sessionCode,
-        });
-
-        // Broadcast cho cả room — chủ phòng sẽ hiện toast + cập nhật list
-        io!.to(room).emit("join-request-created", {
-          requestId: req.id,
-          displayName,
-          sessionCode,
-        });
-      },
-    );
-
-    // ── Chủ phòng duyệt yêu cầu ───────────────────────────────────────────
-    socket.on(
-      "approve-join-request",
-      async ({ sessionCode, requestId }) => {
-        const sessionDbId = await resolveSessionDbId(sessionCode);
-        if (!sessionDbId) return;
-        if (!(await assertOwner(sessionDbId))) return;
-
-        // Đọc request để lấy displayName chuẩn và chặn duyệt 2 lần
-        const [reqRow] = await db
-          .select()
-          .from(joinRequests)
-          .where(eq(joinRequests.id, requestId))
-          .limit(1);
-        if (!reqRow || reqRow.status !== "pending") return;
-
-        await db
-          .update(joinRequests)
-          .set({
-            status: "approved",
-            approvedBy: socket.data.participantId,
-            approvedAt: new Date(),
-          })
-          .where(eq(joinRequests.id, requestId));
-
+        // 1. Tạo participant (member) trực tiếp
         const [participant] = await db
           .insert(participants)
           .values({
             sessionId: sessionDbId,
-            displayName: reqRow.displayName,
+            displayName: name,
             role: "member",
           })
           .returning();
 
-        const room = sessionRoom(sessionCode);
-        io!.to(room).emit("participant-approved", {
-          requestId,
-          participant: {
-            id: participant.id,
-            displayName: participant.displayName,
-            role: participant.role,
-          },
-        });
-      },
-    );
-
-    // ── Chủ phòng từ chối yêu cầu ─────────────────────────────────────────
-    socket.on(
-      "reject-join-request",
-      async ({ sessionCode, requestId }) => {
-        const sessionDbId = await resolveSessionDbId(sessionCode);
-        if (!sessionDbId) return;
-        if (!(await assertOwner(sessionDbId))) return;
-
-        const [reqRow] = await db
-          .select()
-          .from(joinRequests)
-          .where(eq(joinRequests.id, requestId))
-          .limit(1);
-        if (!reqRow || reqRow.status !== "pending") return;
-
+        // 2. Đăng ký thiết bị (upsert player_devices, status = active)
         await db
-          .update(joinRequests)
-          .set({ status: "rejected" })
-          .where(eq(joinRequests.id, requestId));
+          .insert(playerDevices)
+          .values({
+            sessionId: sessionDbId,
+            participantId: participant.id,
+            fingerprint: fp,
+            platform,
+            status: "active",
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [playerDevices.sessionId, playerDevices.fingerprint],
+            set: {
+              participantId: participant.id,
+              status: "active",
+              updatedAt: new Date(),
+            },
+          });
 
+        // 3. Thiết bị tham gia room realtime
         const room = sessionRoom(sessionCode);
-        io!.to(room).emit("join-request-rejected", {
-          requestId,
-          displayName: reqRow.displayName,
+        socket.join(room);
+        socket.data.sessionCode = sessionCode;
+        socket.data.participantId = participant.id;
+        socket.data.displayName = name;
+
+        // 4. Báo phòng (chủ phòng) có người tham gia mới → revalidate list
+        socket.to(room).emit("participant-joined", {
+          participantId: participant.id,
+          displayName: name,
+        });
+
+        // 5. Phản hồi riêng cho người vừa tham gia
+        socket.emit("join-direct-success", {
+          participantId: participant.id,
+          displayName: name,
+          role: participant.role,
           sessionCode,
         });
       },

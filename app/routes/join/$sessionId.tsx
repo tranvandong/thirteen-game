@@ -14,7 +14,6 @@ import { Label } from "~/components/ui/label";
 import {
   CheckCircle2,
   Gamepad2,
-  ShieldCheck,
   Spade,
   Users,
   Clock,
@@ -23,13 +22,9 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { createFingerprint } from "~/helpers/fingerprint.helper";
 import {
-  sendJoinRequest,
-  onJoinRequestSent,
-  onParticipantApproved,
-  onJoinRequestRejected,
-  offJoinRequestSent,
-  offParticipantApproved,
-  offJoinRequestRejected,
+  joinSessionDirect,
+  onJoinDirectSuccess,
+  offJoinDirectSuccess,
   getSocket,
 } from "~/lib/socket.client";
 
@@ -63,31 +58,6 @@ function detectPlatform(): "ios" | "android" | "web" {
   if (/iphone|ipad|ipod/.test(ua)) return "ios";
   if (/android/.test(ua)) return "android";
   return "web";
-}
-
-/** Đăng ký thiết bị (upsert player_devices) sau khi được chủ phòng duyệt. */
-async function registerDevice(
-  sessionDbId: string,
-  participantId: string,
-  fingerprint: string,
-): Promise<void> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-  try {
-    await fetch(`/api/sessions/${sessionDbId}/devices`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        participantId,
-        fingerprint,
-        platform: detectPlatform(),
-      }),
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 // ── Server Loader ─────────────────────────────────────────────
@@ -151,7 +121,7 @@ export function HydrateFallback() {
 
 // ── Component ─────────────────────────────────────────────────
 
-type JoinStatus = "idle" | "waiting" | "approved" | "rejected";
+type JoinStatus = "idle" | "joining" | "success" | "error";
 
 export default function JoinPage({ loaderData }: Route.ComponentProps) {
   const { sessionId: sessionDbId } = loaderData;
@@ -162,61 +132,27 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
   const [status, setStatus] = useState<JoinStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const requestIdRef = useRef<string | null>(null);
   const codeRef = useRef(sessionCode ?? "");
-  const dbIdRef = useRef(sessionDbId);
-  const fingerprintRef = useRef<string | null>(null);
   const statusRef = useRef<JoinStatus>("idle");
   statusRef.current = status;
 
-  // Lắng nghe phản hồi realtime từ chủ phòng
+  // Lắng nghe phản hồi realtime từ server (tham gia thành công)
   useEffect(() => {
     codeRef.current = sessionCode ?? "";
-    dbIdRef.current = sessionDbId;
 
-    const onSent = ({ requestId }: { requestId: string }) => {
-      requestIdRef.current = requestId;
-      setStatus("waiting");
+    const onSuccess = ({ sessionCode: code }: { sessionCode: string }) => {
+      setStatus("success");
+      navigate(`/session/${code}`, { replace: true });
     };
 
-    const onApproved = async ({
-      requestId,
-      participant,
-    }: {
-      requestId: string;
-      participant: { id: string; displayName: string; role: string };
-    }) => {
-      if (requestId !== requestIdRef.current) return;
-      setStatus("approved");
-      try {
-        const fp = fingerprintRef.current ?? (await getOrCreateFingerprint());
-        await registerDevice(dbIdRef.current, participant.id, fp);
-        navigate(`/session/${codeRef.current}`, { replace: true });
-      } catch {
-        setStatus("rejected");
-        setError("Không thể đăng ký thiết bị. Vui lòng thử lại.");
-      }
-    };
-
-    const onRejected = ({ requestId }: { requestId: string }) => {
-      if (requestId !== requestIdRef.current) return;
-      setStatus("rejected");
-      setError("Yêu cầu tham gia đã bị từ chối.");
-    };
-
-    onJoinRequestSent(onSent);
-    onParticipantApproved(onApproved);
-    onJoinRequestRejected(onRejected);
+    onJoinDirectSuccess(onSuccess);
 
     return () => {
-      offJoinRequestSent(onSent);
-      offParticipantApproved(onApproved);
-      offJoinRequestRejected(onRejected);
+      offJoinDirectSuccess(onSuccess);
     };
   }, [sessionCode, sessionDbId, navigate]);
 
   const reset = () => {
-    requestIdRef.current = null;
     setStatus("idle");
     setError(null);
   };
@@ -234,22 +170,22 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
     }
 
     setError(null);
-    setStatus("waiting");
+    setStatus("joining");
 
     try {
       const fp = await getOrCreateFingerprint();
-      fingerprintRef.current = fp;
+
+      const emit = () =>
+        joinSessionDirect(codeRef.current, name, fp, detectPlatform());
 
       const socket = getSocket();
-      const emit = () => sendJoinRequest(codeRef.current, name);
-
       if (socket.connected) {
         emit();
       } else {
         // Chờ kết nối rồi gửi; nếu lỗi hoặc quá 6s thì báo lỗi
         const failTimer = setTimeout(() => {
-          if (statusRef.current === "waiting") {
-            setStatus("rejected");
+          if (statusRef.current === "joining") {
+            setStatus("error");
             setError("Không thể kết nối tới máy chủ realtime. Thử lại.");
           }
         }, 6000);
@@ -259,17 +195,17 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
         });
         socket.once("connect_error", () => {
           clearTimeout(failTimer);
-          setStatus("rejected");
+          setStatus("error");
           setError("Lỗi kết nối realtime. Thử lại.");
         });
       }
     } catch {
-      setStatus("rejected");
+      setStatus("error");
       setError("Không thể tạo nhận diện thiết bị. Vui lòng thử lại.");
     }
   };
 
-  const busy = status === "waiting" || status === "approved";
+  const busy = status === "joining" || status === "success";
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background px-4 py-6 sm:px-6">
@@ -299,8 +235,8 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
           </h1>
 
           <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-muted-foreground sm:text-base">
-            Nhập tên hiển thị, gửi yêu cầu và đợi chủ phòng phê duyệt để vào
-            bàn chơi.
+            Nhập tên hiển thị là bạn có thể vào bàn chơi ngay, không cần chờ
+            phê duyệt.
           </p>
         </section>
 
@@ -317,7 +253,7 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
             </CardTitle>
 
             <div className="mx-auto mt-4 flex w-full max-w-xs items-center justify-center gap-2 rounded-3xl border border-border/70 bg-muted/40 px-4 py-3">
-              <ShieldCheck className="size-4 shrink-0 text-chart-4" />
+              <Spade className="size-4 shrink-0 text-chart-4" />
               <div className="min-w-0 text-left">
                 <p className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
                   Mã phòng
@@ -330,7 +266,7 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
           </CardHeader>
 
           <CardContent>
-            {status === "idle" || status === "rejected" ? (
+            {status === "idle" || status === "error" ? (
               <>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2">
@@ -372,29 +308,27 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
                     disabled={busy}
                   >
                     <CheckCircle2 className="size-4" />
-                    Gửi yêu cầu tham gia
+                    Tham gia phòng
                   </Button>
                 </form>
 
                 <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">
-                  Chủ phòng sẽ nhận được thông báo và phê duyệt yêu cầu của bạn
-                  theo thời gian thực.
+                  Chỉ cần nhập tên, bạn sẽ vào phòng chơi ngay lập tức.
                 </p>
               </>
             ) : (
               <div className="flex flex-col items-center gap-4 py-4 text-center">
-                {status === "waiting" ? (
+                {status === "joining" ? (
                   <>
                     <div className="flex size-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
                       <Clock className="size-7 animate-pulse" />
                     </div>
                     <div>
                       <p className="text-base font-black text-foreground">
-                        Đang chờ phê duyệt
+                        Đang tham gia…
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Yêu cầu của bạn đã được gửi đến chủ phòng. Vui lòng chờ
-                        trong giây lát…
+                        Vui lòng chờ trong giây lát…
                       </p>
                     </div>
                     <Button
@@ -413,7 +347,7 @@ export default function JoinPage({ loaderData }: Route.ComponentProps) {
                     </div>
                     <div>
                       <p className="text-base font-black text-foreground">
-                        Đã được chấp nhận!
+                        Tham gia thành công!
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         Đang đưa bạn vào phòng…

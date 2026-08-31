@@ -48,9 +48,7 @@ Room mỗi session: `session:${code}` (`sessionRoom()`).
 |-------|---------|-------|
 | `join-session` | `{ sessionCode, participantId, displayName }` | `socket.join(room)`, lưu `socket.data.*`, emit `participant-joined` cho others. |
 | `leave-session` | `{ sessionId }` | `socket.leave(room)`. |
-| `send-join-request` | `{ sessionCode, displayName }` | Insert `join_requests` (pending, `requestToken: crypto.randomUUID()`), join room, emit `join-request-sent` (cho người gửi) + `join-request-created` (room). |
-| `approve-join-request` | `{ sessionCode, requestId }` | `assertOwner` → update status=`approved`, insert `participants` (role member), emit `participant-approved`. |
-| `reject-join-request` | `{ sessionCode, requestId }` | `assertOwner` → status=`rejected`, emit `join-request-rejected`. |
+| `join-session-direct` | `{ sessionCode, displayName, fingerprint, platform }` | Insert `participants` (role `member`) + upsert `player_devices` (status=`active`), join room, emit `participant-joined` (cho others) + `join-direct-success` (cho người gửi). Không cần phê duyệt. |
 | `kick-participant` | `{ sessionCode, participantId }` | `assertOwner` (không tự kick) → delete `participants` (cascade `participant_players`+`player_devices`), emit `participant-kicked`. |
 | `round:publish` | `{ sessionCode }` | `broadcastRoundSaved` (đọc lại DB). |
 | `round:delete` | `{ sessionCode, roundId }` | `broadcastRoundDeleted` (đọc lại DB). |
@@ -62,10 +60,7 @@ Room mỗi session: `session:${code}` (`sessionRoom()`).
 ### Server → Client (events)
 | Event | Payload | Ý nghĩa |
 |-------|---------|---------|
-| `join-request-sent` | `{ requestId, sessionCode }` | Gửi riêng cho người gửi request. |
-| `join-request-created` | `{ requestId, displayName, sessionCode }` | Broadcast room (owner hiện toast). |
-| `participant-approved` | `{ requestId, participant:{id,displayName,role} }` | Broadcast room. |
-| `join-request-rejected` | `{ requestId, displayName, sessionCode }` | Broadcast room. |
+| `join-direct-success` | `{ participantId, displayName, role, sessionCode }` | Gửi riêng cho người vừa tham gia → client navigate vào session. |
 | `participant-kicked` | `{ participantId, sessionCode }` | Broadcast room. |
 | `participant-joined` | `{ participantId, displayName }` | Cho others khi có người join room. |
 | `round:finished` | `{ sessionCode, round, roundMeta:getRoundMeta, totals }` | Ván mới được lưu (authoritative). |
@@ -88,8 +83,8 @@ Client **chỉ lắng nghe**; không tin payload tự tính — server luôn đ�
 6. Insert `playerDevices` (owner, `platform:'anonymous'`).
 → `redirect("/session/{code}")`.
 
-### 4.2 Join request (realtime)
-Client `sendJoinRequest` → socket `send-join-request` (insert `join_requests`, broadcast `join-request-created`) → owner `approveJoinRequest` → socket `approve-join-request` (owner-checked, insert `participants`, broadcast `participant-approved`) → join page `onParticipantApproved` → `registerDevice` (POST `/devices`) → navigate vào session.
+### 4.2 Tham gia trực tiếp (realtime, không cần duyệt)
+Client `joinSessionDirect(code, name, fingerprint, platform)` → socket `join-session-direct` (insert `participants` role `member` + upsert `player_devices` status `active`, join room, broadcast `participant-joined` cho phòng) → server emit `join-direct-success` cho người gửi → join page navigate vào session (clientLoader resolve participant qua device API).
 
 ### 4.3 Lưu ván (ghi điểm)
 1. `match.tsx` `action` (`intent:save-round`) → `saveRound(sessionCode, createdBy, results)`.

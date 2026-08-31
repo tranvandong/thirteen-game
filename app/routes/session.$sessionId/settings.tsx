@@ -2,7 +2,6 @@ import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/settings";
 import { db } from "~/db/client.server";
 import { participants } from "~/db/schema/participants";
-import { joinRequests } from "~/db/schema/join-requests";
 import { participantPlayers } from "~/db/schema/participant-players";
 import { and, eq } from "drizzle-orm";
 import { Button } from "~/components/ui/button";
@@ -20,7 +19,6 @@ import {
 } from "~/components/ui/alert-dialog";
 import {
   Users,
-  UserPlus,
   Settings,
   Gamepad2,
   RotateCcw,
@@ -57,8 +55,6 @@ import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import { DiamondTable } from "~/components/match/diamond-table";
 import {
-  approveJoinRequest,
-  rejectJoinRequest,
   kickParticipant,
   selectPlayer,
   deselectPlayer,
@@ -77,24 +73,17 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   if (!session) throw new Response("Session not found", { status: 404 });
 
-  const [participantList, selections, pendingRequests, playerList] =
-    await Promise.all([
-      db.query.participants.findMany({
-        where: eq(participants.sessionId, session.id),
-      }),
+  const [participantList, selections, playerList] = await Promise.all([
+    db.query.participants.findMany({
+      where: eq(participants.sessionId, session.id),
+    }),
 
-      db.query.participantPlayers.findMany({
-        where: eq(participantPlayers.sessionId, session.id),
-      }),
+    db.query.participantPlayers.findMany({
+      where: eq(participantPlayers.sessionId, session.id),
+    }),
 
-      db.query.joinRequests.findMany({
-        where: and(
-          eq(joinRequests.sessionId, session.id),
-          eq(joinRequests.status, "pending"),
-        ),
-      }),
-      db.select().from(players).where(eq(players.sessionId, session.id)),
-    ]);
+    db.select().from(players).where(eq(players.sessionId, session.id)),
+  ]);
 
   const participantsWithPlayer = participantList.map((p) => ({
     ...p,
@@ -102,7 +91,7 @@ export async function loader({ params }: Route.LoaderArgs) {
       selections.find((s) => s.participantId === p.id)?.playerId ?? null,
   }));
 
-  return { participantsWithPlayer, pendingRequests, playerList };
+  return { participantsWithPlayer, playerList };
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +201,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 // ---------------------------------------------------------------------------
 const postion = ["Trên", "Phải", "Dưới", "Trái"];
 export default function SettingsPage() {
-  const { participantsWithPlayer, pendingRequests, playerList } =
+  const { participantsWithPlayer, playerList } =
     useLoaderData<typeof loader>();
 
   const navigate = useNavigate();
@@ -339,16 +328,6 @@ export default function SettingsPage() {
       { intent: "reset-player", participantId, playerId: playerId ?? "" },
       { method: "POST" },
     );
-  };
-
-  const handleApprove = (joinRequestId: string, displayName: string) => {
-    if (!session?.code) return;
-    approveJoinRequest(session.code, joinRequestId, displayName);
-  };
-
-  const handleReject = (joinRequestId: string, displayName: string) => {
-    if (!session?.code) return;
-    rejectJoinRequest(session.code, joinRequestId, displayName);
   };
 
   const handleKick = (participantId: string) => {
@@ -817,67 +796,6 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Yêu cầu tham gia (chỉ chủ phòng)                                   */}
-      {/* ------------------------------------------------------------------ */}
-      {isOwner && pendingRequests.length > 0 && (
-        <Card className="border-chart-4/40 bg-chart-4/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
-                <UserPlus className="size-4" />
-              </div>
-              <span>
-                Yêu cầu tham gia{" "}
-                <span className="inline-flex items-center justify-center size-5 rounded-full bg-chart-4 text-background text-xs font-bold ml-1">
-                  {pendingRequests.length}
-                </span>
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {pendingRequests.map((request) => (
-              <div
-                key={request.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-chart-4/10 border border-chart-4/20"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center size-8 rounded-full bg-background">
-                    <Users className="size-4 text-muted-foreground" />
-                  </div>
-                  <span className="font-medium text-sm">
-                    {request.displayName}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    disabled={isBusy}
-                    onClick={() =>
-                      handleApprove(request.id, request.displayName)
-                    }
-                    className="bg-chart-2 hover:bg-chart-2/90 h-7 text-xs px-3"
-                  >
-                    Duyệt
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={isBusy}
-                    onClick={() =>
-                      handleReject(request.id, request.displayName)
-                    }
-                    className="h-7 text-xs px-3"
-                  >
-                    Từ chối
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       <FieldLabel htmlFor="switch-share">
         <Field orientation="horizontal">

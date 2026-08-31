@@ -43,19 +43,13 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { joinSession, leaveSession } from "~/lib/socket.client";
 import {
-  onJoinRequestCreated,
-  onParticipantApproved,
-  onJoinRequestRejected,
+  onParticipantJoined,
   onParticipantKicked,
-  offJoinRequestCreated,
-  offParticipantApproved,
-  offJoinRequestRejected,
+  offParticipantJoined,
   offParticipantKicked,
   onScoreUpdated,
   offScoreUpdated,
   type ScoreUpdatedEvent,
-  approveJoinRequest,
-  rejectJoinRequest,
 } from "~/lib/socket.client";
 import { createFingerprint } from "~/helpers/fingerprint.helper";
 import { Background } from "~/components/background";
@@ -63,7 +57,6 @@ import { Button } from "~/components/ui/button";
 import { Toaster } from "~/components/ui/toaster";
 import {
   addToast,
-  dismissToastByRequestId,
   clearToasts,
 } from "~/stores/useToastStore";
 import { playTTS } from "~/helpers/match.helper";
@@ -409,46 +402,7 @@ export default function SessionLayout() {
 
   useEffect(() => {
     if (!sessionId) return;
-    const code = session?.code ?? sessionId;
-    const isOwner =
-      !!currentParticipant &&
-      session?.ownerParticipantId === currentParticipant.id;
-
-    const handleCreated = ({
-      requestId,
-      displayName,
-    }: {
-      requestId: string;
-      displayName: string;
-    }) => {
-      if (!isOwner) return;
-      addToast({
-        requestId,
-        title: `${displayName} muốn tham gia`,
-        description: "Phê duyệt hoặc từ chối yêu cầu này.",
-        duration: 1000 * 60 * 60 * 24 * 20,
-        actions: [
-          {
-            label: "Duyệt",
-            onClick: () => approveJoinRequest(code, requestId, displayName),
-          },
-          {
-            label: "Từ chối",
-            variant: "destructive",
-            onClick: () => rejectJoinRequest(code, requestId, displayName),
-          },
-        ],
-      });
-      revalidator.revalidate();
-    };
-
-    const handleApproved = ({ requestId }: { requestId: string }) => {
-      dismissToastByRequestId(requestId);
-      revalidator.revalidate();
-    };
-
-    const handleRejected = ({ requestId }: { requestId: string }) => {
-      dismissToastByRequestId(requestId);
+    const handleJoined = () => {
       revalidator.revalidate();
     };
 
@@ -471,9 +425,7 @@ export default function SessionLayout() {
       }
     };
 
-    onJoinRequestCreated(handleCreated);
-    onParticipantApproved(handleApproved);
-    onJoinRequestRejected(handleRejected);
+    onParticipantJoined(handleJoined);
     onParticipantKicked(handleKicked);
 
     // Push notification: nhân vật của người tham gia có biến động điểm lớn
@@ -537,9 +489,7 @@ export default function SessionLayout() {
     onScoreUpdated(handleScoreUpdated);
 
     return () => {
-      offJoinRequestCreated(handleCreated);
-      offParticipantApproved(handleApproved);
-      offJoinRequestRejected(handleRejected);
+      offParticipantJoined(handleJoined);
       offParticipantKicked(handleKicked);
       offScoreUpdated(handleScoreUpdated);
     };

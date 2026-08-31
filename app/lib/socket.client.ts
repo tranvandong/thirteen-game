@@ -47,34 +47,21 @@ export function leaveSession(sessionId: string) {
   });
 }
 
-export function sendJoinRequest(sessionCode: string, displayName: string) {
-  getSocket().emit("send-join-request", {
-    sessionCode,
-    displayName,
-  });
-}
-
-export function approveJoinRequest(
+/**
+ * Tham gia phòng trực tiếp (không cần phê duyệt). Server tạo participant +
+ * đăng ký thiết bị (player_devices) rồi phản hồi `join-direct-success`.
+ */
+export function joinSessionDirect(
   sessionCode: string,
-  requestId: string,
   displayName: string,
+  fingerprint: string,
+  platform: "ios" | "android" | "web",
 ) {
-  getSocket().emit("approve-join-request", {
+  getSocket().emit("join-session-direct", {
     sessionCode,
-    requestId,
     displayName,
-  });
-}
-
-export function rejectJoinRequest(
-  sessionCode: string,
-  requestId: string,
-  displayName: string,
-) {
-  getSocket().emit("reject-join-request", {
-    sessionCode,
-    requestId,
-    displayName,
+    fingerprint,
+    platform,
   });
 }
 
@@ -184,36 +171,24 @@ export function onRoundDeleted(callback: (data: RoundDeletedEvent) => void) {
 }
 
 // ─────────────────────────────────────────────
-// Join request / participant lifecycle events
+// Participant lifecycle events
 //
 // Hợp đồng event:
-//   join-request-sent     { requestId, sessionCode }            (gửi riêng cho người gửi request)
-//   join-request-created  { requestId, displayName, sessionCode } (broadcast room)
-//   participant-approved  { requestId, participant }            (broadcast room)
-//   join-request-rejected { requestId, displayName, sessionCode } (broadcast room)
-//   participant-kicked    { participantId, sessionCode }        (broadcast room)
+//   join-direct-success  { participantId, displayName, role, sessionCode } (gửi riêng cho người vừa tham gia)
+//   participant-joined   { participantId, displayName }                    (broadcast room)
+//   participant-kicked   { participantId, sessionCode }                    (broadcast room)
 // ─────────────────────────────────────────────
 
-export interface JoinRequestSentEvent {
-  requestId: string;
-  sessionCode: string;
-}
-
-export interface JoinRequestCreatedEvent {
-  requestId: string;
+export interface JoinDirectSuccessEvent {
+  participantId: string;
   displayName: string;
+  role: string;
   sessionCode: string;
 }
 
-export interface ParticipantApprovedEvent {
-  requestId: string;
-  participant: { id: string; displayName: string; role: string };
-}
-
-export interface JoinRequestRejectedEvent {
-  requestId: string;
+export interface ParticipantJoinedEvent {
+  participantId: string;
   displayName: string;
-  sessionCode: string;
 }
 
 export interface ParticipantKickedEvent {
@@ -237,28 +212,16 @@ export interface PlayerDeselectedEvent {
   playerName: string;
 }
 
-export function onJoinRequestSent(
-  callback: (data: JoinRequestSentEvent) => void,
+export function onJoinDirectSuccess(
+  callback: (data: JoinDirectSuccessEvent) => void,
 ) {
-  getSocket().on("join-request-sent", callback);
+  getSocket().on("join-direct-success", callback);
 }
 
-export function onJoinRequestCreated(
-  callback: (data: JoinRequestCreatedEvent) => void,
+export function onParticipantJoined(
+  callback: (data: ParticipantJoinedEvent) => void,
 ) {
-  getSocket().on("join-request-created", callback);
-}
-
-export function onParticipantApproved(
-  callback: (data: ParticipantApprovedEvent) => void,
-) {
-  getSocket().on("participant-approved", callback);
-}
-
-export function onJoinRequestRejected(
-  callback: (data: JoinRequestRejectedEvent) => void,
-) {
-  getSocket().on("join-request-rejected", callback);
+  getSocket().on("participant-joined", callback);
 }
 
 export function onParticipantKicked(
@@ -305,20 +268,13 @@ export const offScoreUpdated = (cb?: (data: ScoreUpdatedEvent) => void) =>
 export const offRoundDeleted = (cb?: (data: RoundDeletedEvent) => void) =>
   off("round:deleted", cb);
 
-export const offJoinRequestSent = (cb?: (data: JoinRequestSentEvent) => void) =>
-  off("join-request-sent", cb);
+export const offJoinDirectSuccess = (
+  cb?: (data: JoinDirectSuccessEvent) => void,
+) => off("join-direct-success", cb);
 
-export const offJoinRequestCreated = (
-  cb?: (data: JoinRequestCreatedEvent) => void,
-) => off("join-request-created", cb);
-
-export const offParticipantApproved = (
-  cb?: (data: ParticipantApprovedEvent) => void,
-) => off("participant-approved", cb);
-
-export const offJoinRequestRejected = (
-  cb?: (data: JoinRequestRejectedEvent) => void,
-) => off("join-request-rejected", cb);
+export const offParticipantJoined = (
+  cb?: (data: ParticipantJoinedEvent) => void,
+) => off("participant-joined", cb);
 
 export const offParticipantKicked = (
   cb?: (data: ParticipantKickedEvent) => void,
