@@ -208,7 +208,7 @@ export function CircularTable3({
 
           <Button
             className={cn(
-              "w-[26%] h-[26%] absolute pointer-events-auto left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 shadow-xl shadow-primary/20",
+              "w-[25%] h-[25%] absolute pointer-events-auto left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 shadow-xl shadow-primary/20",
               // !disabledSaveButton && "animate-holy-glow",
             )}
             onClick={(e) => {
@@ -339,7 +339,7 @@ export function CircularTable3({
                 />
 
                 <div
-                  className="pointer-events-none absolute z-10 flex flex-col items-center pt-3 gap-0.5 px-2 text-center"
+                  className="pointer-events-none absolute z-10 flex flex-col items-center pt-3 px-2 text-center"
                   style={section.contentStyle}
                 >
                   {showAsActive && (
@@ -353,9 +353,9 @@ export function CircularTable3({
                           toggleKhapPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex w-full items-center justify-center gap-1 rounded-2xl border px-4 py-3 text-xs font-black disabled:opacity-40 sm:w-auto ${
+                        className={`flex w-full min-w-28 items-center justify-center gap-1 rounded-2xl border px-4 py-3 text-xs font-black disabled:opacity-40 sm:w-auto ${
                           isKhapWinner
-                            ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-md"
+                            ? "border-amber-500/50 bg-amber-500/20 text-amber-500 shadow-md"
                             : khapTaken
                               ? "border-destructive/20 bg-destructive/10 text-destructive shadow-md"
                               : "border-border/20 bg-background/50 text-muted-foreground"
@@ -386,9 +386,9 @@ export function CircularTable3({
                           toggleSanhPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex items-center gap-1 rounded-2xl border px-4 py-3 text-[12px] font-black disabled:opacity-40 shadow-lg ${
+                        className={`flex w-full min-w-28 items-center justify-center gap-1 rounded-2xl border px-4 py-3 text-[12px] font-black disabled:opacity-40 shadow-lg ${
                           isSanhWinner
-                            ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-md"
+                            ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-500 shadow-md"
                             : sanhTaken
                               ? "border-destructive/20 bg-destructive/10 text-destructive shadow-md"
                               : "border-border/20 bg-background/50 text-muted-foreground"
