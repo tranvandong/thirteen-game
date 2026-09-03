@@ -179,9 +179,7 @@ export function CircularTable3({
     tapSound.play();
   };
 
-  const getBackgroundImage = (score: number, active: boolean) => {
-    if (!active) return undefined;
-
+  const getBackgroundImage = (score: number) => {
     if (score <= -10) {
       return "radial-gradient(rgba(255, 0, 0, 1), rgba(255,0,0,0.4))";
     }
@@ -325,7 +323,7 @@ export function CircularTable3({
                   }}
                   disabled={!isSelectable}
                   className={cn(
-                    "pointer-events-auto absolute inset-0 border-solid border-transparent transition-all duration-300 hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
+                    "pointer-events-auto absolute inset-0 border-solid border-transparent transition-all duration-300 hover:opacity-80 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
                     isSelectable
                       ? "cursor-pointer bg-gray-300/10"
                       : "cursor-default bg-transparent",
@@ -334,7 +332,8 @@ export function CircularTable3({
                     borderRadius: RADIUS,
                     clipPath: section.clipPath,
                     ...(showAsActive ? { border: "4px solid #02bc7d" } : {}),
-                    backgroundImage: getBackgroundImage(score, showAsActive),
+                    backgroundImage: showAsActive ? getBackgroundImage(score) : "",
+                    opacity: showAsActive ? 1 : 0.5,
                   }}
                 />
 
@@ -343,7 +342,7 @@ export function CircularTable3({
                   style={section.contentStyle}
                 >
                   {showAsActive && (
-                    <div className="pointer-events-auto flex items-center gap-2">
+                    <div className="pointer-events-auto flex items-center gap-3">
                       {/* Khap button */}
                       <button
                         type="button"
@@ -353,12 +352,12 @@ export function CircularTable3({
                           toggleKhapPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex w-full min-w-28 items-center justify-center gap-1 rounded-2xl border px-4 py-3 text-xs font-black disabled:opacity-40 sm:w-auto ${
+                        className={`flex w-full min-w-28 items-center justify-center gap-1 trasition-all duration-300 rounded-2xl border px-4 py-3 text-xs font-black disabled:opacity-40 sm:w-auto ${
                           isKhapWinner
                             ? "border-amber-500/50 bg-amber-500/20 text-amber-500 shadow-md"
                             : khapTaken
                               ? "border-destructive/20 bg-destructive/10 text-destructive shadow-md"
-                              : "border-border/20 bg-background/50 text-muted-foreground"
+                              : "border-border/30 bg-background/10 text-muted-foreground"
                         }`}
                       >
                         <Flame className="size-3 shrink-0" />
@@ -386,12 +385,12 @@ export function CircularTable3({
                           toggleSanhPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex w-full min-w-28 items-center justify-center gap-1 rounded-2xl border px-4 py-3 text-[12px] font-black disabled:opacity-40 shadow-lg ${
+                        className={`flex w-full min-w-28 items-center justify-center gap-1 trasition-all duration-300 rounded-2xl border px-4 py-3 text-[12px] font-black disabled:opacity-40 shadow-lg ${
                           isSanhWinner
                             ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-500 shadow-md"
                             : sanhTaken
                               ? "border-destructive/20 bg-destructive/10 text-destructive shadow-md"
-                              : "border-border/20 bg-background/50 text-muted-foreground"
+                              : "border-border/30 bg-background/10 text-muted-foreground"
                         }`}
                       >
                         <Spade className="size-3 shrink-0" />
@@ -440,7 +439,7 @@ export function CircularTable3({
                       isSelected && (
                         <span
                           className={cn(
-                            "flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[16px] font-black leading-normal",
+                            "flex size-6 -mt-2 items-center justify-center rounded-full border border-card-foreground/30 text-[16px] font-black leading-normal",
                             order < 3
                               ? "bg-primary text-primary-foreground"
                               : "bg-[red]/70 text-primary-foreground",
