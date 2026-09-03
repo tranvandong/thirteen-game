@@ -183,7 +183,7 @@ export default function MatchPage() {
 
   return (
     <>
-      <main className="relative mx-auto flex max-w-3xl flex-col gap-4 px-3 pb-4 pt-6 sm:px-4">
+      <main className="relative mx-auto flex max-w-3xl flex-col gap-4 px-2 py-4 sm:px-4">
         {m.isPaused && (
           <div className="flex items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-sm font-semibold text-amber-600 dark:text-amber-400">
             <Pause className="size-4 shrink-0" />

@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Copy, Check, Share2, QrCode } from "lucide-react";
+import { Copy, Check, Share2, QrCode, Spade } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useSession } from "~/stores/useSessionStore";
 import { cn } from "~/lib/utils";
@@ -87,7 +87,9 @@ export function SessionQRCode() {
 
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="flex size-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-                <span className="text-lg">🃏</span>
+                <span className="text-lg">
+                  <Spade/>
+                </span>
               </div>
             </div>
           </div>

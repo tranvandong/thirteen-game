@@ -1,6 +1,7 @@
 import {
   Crown,
   Flame,
+  Loader2,
   Minus,
   Plus,
   Scissors,
@@ -11,7 +12,6 @@ import {
 import type { Player } from "~/stores/useSessionStore";
 import { Button } from "./ui/button";
 import { cn } from "~/lib/utils";
-import { useEffect, useRef } from "react";
 import { useAudio } from "~/hooks/useAudio";
 
 interface ChatHeo {
@@ -172,7 +172,7 @@ export function CircularTable3({
   disabledSaveButton: boolean;
   isLoading: boolean;
 }) {
-  const successAudioRef = useRef(new Audio("/sounds/success.mp3"));
+  const successSound = useAudio("/sounds/success.mp3", 0.7);
   const tapSound = useAudio("/sounds/tap.mp3", 0.5);
 
   const handleTap = () => {
@@ -209,11 +209,14 @@ export function CircularTable3({
               "w-[25%] h-[25%] absolute pointer-events-auto left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 shadow-xl shadow-primary/20",
               // !disabledSaveButton && "animate-holy-glow",
             )}
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
-              save();
-              successAudioRef.current.currentTime = 0;
-              successAudioRef.current.play();
+              try {
+                await save();
+                await successSound.play();
+              } catch (err) {
+                console.error("Save failed:", err);
+              }
             }}
             disabled={disabledSaveButton}
           >
@@ -352,9 +355,9 @@ export function CircularTable3({
                           toggleKhapPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex w-full min-w-28 items-center justify-center gap-1 trasition-all duration-300 rounded-2xl border px-4 py-3 text-xs font-black disabled:opacity-40 sm:w-auto ${
+                        className={`flex w-full min-w-28 items-center justify-center gap-1.5 trasition-all duration-300 rounded-2xl border px-4 py-3 text-xs font-black disabled:opacity-40 sm:w-auto ${
                           isKhapWinner
-                            ? "border-amber-500/50 bg-amber-500/20 text-amber-500 shadow-md"
+                            ? "border-chart-4/50 bg-chart-4/20 text-chart-4 shadow-md"
                             : khapTaken
                               ? "border-destructive/20 bg-destructive/10 text-destructive shadow-md"
                               : "border-border/30 bg-background/10 text-muted-foreground"
@@ -385,7 +388,7 @@ export function CircularTable3({
                           toggleSanhPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex w-full min-w-28 items-center justify-center gap-1 trasition-all duration-300 rounded-2xl border px-4 py-3 text-[12px] font-black disabled:opacity-40 shadow-lg ${
+                        className={`flex w-full min-w-28 items-center justify-center gap-1.5 trasition-all duration-300 rounded-2xl border px-4 py-3 text-[12px] font-black disabled:opacity-40 shadow-lg ${
                           isSanhWinner
                             ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-500 shadow-md"
                             : sanhTaken
@@ -439,7 +442,7 @@ export function CircularTable3({
                       isSelected && (
                         <span
                           className={cn(
-                            "flex size-6 -mt-2 items-center justify-center rounded-full border border-card-foreground/30 text-[16px] font-black leading-normal",
+                            "flex size-6 -mt-2 items-center justify-center rounded-full border border-card-foreground/30 text-[16px] font-bold leading-normal",
                             order < 3
                               ? "bg-primary text-primary-foreground"
                               : "bg-[red]/70 text-primary-foreground",

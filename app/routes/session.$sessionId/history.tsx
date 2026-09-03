@@ -1,6 +1,6 @@
 import { redirect, useFetcher, useLoaderData, useParams } from "react-router";
 import type { Route } from "./+types/history";
-import { eq, asc, inArray } from "drizzle-orm";
+import { eq, asc, inArray, desc } from "drizzle-orm";
 import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import { players as playersSchema } from "~/db/schema/players";
@@ -8,20 +8,10 @@ import { rounds } from "~/db/schema/rounds";
 import { roundResults } from "~/db/schema/round-results";
 import { sessionTotals } from "~/db/schema/session-totals";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "~/components/ui/dialog";
 import { History, LockKeyhole, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -94,7 +84,7 @@ export async function loader({
     })
     .from(rounds)
     .where(eq(rounds.sessionId, session.id))
-    .orderBy(asc(rounds.roundNo));
+    .orderBy(desc(rounds.roundNo));
 
   const roundIds = roundRows.map((r) => r.id);
 

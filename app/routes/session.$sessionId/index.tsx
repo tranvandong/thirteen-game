@@ -273,74 +273,8 @@ export default function SessionScoreboard({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-4 pb-32">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="overflow-hidden rounded-3xl border border-chart-4/20 bg-chart-4/10 p-4 ring-1 ring-chart-4/10">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-chart-4">
-                <Flame className="size-3.5" />
-                Khạp
-              </div>
-              <div className="mt-2 flex items-end gap-1">
-                <span className="text-4xl font-black tracking-tight text-chart-4">
-                  {accumulated.khap}
-                </span>
-                <span className="mb-1 text-xs font-semibold text-muted-foreground">
-                  / {gameConfig.maxKhapAccumulate}
-                </span>
-              </div>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-chart-4 shadow-sm">
-              <Flame className="size-5" />
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-10 gap-0.5">
-            {Array.from({ length: gameConfig.maxKhapAccumulate }).map(
-              (_, i) => (
-                <div
-                  key={i}
-                  className={`h-2 rounded-full transition-all ${i < accumulated.khap ? "bg-chart-4" : "bg-muted"}`}
-                />
-              ),
-            )}
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-3xl border border-chart-1/20 bg-chart-1/10 p-4 ring-1 ring-chart-1/10">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-chart-1">
-                <Spade className="size-3.5" />
-                Sảnh
-              </div>
-              <div className="mt-2 flex items-end gap-1">
-                <span className="text-4xl font-black tracking-tight text-chart-1">
-                  {accumulated.sanh}
-                </span>
-                <span className="mb-1 text-xs font-semibold text-muted-foreground">
-                  / {gameConfig.maxSanhAccumulate}
-                </span>
-              </div>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-chart-1 shadow-sm">
-              <Spade className="size-5" />
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-10 gap-0.5">
-            {Array.from({ length: gameConfig.maxSanhAccumulate }).map(
-              (_, i) => (
-                <div
-                  key={i}
-                  className={`h-2 rounded-full transition-all ${i < accumulated.sanh ? "bg-chart-1" : "bg-muted"}`}
-                />
-              ),
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Ranking list */}
-      <Card className="mt-4 overflow-hidden border-border/70 shadow-sm">
+      <Card className="overflow-hidden border-border/70 shadow-sm">
         <CardHeader>
           <div>
             <CardTitle className="text-base">Xếp hạng hiện tại</CardTitle>
