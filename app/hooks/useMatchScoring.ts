@@ -81,6 +81,10 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
   const handledSaveRoundRef = useRef<number | null>(null);
   const deletedRoundIdRef = useRef<string | null>(null);
 
+  // Tránh chạy reset/roundMeta 2 lần khi action response VÀ socket
+  // round:finished về gần như đồng thời.
+  const handledRoundNoRef = useRef<number | null>(null);
+
   // ── Trạng thái tạm dừng (realtime, từ socket) ────────────────
   const isPaused = session?.paused ?? false;
   const isOwner =
@@ -208,6 +212,9 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     setKhapCount(0);
     setSanhWinner(null);
     setChatHeoList([]);
+    setChatForm({ chatterId: "", victimId: "", heo: { do: 0, den: 0 } });
+    setShowChatHeoForm(false);
+    setShowChatHeo(false);
     setNhotList([]);
     setSubmitted(false);
     setConfirmNhot(false);
@@ -218,22 +225,40 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     setExpandBonus(false);
   };
 
+  // Refs phục vụ visibility-change handler — đọc state mới nhất qua .current
+  // thay vì capture từ closure (stale closure khi effect chạy 1 lần).
+  const fetcherStateRef = useRef(fetcher.state);
+  const deleteFetcherStateRef = useRef(deleteFetcher.state);
+  const matchLoaderFetcherRef = useRef(matchLoaderFetcher);
+  fetcherStateRef.current = fetcher.state;
+  deleteFetcherStateRef.current = deleteFetcher.state;
+  matchLoaderFetcherRef.current = matchLoaderFetcher;
+
+  // Khi đổi session thì reset các ref đã track để tránh skip vòng đời mới.
+  const sessionCodeRef = useRef(sessionCode);
+  if (sessionCodeRef.current !== sessionCode) {
+    handledSaveRoundRef.current = null;
+    handledRoundNoRef.current = null;
+    deletedRoundIdRef.current = null;
+    sessionCodeRef.current = sessionCode;
+  }
+
   useEffect(() => {
     if (!sessionCode) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
-      if (fetcher.state !== "idle") return;
-      if (deleteFetcher.state !== "idle") return;
+      // Đọc qua ref để luôn lấy state mới nhất, tránh stale closure.
+      if (fetcherStateRef.current !== "idle") return;
+      if (deleteFetcherStateRef.current !== "idle") return;
 
-      matchLoaderFetcher.load(`/session/${sessionCode}/match`);
+      matchLoaderFetcherRef.current.load(`/session/${sessionCode}/match`);
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionCode]);
 
   useEffect(() => {
@@ -264,12 +289,25 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     );
   }, [playerIdsKey, players.length]);
 
+  // Khi matchLoaderFetcher trả về data mới (sau khi load), clear override
+  // để roundMeta lấy từ loader (server-authoritative) thay vì từ override cũ.
+  useEffect(() => {
+    if (matchLoaderFetcher.state !== "idle") return;
+    if (!matchLoaderFetcher.data) return;
+    setRoundMetaOverride(null);
+    // totalsOverride giữ để tránh flicker, sẽ tự khớp với totals mới từ loader
+    // nhờ playerTotals useMemo so sánh theo playerId.
+  }, [matchLoaderFetcher.state, matchLoaderFetcher.data]);
+
   useEffect(() => {
     if (fetcher.state !== "idle") return;
     const data = fetcher.data;
     if (!data?.success || data.roundNo == null) return;
+    // Tránh chạy 2 lần khi React render lại với cùng fetcher.data.
     if (handledSaveRoundRef.current === data.roundNo) return;
     handledSaveRoundRef.current = data.roundNo;
+    // Đánh dấu để socket handler không reset 2 lần cho cùng roundNo.
+    handledRoundNoRef.current = data.roundNo;
 
     // Optimistic update từ kết quả action (authoritative cho lần lưu này).
     if (data.round) addRound(data.round as unknown as Round);
@@ -281,9 +319,16 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     // Reset bảng về ván mới ngay lập tức (không chờ broadcast).
     resetScoringState();
 
-    // Báo Socket.IO server để broadcast cho cả phòng (authoritative).
-    // Truyền participantId người ghi ván để họ không nhận thông báo (đã biết).
-    if (sessionCode) publishRound(sessionCode, currentParticipant?.id);
+    // Quan trọng: chủ động reload loader để lấy roundMeta mới (currentRoundNo,
+    // accumulated khap/sanh) từ server. Không phụ thuộc vào broadcast socket
+    // (có thể chậm/reconnect). Nếu socket round:finished đến sau, nó sẽ
+    // được chặn bởi handledRoundNoRef để tránh reset 2 lần.
+    if (sessionCode) {
+      matchLoaderFetcher.load(`/session/${sessionCode}/match`);
+      // Báo Socket.IO server để broadcast cho cả phòng (authoritative).
+      // Truyền participantId người ghi ván để họ không nhận thông báo (đã biết).
+      publishRound(sessionCode, currentParticipant?.id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data, sessionCode]);
 
@@ -301,7 +346,16 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
       setTotalsOverride(toTotalsMap(payload.totals));
       if (payload.roundMeta) setRoundMetaOverride(payload.roundMeta);
 
-      // Mọi client (kể cả người vừa lưu) đều chuyển sang bảng ván mới.
+      // Nếu action response đã xử lý ván này (handledRoundNoRef khớp),
+      // không reset 2 lần — chỉ cần roundMetaOverride là đủ (action đã
+      // gọi matchLoaderFetcher.load, sẽ sớm có roundMeta mới).
+      // Vẫn cập nhật store/override ở trên để đảm bảo dữ liệu authoritative.
+      if (handledRoundNoRef.current === payload.round.roundNo) {
+        return;
+      }
+      handledRoundNoRef.current = payload.round.roundNo;
+
+      // Client khác (không phải người vừa lưu) chuyển sang bảng ván mới.
       resetScoringState();
     };
 
@@ -317,6 +371,9 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
       // Xoá override để lấy roundMeta mới nhất từ server (currentRoundNo giảm).
       setRoundMetaOverride(null);
       setTotalsOverride(null);
+      // Reset ref để vòng đời sau hoạt động đúng.
+      handledRoundNoRef.current = null;
+      handledSaveRoundRef.current = null;
       if (sessionCode) {
         matchLoaderFetcher.load(`/session/${sessionCode}/match`);
       }

@@ -6,6 +6,7 @@ import {
   Scissors,
   Spade,
   Swords,
+  XCircle,
 } from "lucide-react";
 import type { Player } from "~/stores/useSessionStore";
 import { Button } from "./ui/button";
@@ -207,10 +208,9 @@ export function CircularTable3({
 
           <Button
             className={cn(
-              "absolute pointer-events-auto left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 shadow-xl shadow-primary/20",
+              "w-[26%] h-[26%] absolute pointer-events-auto left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/60 shadow-xl shadow-primary/20",
               // !disabledSaveButton && "animate-holy-glow",
             )}
-            style={{ width: 80, height: 80 }}
             onClick={(e) => {
               e.stopPropagation();
               save();
@@ -325,11 +325,10 @@ export function CircularTable3({
                   }}
                   disabled={!isSelectable}
                   className={cn(
-                    "pointer-events-auto absolute inset-0 border-solid border-transparent transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
+                    "pointer-events-auto absolute inset-0 border-solid border-transparent transition-all duration-300 hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
                     isSelectable
                       ? "cursor-pointer bg-gray-300/10"
                       : "cursor-default bg-transparent",
-                    // score > 20 && isSelected ? "border border-chart-1/20 bg-chart-1/10" : "",
                   )}
                   style={{
                     borderRadius: RADIUS,
@@ -354,7 +353,7 @@ export function CircularTable3({
                           toggleKhapPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex items-center gap-1 rounded-2xl border px-3 py-1.5 text-[12px] font-black disabled:opacity-40 ${
+                        className={`flex w-full items-center justify-center gap-1 rounded-2xl border px-4 py-3 text-xs font-black disabled:opacity-40 sm:w-auto ${
                           isKhapWinner
                             ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-md"
                             : khapTaken
@@ -387,7 +386,7 @@ export function CircularTable3({
                           toggleSanhPlayer(playerId);
                         }}
                         disabled={nhotVictimIds.includes(playerId)}
-                        className={`flex items-center gap-1 rounded-2xl border px-3 py-1.5 text-[12px] font-black disabled:opacity-40 shadow-lg ${
+                        className={`flex items-center gap-1 rounded-2xl border px-4 py-3 text-[12px] font-black disabled:opacity-40 shadow-lg ${
                           isSanhWinner
                             ? "border-chart-1/50 bg-chart-1/20 text-chart-1 shadow-md"
                             : sanhTaken
@@ -417,22 +416,24 @@ export function CircularTable3({
                   <div className="flex flex-col items-center gap-0.5">
                     {isFixed ? (
                       <span
-                        className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black ${
+                        className={`flex size-5 items-center justify-center rounded-full text-white ${
                           playerId === nhotterId
-                            ? "bg-white/20 text-white"
+                            ? "bg-amber-500"
                             : nhotVictimIds.includes(playerId)
-                              ? "bg-white/20 text-white"
-                              : "bg-white/20 text-white"
+                              ? "bg-destructive"
+                              : denForIds.includes(playerId)
+                                ? "bg-muted-foreground"
+                                : "bg-white/20"
                         }`}
                       >
                         {playerId === nhotterId ? (
                           <Crown className="size-3" />
-                        ) : denForIds.includes(playerId) ? (
-                          "-"
                         ) : nhotVictimIds.includes(playerId) ? (
-                          "x"
+                          <XCircle className="size-3" />
+                        ) : denForIds.includes(playerId) ? (
+                          <Minus className="size-3" />
                         ) : (
-                          "3"
+                          <span className="text-[10px] font-black">3</span>
                         )}
                       </span>
                     ) : (
@@ -440,7 +441,9 @@ export function CircularTable3({
                         <span
                           className={cn(
                             "flex size-6 items-center justify-center rounded-full border border-card-foreground/30 text-[16px] font-black leading-normal",
-                            order < 3 ?  "bg-primary text-primary-foreground" : "bg-[red]/70 text-primary-foreground",
+                            order < 3
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-[red]/70 text-primary-foreground",
                           )}
                         >
                           {order}
@@ -449,7 +452,7 @@ export function CircularTable3({
                     )}
 
                     <span
-                      className={`truncate tracking-wider font-bold uppercase leading-tight text-card-foreground ${showAsActive ? "text-base" : "mt-8 text-xl"}`}
+                      className={`truncate tracking-wider font-bold uppercase leading-tight text-base text-card-foreground ${showAsActive ? "mt-1" : "mt-6"}`}
                     >
                       {player.name}
                     </span>
@@ -465,7 +468,7 @@ export function CircularTable3({
 
                     {showAsActive && (
                       <span
-                        className={`tabular-nums leading-none font-bold text-xl text-shadow-md  ${scoreColor(
+                        className={`tabular-nums text-xl font-black leading-none ${scoreColor(
                           score,
                         )}`}
                       >
@@ -545,24 +548,24 @@ export function CircularTable3({
           {khapWinner && khapCount > 0 && (
             <div className="flex items-center gap-2 rounded-2xl border border-chart-4/30 bg-chart-4/10 px-4 py-2">
               <Flame className="size-5 text-chart-4" />
-              <span className="text-sm font-bold text-chart-4">
+              <span className="text-base font-bold text-chart-4">
                 Khạp x{khapCount * accumulated.khap}
               </span>
               <div className="flex items-center gap-1 ml-2">
                 <button
                   onClick={() => updateKhapCount(-1)}
                   disabled={khapCount <= 1}
-                  className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
+                  className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
                 >
-                  <Minus className="size-3" />
+                  <Minus className="size-4" />
                 </button>
                 <span className="w-6 text-center font-bold">{khapCount}</span>
                 <button
                   onClick={() => updateKhapCount(1)}
                   disabled={khapCount >= gameConfig.maxKhapAccumulate}
-                  className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
+                  className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
                 >
-                  <Plus className="size-3" />
+                  <Plus className="size-4" />
                 </button>
               </div>
             </div>
