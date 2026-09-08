@@ -4,7 +4,6 @@ import { Button } from "~/components/ui/button";
 import {
   RotateCcw,
   Flame,
-  Plus,
   X,
   Trash,
   Spade,
@@ -32,6 +31,7 @@ import { ChatHeoDialog } from "~/components/match/chatheo-dialog";
 import { NhotBaiDialog } from "~/components/match/nhotbai-dialog";
 import { NhotBaiResultCard } from "~/components/match/NhotBaiResultCard";
 import { ChatHeoListCard } from "~/components/match/ChatHeoListCard";
+import { DraggableActionBubble } from "~/components/match/draggable-action-bubble";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -197,7 +197,7 @@ export default function MatchPage() {
           }}
           className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm"
         >
-          <div className="relative px-2 pt-4">
+          <div className="relative px-2 py-4">
             <div className="absolute -right-14 top-26 h-36 w-36 rounded-full bg-chart-2/30 blur-3xl" />
             <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/20 blur-3xl" />
 
@@ -375,33 +375,6 @@ export default function MatchPage() {
               isLoading={m.isSaving}
             />
           </div>
-          <div className="flex flex-col gap-2 mt-4 sm:flex-row sm:items-center sm:justify-between relative z-20 mb-4">
-            <div className="flex items-center justify-center gap-2 w-full">
-              <div className="flex gap-4">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="h-9 gap-2 font-black text-sm"
-                  onClick={() => m.setExpandBonus(true)}
-                >
-                  <Plus className="size-4" />
-                  Nhốt bài
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="h-9 gap-2 font-black text-sm"
-                  onClick={() => {
-                    m.setShowChatHeo(true);
-                    m.setShowChatHeoForm(true);
-                  }}
-                >
-                  <Plus className="size-4" />
-                  Chặt heo
-                </Button>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* ── Nhốt bài (kết quả) ─────────────────────────── */}
@@ -531,6 +504,13 @@ export default function MatchPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <DraggableActionBubble
+        onOpenNhotBai={() => m.setExpandBonus(true)}
+        onOpenChatHeo={() => {
+          m.setShowChatHeo(true);
+          m.setShowChatHeoForm(true);
+        }}
+      />
     </>
   );
 }
