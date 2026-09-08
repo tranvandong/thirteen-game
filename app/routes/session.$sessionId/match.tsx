@@ -1,5 +1,6 @@
 import { useParams, useLoaderData } from "react-router";
 import type { Route } from "./+types/match";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import {
   RotateCcw,
@@ -11,6 +12,7 @@ import {
   Loader2,
   Pause,
   Play,
+  Plus,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { redirect } from "react-router";
@@ -170,6 +172,20 @@ export default function MatchPage() {
   const m = useMatchScoring({ sessionCode: sessionCode!, loaderData });
 
   const players = m.players;
+
+  const [showDraggableBubble, setShowDraggableBubble] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("draggableActionBubble") === "true";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleChange = () => {
+      setShowDraggableBubble(localStorage.getItem("draggableActionBubble") === "true");
+    };
+    window.addEventListener("storage", handleChange);
+    return () => window.removeEventListener("storage", handleChange);
+  }, []);
 
   if (!m.isReady) {
     return (
@@ -416,6 +432,36 @@ export default function MatchPage() {
             {m.saveError}
           </div>
         )}
+
+        {!showDraggableBubble && (
+<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
+            <div className="flex items-center justify-center gap-2 w-full">
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-9 gap-2 font-black text-sm"
+                  onClick={() => m.setExpandBonus(true)}
+                >
+                  <Plus className="size-4" />
+                  Nhốt bài
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-9 gap-2 font-black text-sm"
+                  onClick={() => {
+                    m.setShowChatHeo(true);
+                    m.setShowChatHeoForm(true);
+                  }}
+                >
+                  <Plus className="size-4" />
+                  Chặt heo
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <ChatHeoDialog
@@ -504,13 +550,15 @@ export default function MatchPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <DraggableActionBubble
-        onOpenNhotBai={() => m.setExpandBonus(true)}
-        onOpenChatHeo={() => {
-          m.setShowChatHeo(true);
-          m.setShowChatHeoForm(true);
-        }}
-      />
+      {showDraggableBubble && (
+        <DraggableActionBubble
+          onOpenNhotBai={() => m.setExpandBonus(true)}
+          onOpenChatHeo={() => {
+            m.setShowChatHeo(true);
+            m.setShowChatHeoForm(true);
+          }}
+        />
+      )}
     </>
   );
 }

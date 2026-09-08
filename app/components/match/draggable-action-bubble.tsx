@@ -7,6 +7,9 @@ const BUTTON_SIZE = 48;
 const BUTTON_GAP = 10;
 const DRAG_THRESHOLD = 4;
 const STORAGE_KEY = "draggable-action-bubble-position";
+const TOP_OFFSET = 80;
+const BOTTOM_OFFSET = 90;
+const X_OFFSET = 10;
 
 type Placement = "below" | "above";
 
@@ -24,8 +27,8 @@ function getDefaultPosition(): Position {
     return { x: 0, y: 0 };
   }
   return {
-    x: window.innerWidth - BUBBLE_SIZE - 20,
-    y: window.innerHeight - BUBBLE_SIZE - 120,
+    x: window.innerWidth - BUBBLE_SIZE - X_OFFSET,
+    y: clamp(window.innerHeight - BUBBLE_SIZE - 120, TOP_OFFSET, window.innerHeight - BOTTOM_OFFSET - BUBBLE_SIZE),
   };
 }
 
@@ -42,8 +45,8 @@ function loadPosition(): Position {
       Number.isFinite(parsed.y)
     ) {
       return {
-        x: clamp(parsed.x, 0, window.innerWidth - BUBBLE_SIZE),
-        y: clamp(parsed.y, 0, window.innerHeight - BUBBLE_SIZE),
+        x: clamp(parsed.x, X_OFFSET, window.innerWidth - BUBBLE_SIZE - X_OFFSET),
+        y: clamp(parsed.y, TOP_OFFSET, window.innerHeight - BOTTOM_OFFSET - BUBBLE_SIZE),
       };
     }
   } catch {
@@ -89,8 +92,8 @@ export function DraggableActionBubble({
     if (typeof window === "undefined") return;
     const handleResize = () => {
       setPosition((prev) => ({
-        x: clamp(prev.x, 0, window.innerWidth - BUBBLE_SIZE),
-        y: clamp(prev.y, 0, window.innerHeight - BUBBLE_SIZE),
+        x: clamp(prev.x, X_OFFSET, window.innerWidth - BUBBLE_SIZE - X_OFFSET),
+        y: clamp(prev.y, TOP_OFFSET, window.innerHeight - BOTTOM_OFFSET - BUBBLE_SIZE),
       }));
     };
     window.addEventListener("resize", handleResize);
@@ -123,13 +126,13 @@ export function DraggableActionBubble({
 
       const newX = clamp(
         dragState.current.initialX + deltaX,
-        0,
-        window.innerWidth - BUBBLE_SIZE,
+        X_OFFSET,
+        window.innerWidth - BUBBLE_SIZE - X_OFFSET,
       );
       const newY = clamp(
         dragState.current.initialY + deltaY,
-        0,
-        window.innerHeight - BUBBLE_SIZE,
+        TOP_OFFSET,
+        window.innerHeight - BOTTOM_OFFSET - BUBBLE_SIZE,
       );
 
       latestPositionRef.current = { x: newX, y: newY };

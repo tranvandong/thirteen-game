@@ -29,6 +29,7 @@ import {
   UserX,
   Wallpaper,
   Megaphone,
+  Move,
 } from "lucide-react";
 import { SessionQRCode } from "~/components/session-qr-code";
 import { PushNotificationsCard } from "~/components/push-notifications";
@@ -222,6 +223,10 @@ export default function SettingsPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [draggableBubble, setDraggableBubble] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("draggableActionBubble") === "true";
+  });
 
   const fetcher = useFetcher();
   const seatFetcher = useFetcher();
@@ -390,6 +395,10 @@ export default function SettingsPage() {
   const toggleTTS = (value: boolean) => {
     localStorage.setItem("textToSpeed", value.toString());
     updateConfig({ enableTTS: value });
+  };
+  const toggleDraggableBubble = (value: boolean) => {
+    localStorage.setItem("draggableActionBubble", value.toString());
+    setDraggableBubble(value);
   };
   const movePlayers = (players: Player[]) => {
     sortPlayers(players);
@@ -844,6 +853,28 @@ export default function SettingsPage() {
             id="switch-enable-background"
             checked={gameConfig?.enableTTS}
             onCheckedChange={toggleTTS}
+            className="relative z-10"
+          />
+        </Field>
+      </FieldLabel>
+
+      <FieldLabel htmlFor="switch-share">
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldTitle className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
+                <Move className="size-4" />
+              </div>
+              <span>Bong bóng kéo thả</span>
+            </FieldTitle>
+            <FieldDescription>
+              Hiển thị nút bong bóng kéo thả để mở nhanh Nhốt bài / Chặt heo.
+            </FieldDescription>
+          </FieldContent>
+          <Switch
+            id="switch-draggable-bubble"
+            checked={draggableBubble}
+            onCheckedChange={toggleDraggableBubble}
             className="relative z-10"
           />
         </Field>
