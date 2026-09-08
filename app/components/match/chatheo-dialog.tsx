@@ -17,6 +17,7 @@ import {
   UserRoundPlus,
 } from "lucide-react";
 import type { HeoType } from "~/types/match.type";
+import { cn } from "~/lib/utils";
 
 /**
  * ChatHeoDialog
@@ -144,7 +145,7 @@ export function ChatHeoDialog({
                               : f.victimId,
                         }))
                       }
-                      className={`relative z-10 flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
+                      className={`relative z-10 flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors duration-300 uppercase ${
                         chatForm.chatterId === p.id
                           ? "border border-primary bg-chart-1/10 text-chart-1"
                           : "border-border bg-background/10 hover:border-primary/40 text-chart-1/70"
@@ -175,7 +176,7 @@ export function ChatHeoDialog({
                       onClick={() =>
                         setChatForm((f) => ({ ...f, victimId: p.id }))
                       }
-                      className={`relative z-10 flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors uppercase ${
+                      className={`relative z-10 flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black  transition-colors duration-300 uppercase ${
                         chatForm.victimId === p.id
                           ? "border-destructive bg-destructive/10 text-destructive"
                           : "border-border bg-background/10 hover:border-destructive/30 text-destructive/70"
@@ -199,13 +200,20 @@ export function ChatHeoDialog({
                     className="flex flex-1 items-center justify-between gap-0.5 rounded-2xl border border-border/70 bg-background p-2"
                   >
                     <span
-                      className={`rounded-full w-9 h-9 leading-[2.2] text-[16px] text-center font-black ${
+                      // className={`rounded-full p-2 text-[16px] text-center font-black ${
+                      //   t === "den"
+                      //     ? "bg-foreground text-background"
+                      //     : "bg-red-500 text-white"
+                      // }`}
+                      className={cn(
+                        "rounded-full p-2 text-[16px] text-center font-black transition-colors duration-300",
                         t === "den"
                           ? "bg-foreground text-background"
-                          : "bg-red-500 text-white"
-                      }`}
+                          : "bg-red-500 text-white",
+                        chatForm.heo[t] > 0 ? "" : "opacity-50",
+                      )}
                     >
-                      {t === "do" ? "Đỏ" : "Đen"}
+                      <PiggyBank className="size-6" />
                     </span>
                     <button
                       onClick={() => updateChatFormHeo(t, -1)}

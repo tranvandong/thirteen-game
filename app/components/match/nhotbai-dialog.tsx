@@ -7,8 +7,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Check, Lock, PiggyBank, Plus, UserLock, UserRoundX, X } from "lucide-react";
+import {
+  Check,
+  Lock,
+  PiggyBank,
+  Plus,
+  UserLock,
+  UserRoundX,
+  X,
+} from "lucide-react";
 import type { HeoType, VictimHeo } from "~/types/match.type";
+import { cn } from "~/lib/utils";
 
 /**
  * NhotBaiDialog
@@ -146,7 +155,7 @@ export function NhotBaiDialog({
                       victims: f.victims.filter((v) => v.victimId !== p.id),
                     }))
                   }
-                  className={`relative z-10 uppercase flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors ${
+                  className={`relative z-10 uppercase flex gap-0.5 tracking-wider rounded-2xl border px-3 py-2 font-black transition-colors duration-300 ${
                     nhotForm.nhotterId === p.id
                       ? "border border-primary bg-chart-1/10 text-chart-1"
                       : "border-border bg-background/10 hover:border-primary/40 text-chart-1/70"
@@ -178,17 +187,23 @@ export function NhotBaiDialog({
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center justify-between gap-1 rounded-2xl border px-3 py-2 h-14 ${
+                      className={`flex items-center justify-between gap-1 rounded-2xl border px-3 py-2 h-14  transition-colors duration-300 ${
                         isVictim
                           ? "border-destructive/25 bg-destructive/5"
                           : "border-border bg-background"
                       }`}
                     >
                       <div
-                        className={`flex gap-0.5 relative z-10 uppercase tracking-wider flex-1 font-black  text-destructive/70`}
+                        className={cn(`flex gap-0.5 relative z-10 uppercase tracking-wider flex-1 font-black`,
+                          isVictim ? "text-destructive" : "text-destructive/70",
+                        )}
                         onClick={() => toggleNhotVictim(p.id)}
                       >
-                       <Check size={18} className={`${isVictim ? 'visible' : 'invisible'}`} />  {pShort(p.id).slice(0,5) }
+                        <Check
+                          size={18}
+                          className={`${isVictim ? "visible" : "invisible"}`}
+                        />{" "}
+                        {pShort(p.id).slice(0, 5)}
                       </div>
                       {isVictim && (
                         <div className="flex gap-2">
@@ -198,15 +213,21 @@ export function NhotBaiDialog({
                               className="flex items-center gap-0.5 text-base"
                             >
                               <span
-                                className={`rounded-full p-1 font-black ${
-                                  t === "den" ? "bg-black" : "bg-red-500"
-                                }`}
+                                // className={`rounded-full p-1 font-black ${
+                                //   t === "den" ? "bg-black" : "bg-red-500"
+                                // }`}
+                                className={cn(
+                                  "rounded-full p-1 font-black",
+                                  t === "den" ? "bg-black" : "bg-red-500",
+                                  Boolean(vicTimHeoCount?.[t]) ? "" : "opacity-50",
+                                )}
                               >
-                               <PiggyBank className="size-4" color="#fff" />
+                                <PiggyBank className="size-4" color="#fff" />
                               </span>
                               <button
                                 onClick={() => updateVictimHeo(p.id, t, -1)}
                                 className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
+                                disabled={!Boolean(vicTimHeoCount?.[t])}
                               >
                                 −
                               </button>
