@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Check, Lock, Plus, UserLock, UserRoundX, X } from "lucide-react";
+import { Check, Lock, PiggyBank, Plus, UserLock, UserRoundX, X } from "lucide-react";
 import type { HeoType, VictimHeo } from "~/types/match.type";
 
 /**
@@ -163,7 +163,7 @@ export function NhotBaiDialog({
             <p className="mt-4 text-xs flex items-end gap-2 font-bold uppercase tracking-wide text-muted-foreground">
               <UserRoundX className="size-6 text-destructive" /> Người bị nhốt
             </p>
-            <div className="mt-2 flex flex-col gap-2">
+            <div className="mt-2 flex flex-col gap-1">
               {players
                 .filter((p) => p.id !== nhotForm.nhotterId)
                 .map((p) => {
@@ -178,7 +178,7 @@ export function NhotBaiDialog({
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 ${
+                      className={`flex items-center justify-between gap-1 rounded-2xl border px-3 py-2 h-14 ${
                         isVictim
                           ? "border-destructive/25 bg-destructive/5"
                           : "border-border bg-background"
@@ -188,25 +188,25 @@ export function NhotBaiDialog({
                         className={`flex gap-0.5 relative z-10 uppercase tracking-wider flex-1 font-black  text-destructive/70`}
                         onClick={() => toggleNhotVictim(p.id)}
                       >
-                       {isVictim && <Check size={18} />}  {pShort(p.id)}
+                       <Check size={18} className={`${isVictim ? 'visible' : 'invisible'}`} />  {pShort(p.id).slice(0,5) }
                       </div>
                       {isVictim && (
-                        <div className="flex gap-4">
+                        <div className="flex gap-2">
                           {(["do", "den"] as HeoType[]).map((t) => (
                             <div
                               key={t}
-                              className="flex items-center gap-1 text-base"
+                              className="flex items-center gap-0.5 text-base"
                             >
                               <span
-                                className={`rounded-full w-7 h-7 font-black border-2 border-white text-white leading-[normal] ${
+                                className={`rounded-full p-1.5 font-black ${
                                   t === "den" ? "bg-black" : "bg-red-500"
                                 }`}
                               >
-                                {/* {vicTimHeoCount?.[t] ?? 0} */}
+                               <PiggyBank className="size-5" color="#fff" />
                               </span>
                               <button
                                 onClick={() => updateVictimHeo(p.id, t, -1)}
-                                className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
+                                className="relative z-10 size-8 rounded-full bg-muted/70 font-black"
                               >
                                 −
                               </button>
@@ -215,7 +215,7 @@ export function NhotBaiDialog({
                               </span>
                               <button
                                 onClick={() => updateVictimHeo(p.id, t, 1)}
-                                className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
+                                className="relative z-10 size-8 rounded-full bg-muted/70 font-black"
                               >
                                 +
                               </button>
