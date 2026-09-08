@@ -198,15 +198,15 @@ export function NhotBaiDialog({
                               className="flex items-center gap-0.5 text-base"
                             >
                               <span
-                                className={`rounded-full p-1.5 font-black ${
+                                className={`rounded-full p-1 font-black ${
                                   t === "den" ? "bg-black" : "bg-red-500"
                                 }`}
                               >
-                               <PiggyBank className="size-5" color="#fff" />
+                               <PiggyBank className="size-4" color="#fff" />
                               </span>
                               <button
                                 onClick={() => updateVictimHeo(p.id, t, -1)}
-                                className="relative z-10 size-8 rounded-full bg-muted/70 font-black"
+                                className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
                               >
                                 −
                               </button>
@@ -215,7 +215,7 @@ export function NhotBaiDialog({
                               </span>
                               <button
                                 onClick={() => updateVictimHeo(p.id, t, 1)}
-                                className="relative z-10 size-8 rounded-full bg-muted/70 font-black"
+                                className="relative z-10 size-7 rounded-full bg-muted/70 font-black"
                               >
                                 +
                               </button>
