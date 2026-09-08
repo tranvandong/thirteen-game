@@ -124,8 +124,8 @@ export function NhotBaiDialog({
 }: NhotBaiDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] gap-0 overflow-y-auto rounded-[2rem] p-0 sm:max-w-md">
-        <DialogHeader className="flex-row items-center gap-3 space-y-0 px-4 py-4 text-left">
+      <DialogContent className="flex flex-col h-[85vh] gap-0 rounded-[2rem] p-0 sm:max-w-md">
+        <DialogHeader className="shrink-0 flex-row items-center gap-3 space-y-0 px-4 py-4 text-left">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-chart-3/10 text-chart-3">
             <Lock className="size-5" />
           </div>
@@ -139,7 +139,7 @@ export function NhotBaiDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 px-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-4">
           <div>
             <p className="text-xs flex items-end gap-2 font-bold uppercase tracking-wide text-muted-foreground">
               <UserLock className="size-6 text-chart-1" /> Người nhốt
@@ -333,6 +333,9 @@ export function NhotBaiDialog({
             </div>
           )}
 
+        </div>
+
+        <div className="shrink-0 px-4 pb-4">
           {nhotFormVictimIds.length > 1 && !showDenBai && (
             <Button
               variant="outline"
