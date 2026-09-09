@@ -19,6 +19,7 @@ export interface ToastItem {
   title: string;
   description?: string;
   variant?: "default" | "destructive";
+  icon?: "success" | "error" | "info";
   /** ms tự động đóng. Để Infinity để không tự đóng (chỉ đóng bằng nút X). */
   duration?: number;
   actions?: ToastAction[];

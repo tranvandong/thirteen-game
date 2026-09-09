@@ -39,6 +39,7 @@ import {
   playTTS,
   reRanking,
 } from "~/helpers/match.helper";
+import { addToast } from "~/stores/useToastStore";
 import type {
   ChatHeo,
   GameConfigs,
@@ -79,7 +80,11 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
   const deleteFetcher = useFetcher<DeleteRoundActionData>();
   const isDeletingRound = deleteFetcher.state !== "idle";
   const handledSaveRoundRef = useRef<number | null>(null);
+  const saveAttemptRef = useRef(0);
+  const handledSaveAttemptRef = useRef(0);
   const deletedRoundIdRef = useRef<string | null>(null);
+  const deleteAttemptRef = useRef(0);
+  const handledDeleteAttemptRef = useRef<number | null>(null);
 
   // Tránh chạy reset/roundMeta 2 lần khi action response VÀ socket
   // round:finished về gần như đồng thời.
@@ -240,6 +245,8 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     handledSaveRoundRef.current = null;
     handledRoundNoRef.current = null;
     deletedRoundIdRef.current = null;
+    saveAttemptRef.current = 0;
+    handledSaveAttemptRef.current = 0;
     sessionCodeRef.current = sessionCode;
   }
 
@@ -263,12 +270,37 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
 
   useEffect(() => {
     if (deleteFetcher.state !== "idle") return;
-    if (!(deleteFetcher.data as DeleteRoundActionData)?.success) return;
-    if (sessionCode) {
-      matchLoaderFetcher.load(`/session/${sessionCode}/match`);
-      if (deletedRoundIdRef.current) {
-        publishRoundDeleted(sessionCode, deletedRoundIdRef.current);
-        deletedRoundIdRef.current = null;
+    const data = deleteFetcher.data as DeleteRoundActionData | undefined;
+    if (!data) return;
+
+    const attempt = deleteAttemptRef.current;
+    if (handledDeleteAttemptRef.current === attempt) return;
+    handledDeleteAttemptRef.current = attempt;
+
+    if (data.error) {
+      addToast({
+        title: "Không thể xóa ván",
+        description: data.error || "Vui lòng thử lại.",
+        variant: "destructive",
+        duration: 5000,
+        icon: "error",
+      });
+      return;
+    }
+
+    if (data.success) {
+      addToast({
+        title: "Đã xóa ván trước thành công",
+        duration: 3500,
+        icon: "success",
+      });
+
+      if (sessionCode) {
+        matchLoaderFetcher.load(`/session/${sessionCode}/match`);
+        if (deletedRoundIdRef.current) {
+          publishRoundDeleted(sessionCode, deletedRoundIdRef.current);
+          deletedRoundIdRef.current = null;
+        }
       }
     }
   }, [deleteFetcher.state, deleteFetcher.data, sessionCode]);
@@ -302,12 +334,39 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
   useEffect(() => {
     if (fetcher.state !== "idle") return;
     const data = fetcher.data;
-    if (!data?.success || data.roundNo == null) return;
+    const attempt = saveAttemptRef.current;
+    if (handledSaveAttemptRef.current === attempt) return;
+
+    // Một fetcher có thể giữ data cũ khi component render lại; chỉ xử lý
+    // response của attempt gần nhất để toast không bị lặp.
+    if (!data) return;
+
+    handledSaveAttemptRef.current = attempt;
+
+    if (data.error) {
+      addToast({
+        title: "Không thể lưu ván",
+        description: data.error || "Vui lòng thử lại.",
+        variant: "destructive",
+        duration: 5000,
+        icon: "error",
+      });
+      return;
+    }
+
+    if (!data.success || data.roundNo == null) return;
+
     // Tránh chạy 2 lần khi React render lại với cùng fetcher.data.
     if (handledSaveRoundRef.current === data.roundNo) return;
     handledSaveRoundRef.current = data.roundNo;
     // Đánh dấu để socket handler không reset 2 lần cho cùng roundNo.
     handledRoundNoRef.current = data.roundNo;
+
+    addToast({
+      title: `Đã lưu ván ${data.roundNo}`,
+      duration: 3500,
+      icon: "success",
+    });
 
     // Optimistic update từ kết quả action (authoritative cho lần lưu này).
     if (data.round) addRound(data.round as unknown as Round);
@@ -794,6 +853,7 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
       nhotterId: activeNhot?.nhotterId ?? "",
     }));
 
+    saveAttemptRef.current += 1;
     await fetcher.submit(
       {
         intent: "save-round",
@@ -906,7 +966,6 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     !rankingComplete ||
     !currentParticipant ||
     isPaused;
-  const saveError = fetcher.data?.error;
 
   return {
     // data
@@ -925,12 +984,12 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     isDeletingRound,
     isSaving,
     disabledSaveButton,
-    saveError,
     isPaused,
     isOwner,
     togglePause,
     deleteRound: (roundId: string) => {
       deletedRoundIdRef.current = roundId;
+      deleteAttemptRef.current += 1;
       deleteFetcher.submit(
         { intent: "delete-round", roundId },
         { method: "post" },

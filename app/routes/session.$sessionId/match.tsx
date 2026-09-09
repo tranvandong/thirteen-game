@@ -159,9 +159,8 @@ export async function action({ request, params }: Route.ActionArgs) {
       totals: saved.totals,
     };
   } catch (err) {
-    if (err instanceof Response) throw err;
     console.error("save round failed:", err);
-    return { error: "Khong the luu van dau" };
+    return { error: "Không thể lưu ván đấu. Vui lòng thử lại." };
   }
 }
 
@@ -427,12 +426,6 @@ export default function MatchPage() {
             removeChatHeo={m.removeChatHeo}
             pShort={m.pShort}
           />
-        )}
-
-        {m.saveError && (
-          <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-3 text-center text-sm font-semibold text-destructive">
-            {m.saveError}
-          </div>
         )}
 
         {!showDraggableBubble && (

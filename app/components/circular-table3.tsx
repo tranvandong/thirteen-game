@@ -239,6 +239,7 @@ export function CircularTable3({
                   alt="swords"
                   className="size-full text-primary/3 rounded-full"
                 />
+                <div className="absolute inset-0 z-10 size-full text-xl font-black text-white/60 rounded-full leading-22 uppercase">Lưu</div>
               </div>
             ) : (
               <div className="absolute inset-0 w-full h-full flex items-center justify-center z-10">
