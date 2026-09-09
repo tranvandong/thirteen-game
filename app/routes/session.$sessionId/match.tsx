@@ -181,7 +181,9 @@ export default function MatchPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleChange = () => {
-      setShowDraggableBubble(localStorage.getItem("draggableActionBubble") === "true");
+      setShowDraggableBubble(
+        localStorage.getItem("draggableActionBubble") === "true",
+      );
     };
     window.addEventListener("storage", handleChange);
     return () => window.removeEventListener("storage", handleChange);
@@ -199,7 +201,7 @@ export default function MatchPage() {
 
   return (
     <>
-      <main className="relative mx-auto flex max-w-3xl flex-col gap-4 px-2 py-4 sm:px-4">
+      <main className="relative mx-auto flex max-w-3xl flex-col gap-2 px-2 py-2 sm:px-4">
         {m.isPaused && (
           <div className="flex items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-sm font-semibold text-amber-600 dark:text-amber-400">
             <Pause className="size-4 shrink-0" />
@@ -213,7 +215,7 @@ export default function MatchPage() {
           }}
           className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm"
         >
-          <div className="relative px-2 py-4">
+          <div className="relative px-2 py-2">
             <div className="absolute -right-14 top-26 h-36 w-36 rounded-full bg-chart-2/30 blur-3xl" />
             <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/20 blur-3xl" />
 
@@ -269,7 +271,7 @@ export default function MatchPage() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-2 grid grid-cols-2 gap-4">
               <div className="overflow-hidden rounded-3xl border border-chart-4/20 bg-chart-4/10 p-4 ring-1 ring-chart-4/10">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -344,7 +346,7 @@ export default function MatchPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-2 my-4">
+            <div className="grid grid-cols-4 gap-2 my-3">
               {m.sorted.map((player, index) => {
                 const score = player.totalScore ?? 0;
                 return (
@@ -434,7 +436,7 @@ export default function MatchPage() {
         )}
 
         {!showDraggableBubble && (
-<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
             <div className="flex items-center justify-center gap-2 w-full">
               <div className="flex gap-4">
                 <Button
