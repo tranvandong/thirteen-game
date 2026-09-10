@@ -80,9 +80,18 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
   const deleteFetcher = useFetcher<DeleteRoundActionData>();
   const isDeletingRound = deleteFetcher.state !== "idle";
   const handledSaveRoundRef = useRef<number | null>(null);
-  const saveAttemptRef = useRef(0);
-  const handledSaveAttemptRef = useRef(0);
+  const saveAttemptIdRef = useRef<string | null>(null);
+  const handledSaveAttemptIdRef = useRef<string | null>(null);
+  const saveInFlightRef = useRef(false);
+  const saveActorParticipantIdRef = useRef<string | null>(null);
+  const saveTtsRef = useRef<{
+    enabled: boolean;
+    nextKhap: number;
+    nextSanh: number;
+  } | null>(null);
   const deletedRoundIdRef = useRef<string | null>(null);
+  const saveAttemptRef = useRef(0);
+  const handledSaveAttemptRef = useRef<number | null>(null);
   const deleteAttemptRef = useRef(0);
   const handledDeleteAttemptRef = useRef<number | null>(null);
 
@@ -290,7 +299,7 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
 
     if (data.success) {
       addToast({
-        title: "Đã xóa ván trước thành công",
+        title: "Đã xóa ván trước",
         duration: 3500,
         icon: "success",
       });

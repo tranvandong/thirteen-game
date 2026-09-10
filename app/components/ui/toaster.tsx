@@ -21,7 +21,23 @@ export function Toaster() {
   const dismiss = useToastStore((s) => s.dismissToast);
 
   return (
-    <Toast.Provider swipeDirection="right" duration={1000000}>
+    <>
+      <style>{`
+        @keyframes toast-slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .toast-slide-up {
+          animation: toast-slide-up 0.3s ease-out forwards;
+        }
+      `}</style>
+      <Toast.Provider swipeDirection="right" duration={1000000}>
       {toasts.map((t) => {
         const Icon =
           t.icon === "success"
@@ -36,6 +52,7 @@ export function Toaster() {
             duration={t.duration ?? 1000000}
             className={cn(
               "pointer-events-auto relative flex w-full max-w-sm flex-col gap-2 overflow-hidden rounded-2xl border p-4 pr-9 shadow-2xl backdrop-blur bg-card text-foreground ring-1 ring-border/60",
+              "toast-slide-up",
               t.variant === "destructive" &&
                 "border-destructive/50 bg-destructive text-destructive-foreground ring-destructive/20",
             )}
@@ -97,5 +114,6 @@ export function Toaster() {
 
       <Toast.Viewport className="fixed bottom-[calc(4.5rem_+_env(safe-area-inset-top))] left-1/2 z-[100] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2 p-4 outline-none" />
     </Toast.Provider>
+    </>
   );
 }

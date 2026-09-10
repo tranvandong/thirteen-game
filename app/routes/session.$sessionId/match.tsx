@@ -78,89 +78,103 @@ export async function loader({
   return { roundMeta, playerTotals };
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const formData = await request.formData();
+const isRedirectResponse = (error: unknown) =>
+  error instanceof Response && error.status >= 300 && error.status < 400;
 
+export async function action({ request, params }: Route.ActionArgs) {
+  let intent: string | null = null;
   const sessionCode = params.sessionId!;
 
-  // Kiểm tra phiên tồn tại
-  const [sessionRow] = await db
-    .select({ id: sessions.id })
-    .from(sessions)
-    .where(eq(sessions.code, sessionCode))
-    .limit(1);
-
-  if (!sessionRow) {
-    throw redirect("/");
-  }
-
-  // Đọc trạng thái tạm dừng của phiên để chặn ghi/xoá ván khi đang pause
-  // (authoritative — bảo vệ cả khi UI bị lách). Chỉ chủ phòng mới được
-  // bỏ pause, nên mọi người chơi (kể cả chủ) đều bị chặn khi paused.
-  // try/catch để tương thích ngược: nếu chưa chạy `db:push` thêm cột
-  // `paused`, phiên được coi là không tạm dừng (không gãy tính năng lưu).
-  let paused = false;
   try {
-    const [p] = await db
-      .select({ paused: sessions.paused })
+    const formData = await request.formData();
+    intent = String(formData.get("intent") ?? "");
+
+    // Kiểm tra phiên tồn tại
+    const [sessionRow] = await db
+      .select({ id: sessions.id })
       .from(sessions)
       .where(eq(sessions.code, sessionCode))
       .limit(1);
-    paused = p?.paused ?? false;
-  } catch {
-    paused = false;
-  }
 
-  if (paused) {
-    return {
-      error: "Phiên đang tạm dừng, không thể lưu hoặc xoá ván đấu",
-    };
-  }
-
-  if (formData.get("intent") === "delete-round") {
-    const roundId = formData.get("roundId") as string;
-    if (!roundId) {
-      return { error: "Thiếu roundId" };
+    if (!sessionRow) {
+      throw redirect("/");
     }
+
+    // Đọc trạng thái tạm dừng của phiên để chặn ghi/xoá ván khi đang pause
+    // (authoritative — bảo vệ cả khi UI bị lách). Chỉ chủ phòng mới được
+    // bỏ pause, nên mọi người chơi (kể cả chủ) đều bị chặn khi paused.
+    // try/catch để tương thích ngược: nếu chưa chạy `db:push` thêm cột
+    // `paused`, phiên được coi là không tạm dừng (không gãy tính năng lưu).
+    let paused = false;
     try {
-      await deleteRound(params.sessionId!, roundId);
-      return { success: true };
-    } catch (err) {
-      if (err instanceof Response) throw err;
-      console.error("delete round failed:", err);
-      return { error: "Không thể xóa ván đấu" };
+      const [p] = await db
+        .select({ paused: sessions.paused })
+        .from(sessions)
+        .where(eq(sessions.code, sessionCode))
+        .limit(1);
+      paused = p?.paused ?? false;
+    } catch {
+      paused = false;
     }
-  }
 
-  if (formData.get("intent") !== "save-round") {
-    return { error: "Yeu cau khong hop le" };
-  }
+    if (paused) {
+      return {
+        error: "Phiên đang tạm dừng, không thể lưu hoặc xoá ván đấu",
+        sessionCode,
+      };
+    }
 
-  const createdBy = formData.get("createdBy") as string;
-  const payloadRaw = formData.get("payload") as string;
+    if (intent === "delete-round") {
+      const roundId = formData.get("roundId") as string;
+      if (!roundId) {
+        return { error: "Thiếu roundId", sessionCode };
+      }
+      await deleteRound(sessionCode, roundId);
+      return { success: true, sessionCode };
+    }
 
-  if (!createdBy || !payloadRaw) {
-    return { error: "Thieu du lieu van dau" };
-  }
+    if (intent !== "save-round") {
+      return { error: "Yeu cau khong hop le", sessionCode };
+    }
 
-  let results: RoundResultInput[];
-  try {
-    results = JSON.parse(payloadRaw) as RoundResultInput[];
-  } catch {
-    return { error: "Du lieu van dau khong hop le" };
-  }
+    const createdBy = formData.get("createdBy") as string;
+    const payloadRaw = formData.get("payload") as string;
 
-  try {
-    const saved = await saveRound(params.sessionId!, createdBy, results);
+    if (!createdBy || !payloadRaw) {
+      return { error: "Thieu du lieu van dau", sessionCode };
+    }
+
+    let results: RoundResultInput[];
+    try {
+      results = JSON.parse(payloadRaw) as RoundResultInput[];
+    } catch {
+      return { error: "Du lieu van dau khong hop le", sessionCode };
+    }
+
+    const saved = await saveRound(sessionCode, createdBy, results);
     return {
       success: true,
       roundNo: saved.roundNo,
       round: saved.round,
       totals: saved.totals,
+      sessionCode,
     };
   } catch (err) {
-    console.error("save round failed:", err);
-    return { error: "Không thể lưu ván đấu. Vui lòng thử lại." };
+    if (isRedirectResponse(err)) {
+      throw err;
+    }
+
+    console.error(`match action failed (${intent ?? "unknown"})`, err);
+    if (intent === "save-round") {
+      return {
+        error: "Không thể lưu ván đấu. Vui lòng thử lại.",
+        sessionCode,
+      };
+    }
+    if (intent === "delete-round") {
+      return { error: "Không thể xóa ván đấu", sessionCode };
+    }
+    return { error: "Yeu cau khong hop le", sessionCode };
   }
 }
 
