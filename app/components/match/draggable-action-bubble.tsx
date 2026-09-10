@@ -72,6 +72,7 @@ export function DraggableActionBubble({
 }: DraggableActionBubbleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<Position>(loadPosition);
+  const containerRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
     startX: number;
     startY: number;
@@ -99,6 +100,27 @@ export function DraggableActionBubble({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (!isOpen) return;
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside, { passive: true });
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const handleDragStart = useCallback((clientX: number, clientY: number) => {
     dragState.current = {
@@ -209,6 +231,7 @@ export function DraggableActionBubble({
 
   return (
     <div
+      ref={containerRef}
       className="fixed z-50"
       style={{
         left: position.x,
@@ -230,7 +253,7 @@ export function DraggableActionBubble({
           <Button
             variant="outline"
             size="icon"
-            className="h-12 w-12 rounded-full border-border/70 bg-card/95 shadow-lg backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+            className="h-12 w-12 rounded-full border-border/70 bg-card/95 shadow-xl backdrop-blur-sm opacity-100 transition-transform hover:scale-105 active:scale-95"
             onClick={() => handleAction(onOpenChatHeo)}
           >
             <Scissors className="size-5 text-destructive" />
@@ -238,7 +261,7 @@ export function DraggableActionBubble({
           <Button
             variant="outline"
             size="icon"
-            className="h-12 w-12 rounded-full border-border/70 bg-card/95 shadow-lg backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+            className="h-12 w-12 rounded-full border-border/70 bg-card/95 shadow-xl backdrop-blur-sm opacity-100 transition-transform hover:scale-105 active:scale-95"
             onClick={() => handleAction(onOpenNhotBai)}
           >
             <Lock className="size-5 text-chart-1" />
@@ -255,7 +278,7 @@ export function DraggableActionBubble({
         onTouchStart={handleBubbleTouchStart}
         onTouchEnd={handleDragEnd}
         className={`flex size-14 cursor-grab active:cursor-grabbing items-center justify-center rounded-full border border-border/80 bg-primary/95 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 active:scale-95 ${
-          isOpen ? "opacity-100" : "opacity-75"
+          isOpen ? "opacity-100" : "opacity-70"
         }`}
       >
         {isOpen ? (

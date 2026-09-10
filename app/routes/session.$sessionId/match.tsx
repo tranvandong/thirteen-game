@@ -228,7 +228,7 @@ export default function MatchPage() {
           }}
           className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm"
         >
-          <div className="relative px-2 py-2">
+          <div className="relative px-2 py-3">
             <div className="absolute -right-14 top-26 h-36 w-36 rounded-full bg-chart-2/30 blur-3xl" />
             <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-chart-2/20 blur-3xl" />
 
@@ -284,7 +284,7 @@ export default function MatchPage() {
               </div>
             </div>
 
-            <div className="mt-2 grid grid-cols-2 gap-4">
+            <div className="mt-3 grid grid-cols-2 gap-4">
               <div className="overflow-hidden rounded-3xl border border-chart-4/20 bg-chart-4/10 p-4 ring-1 ring-chart-4/10">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -477,7 +477,7 @@ export default function MatchPage() {
         open={m.showChatHeo && m.showChatHeoForm}
         onOpenChange={(o) => {
           m.setShowChatHeoForm(o);
-          if (!o) m.setShowChatHeo(false);
+          m.chatHeoList.length === 0 && m.setShowChatHeo(false);
         }}
         players={players}
         chatForm={m.chatForm}

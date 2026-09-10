@@ -708,13 +708,7 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
     setConfirmNhot(true);
   };
   const removeNhot = () => {
-    setNhotList([]);
     setNhotForm({ nhotterId: "", victims: [] });
-    setDennerId(null);
-    setDenForIds([]);
-    setShowDenBai(false);
-    setSelectOrder(players.map(() => null));
-    setConfirmNhot(false);
     setExpandBonus(false);
   };
   const resetNhot = () => {
@@ -821,15 +815,9 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
   };
 
   const closeNhotBai = () => {
-    setShowDenBai(false);
     setExpandBonus(false);
-    setNhotList([]);
     setNhotForm({ nhotterId: "", victims: [] });
-    setDennerId(null);
-    setDenForIds([]);
-    setShowDenBai(false);
-    setSelectOrder(players.map(() => null));
-    setConfirmNhot(false);
+
   };
 
   const handleSave = async () => {
