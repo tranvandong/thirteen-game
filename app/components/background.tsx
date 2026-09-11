@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSessionStore } from "~/stores/useSessionStore";
 
-const opacity = 0.18;
+const opacity = 0.12;
 
 export const IMAGE_NAMES = [
   "bg",
@@ -16,7 +16,6 @@ export const IMAGE_NAMES = [
   "bg9",
   "bg10",
   "bg11",
-  "bg12",
 ];
 
 export function Background() {

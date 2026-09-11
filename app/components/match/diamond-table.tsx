@@ -4,6 +4,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
 /**
@@ -20,6 +22,9 @@ import {
  *   (viền trái) → đổi chỗ với ghế Phải / Trái tương ứng.
  * - Ghế Phải / Trái (nằm dọc): nút ChevronUp (viền trên) & ChevronDown
  *   (viền dưới) → đổi chỗ với ghế Trên / Dưới tương ứng.
+ *
+ * Khi truyền `onSelectPlayer`, toàn bộ item ghế (trừ các nút đổi vị trí)
+ * có thể nhấp để chọn nhân vật cho thiết bị hiện tại.
  */
 
 const SEAT_LABELS = ["Trên", "Phải", "Dưới", "Trái"];
@@ -46,6 +51,9 @@ export function DiamondTable({
   myPlayerId,
   showScore = false,
   onMoveSeat,
+  onSelectPlayer,
+  takenPlayerIds,
+  loadingPlayerId,
   className = "",
 }: {
   /** Player đã được sắp xếp theo orderNo (1..4) */
@@ -57,6 +65,12 @@ export function DiamondTable({
   showScore?: boolean;
   /** Truyền vào để bật nút đổi vị trí trên mỗi ghế */
   onMoveSeat?: (playerId: string, direction: MoveDirection) => void;
+  /** Truyền vào để bật chọn nhân vật khi nhấp vào ghế */
+  onSelectPlayer?: (playerId: string) => void;
+  /** Các playerId đã bị người khác chiếm */
+  takenPlayerIds?: Set<string>;
+  /** playerId đang trong trạng thái chọn/bỏ chọn */
+  loadingPlayerId?: string | null;
   className?: string;
 }) {
   const ordered = [...players].sort((a, b) => a.orderNo - b.orderNo);
@@ -68,7 +82,7 @@ export function DiamondTable({
     >
       {/* Hub giữa */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="flex size-14 items-center justify-center rounded-full border border-border/60 bg-card/80 text-muted-foreground shadow-inner sm:size-16">
+        <div className="flex size-full items-center justify-center rounded-full border border-border/60 bg-card/80 text-muted-foreground shadow-inner sm:size-12">
           <span className="text-xl font-black sm:text-2xl">♠</span>
         </div>
       </div>
@@ -77,6 +91,7 @@ export function DiamondTable({
         const seatIndex =
           (p.orderNo - 1 + SEAT_LABELS.length) % SEAT_LABELS.length;
         const isMe = myPlayerId === p.id;
+        const isTaken = takenPlayerIds?.has(p.id) && !isMe;
         const score = scoreById?.[p.id];
         const seatClass = SEAT_POSITION_CLASS[seatIndex];
         const seatLabel = SEAT_LABELS[seatIndex];
@@ -86,7 +101,7 @@ export function DiamondTable({
         return (
           <div
             key={p.id}
-            className={`absolute ${seatClass} z-10 w-24 sm:w-28`}
+            className={`absolute ${seatClass} z-10 w-32 sm:w-36`}
           >
             {/* Nút đổi vị trí cho ghế ngang (Trên/Dưới) */}
             {interactive && !isVerticalSeat && (
@@ -145,17 +160,31 @@ export function DiamondTable({
             )}
 
             <div
+              onClick={(e) => {
+                if (!isTaken && onSelectPlayer) {
+                  onSelectPlayer(p.id);
+                }
+              }}
               className={[
-                "flex flex-col items-center gap-1 rounded-2xl border px-2 py-2 text-center shadow-sm transition-colors",
-                isMe
-                  ? "border-primary bg-primary/10"
-                  : "border-border/70 bg-card/90",
+                "relative flex cursor-pointer flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center shadow-sm transition-colors",
+                isTaken
+                  ? "cursor-not-allowed border-border/70 bg-muted/40 opacity-60"
+                  : isMe
+                    ? "border-primary bg-primary/10"
+                    : "border-border/70 bg-card/90 hover:border-primary/40 hover:bg-primary/5",
               ].join(" ")}
             >
-             
+              {isMe && (
+                <CheckCircle2 className="absolute top-1.5 right-1.5 size-6 text-primary" />
+              )}
+              {loadingPlayerId === p.id && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-background/60">
+                  <Loader2 className="size-5 animate-spin text-primary" />
+                </div>
+              )}
               <div
                 className={[
-                  "flex size-9 items-center justify-center rounded-full text-sm font-black",
+                  "flex size-12 items-center justify-center rounded-full text-base font-black",
                   isMe
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-foreground",
@@ -163,7 +192,7 @@ export function DiamondTable({
               >
                 {initials(p.name)}
               </div>
-              <span className="w-full truncate text-xs font-semibold leading-tight">
+              <span className="w-full truncate text-sm font-semibold leading-tight">
                 {p.name}
               </span>
               {showScore && score !== undefined && (
@@ -178,11 +207,6 @@ export function DiamondTable({
                   ].join(" ")}
                 >
                   {score > 0 ? `+${score}` : score}
-                </span>
-              )}
-              {isMe && (
-                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
-                  Bạn
                 </span>
               )}
             </div>
