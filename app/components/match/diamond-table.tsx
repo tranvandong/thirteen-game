@@ -166,7 +166,7 @@ export function DiamondTable({
                 }
               }}
               className={[
-                "relative flex cursor-pointer flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center shadow-sm transition-colors",
+                "relative z-10 flex cursor-pointer flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center shadow-sm transition-colors",
                 isTaken
                   ? "cursor-not-allowed border-border/70 bg-muted/40 opacity-60"
                   : isMe

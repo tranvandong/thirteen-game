@@ -561,7 +561,7 @@ export default function SettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={openNameDialog}
-                className="gap-1"
+                className="gap-1 relative z-10"
               >
                 <Pencil className="size-3.5" />
                 Sửa tên
@@ -570,7 +570,7 @@ export default function SettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={openArmorDialog}
-                className="gap-1"
+                className="gap-1 relative z-10"
               >
                 <Shield className="size-3.5" />
                 Thêm giáp

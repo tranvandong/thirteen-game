@@ -16,6 +16,8 @@ export const IMAGE_NAMES = [
   "bg9",
   "bg10",
   "bg11",
+  "bg12",
+  "bg13",
 ];
 
 export function Background() {
@@ -49,6 +51,7 @@ export function Background() {
           background: `url('/images/${IMAGE_NAMES[visible === 1 ? current : (current + IMAGE_NAMES.length - 1) % IMAGE_NAMES.length]}.jpg') center/cover no-repeat`,
           opacity: visible === 1 ? opacity : 0,
           zIndex: 1,
+          backgroundPosition: "center"
         }}
       />
     </>
