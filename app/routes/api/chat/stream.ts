@@ -1,9 +1,10 @@
 import type { Route } from "./+types/stream";
+import {env} from "./../../../lib/env.server"
 
 export async function action({ request }: Route.ActionArgs) {
   const payload = await request.json();
 
-  const response = await fetch("http://localhost:8000/chat/stream", {
+  const response = await fetch(`${env.AI_API_URL}/chat/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
