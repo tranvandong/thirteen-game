@@ -41,4 +41,8 @@ export default [
   ),
   route("api/tts", "routes/api.tts.ts"),
   route("api/debug/push", "routes/api.debug.push.ts"),
+
+  route("api/chat/stream", "routes/api/chat/stream.ts"),
+
+  route("chat", "routes/chat.tsx"),
 ] satisfies RouteConfig;
