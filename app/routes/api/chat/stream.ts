@@ -1,5 +1,5 @@
 import type { Route } from "./+types/stream";
-import {env} from "./../../../lib/env.server"
+import {env} from "~/lib/env.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const payload = await request.json();

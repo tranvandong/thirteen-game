@@ -1,16 +1,15 @@
 // app/routes/api.tts.ts
 import type { Route } from "./+types/api.tts";
-import "dotenv"
+import { env } from "~/lib/env.server";
 
 export async function action({ request }: Route.ActionArgs) {
-    console.log("process.env.ELEVENLABS_API_KEY", process.env.ELEVENLABS_API_KEY)
   const { text } = await request.json();
   const response = await fetch(
-    "https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb?output_format=mp3_44100_128",
+    `${env.TTS_API_URL}/text-to-speech/JBFqnCBsd6RMkjVDRZzb?output_format=mp3_44100_128`,
     {
       method: "POST",
       headers: {
-        "xi-api-key": process.env.ELEVENLABS_API_KEY!,
+        "xi-api-key": env.ELEVENLABS_API_KEY!,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

@@ -1,8 +1,8 @@
 import { createServer } from "http";
 import { createRequestHandler } from "@react-router/express";
 import express from "express";
-import "dotenv/config";
-import { initSocketServer } from "../app/lib/socket.server";
+import { env } from "./../app/lib/env.server";
+import { initSocketServer } from "./../app/lib/socket.server";
 
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
@@ -33,8 +33,8 @@ try {
   process.exit(1);
 }
 
-const hostname = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
-const PORT = Number(process.env.PORT) || 3000;
+const hostname = env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
+const PORT = Number(env.PORT) || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

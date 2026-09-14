@@ -53,7 +53,7 @@ const env: Env = {
   DATABASE_URL: process.env.DATABASE_URL as string,
   PROD: process.env.PROD ?? "false",
   GEMINI_KEY: process.env.GEMINI_KEY,
-  TTS_API_URL: process.env.TTS_API_URL,
+  TTS_API_URL: process.env.TTS_API_URL || "https://api.elevenlabs.io/v1",
   TTS_API_KEY: process.env.TTS_API_KEY,
   ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY,
   VITE_VAPID_PUBLIC_KEY: process.env.VITE_VAPID_PUBLIC_KEY,

@@ -29,6 +29,7 @@ import {
   type PushPayload,
 } from "~/lib/push.server";
 import { eq } from "drizzle-orm";
+import { env } from "~/lib/env.server";
 
 interface PushTestInput {
   sessionCode?: string;
@@ -86,7 +87,7 @@ async function runPushTest(input: PushTestInput): Promise<Response> {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  if (process.env.PROD === "true") return disabledResponse();
+  if (env.PROD === "true") return disabledResponse();
   const url = new URL(request.url);
   return runPushTest({
     sessionCode: url.searchParams.get("sessionCode") ?? undefined,
@@ -99,7 +100,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  if (process.env.PROD === "true") return disabledResponse();
+  if (env.PROD === "true") return disabledResponse();
 
   const ct = request.headers.get("content-type") ?? "";
   let input: PushTestInput;

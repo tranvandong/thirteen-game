@@ -24,6 +24,7 @@ import { playerDevices } from "~/db/schema/player-devices";
 import { participantPlayers } from "~/db/schema/participant-players";
 import { participants } from "~/db/schema/participants";
 import { eq, and, ne } from "drizzle-orm";
+import { env } from "~/lib/env.server";
 
 /** Ngưỡng "biến động điểm lớn" (điểm) để push thông báo. */
 export { PUSH_SWING_THRESHOLD } from "./push-rules";
@@ -60,10 +61,9 @@ export interface PushSendResult {
 let vapidReady = false;
 
 function ensureVapid(): void {
-  const subject = process.env.VAPID_SUBJECT ?? "mailto:push@thirteen.game";
-  const publicKey =
-    process.env.VAPID_PUBLIC_KEY ?? process.env.VITE_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const subject = env.VAPID_SUBJECT ?? "mailto:push@thirteen.game";
+  const publicKey = env.VAPID_PUBLIC_KEY ?? env.VITE_VAPID_PUBLIC_KEY;
+  const privateKey = env.VAPID_PRIVATE_KEY;
 
   if (publicKey && privateKey) {
     // Cặp khoá thật → set và cache (chỉ set 1 lần là đủ).

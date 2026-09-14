@@ -1,8 +1,8 @@
-import "dotenv/config";
+import { env } from "./app/lib/env.server";
 import pg from "pg";
 
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
