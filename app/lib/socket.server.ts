@@ -13,7 +13,7 @@
 
 import { Server, type Socket } from "socket.io";
 import type { Server as HttpServer } from "http";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, ne } from "drizzle-orm";
 
 import { db } from "~/db/client.server";
 import {
@@ -293,50 +293,76 @@ export function initSocketServer(httpServer: HttpServer) {
         const sessionDbId = await resolveSessionDbId(sessionCode);
         if (!sessionDbId) return;
 
-        // 1. Tạo participant (member) trực tiếp
-        const [participant] = await db
-          .insert(participants)
-          .values({
-            sessionId: sessionDbId,
-            displayName: name,
-            role: "member",
-          })
-          .returning();
+        let participant: { id: string; displayName: string; role: string };
 
-        // 2. Đăng ký thiết bị (upsert player_devices, status = active)
-        await db
-          .insert(playerDevices)
-          .values({
-            sessionId: sessionDbId,
-            participantId: participant.id,
-            fingerprint: fp,
-            platform,
-            status: "active",
-            updatedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: [playerDevices.sessionId, playerDevices.fingerprint],
-            set: {
-              participantId: participant.id,
-              status: "active",
-              updatedAt: new Date(),
-            },
+        try {
+          participant = await db.transaction(async (tx) => {
+            // 1. Tạo participant (member) trực tiếp
+            const [p] = await tx
+              .insert(participants)
+              .values({
+                sessionId: sessionDbId,
+                displayName: name,
+                role: "member",
+              })
+              .returning();
+
+            // 2. Đăng ký thiết bị (upsert player_devices, status = active)
+            await tx
+              .insert(playerDevices)
+              .values({
+                sessionId: sessionDbId,
+                participantId: p.id,
+                fingerprint: fp,
+                platform,
+                status: "active",
+                updatedAt: new Date(),
+              })
+              .onConflictDoUpdate({
+                target: [playerDevices.sessionId, playerDevices.fingerprint],
+                set: {
+                  participantId: p.id,
+                  status: "active",
+                  updatedAt: new Date(),
+                },
+              });
+
+            // 3. Đảm bảo 1 thiết bị chỉ active trong DUY NHẤT 1 session:
+            //    đánh dấu 'left' cho các session khác đang còn active của
+            //    cùng fingerprint, tránh bị auto-resume về phòng cũ sau
+            //    khi thoát khỏi phòng vừa tham gia.
+            await tx
+              .update(playerDevices)
+              .set({ status: "left", updatedAt: new Date() })
+              .where(
+                and(
+                  eq(playerDevices.fingerprint, fp),
+                  eq(playerDevices.status, "active"),
+                  ne(playerDevices.sessionId, sessionDbId),
+                ),
+              );
+
+            return p;
           });
+        } catch (err) {
+          console.error("join-session-direct failed:", err);
+          return;
+        }
 
-        // 3. Thiết bị tham gia room realtime
+        // 4. Thiết bị tham gia room realtime
         const room = sessionRoom(sessionCode);
         socket.join(room);
         socket.data.sessionCode = sessionCode;
         socket.data.participantId = participant.id;
         socket.data.displayName = name;
 
-        // 4. Báo phòng (chủ phòng) có người tham gia mới → revalidate list
+        // 5. Báo phòng (chủ phòng) có người tham gia mới → revalidate list
         socket.to(room).emit("participant-joined", {
           participantId: participant.id,
           displayName: name,
         });
 
-        // 5. Phản hồi riêng cho người vừa tham gia
+        // 6. Phản hồi riêng cho người vừa tham gia
         socket.emit("join-direct-success", {
           participantId: participant.id,
           displayName: name,

@@ -1,20 +1,12 @@
 import { db } from "~/db/client.server";
 import { playerDevices } from "~/db/schema/player-devices";
 import { sessions } from "~/db/schema/sessions";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import type { Route } from "./+types/reconnect";
 
 export async function action({ params, request }: Route.ActionArgs) {
-  console.log("origin", request.headers.get("origin"));
-  console.log("host", request.headers.get("host"));
-  console.log(
-    "x-forwarded-host",
-    request.headers.get("x-forwarded-host")
-  );
   const { sessionId: sessionCode } = params;
-   console.log('rawText');
   const rawText = await request.text();
-  console.log(rawText);
   let body: { fingerprint: string };
   try {
     body = JSON.parse(rawText);
@@ -54,6 +46,20 @@ export async function action({ params, request }: Route.ActionArgs) {
       .update(playerDevices)
       .set({ status: "active", updatedAt: new Date() })
       .where(eq(playerDevices.id, existingDevice.id));
+
+    // 3. Đảm bảo 1 thiết bị chỉ active trong DUY NHẤT 1 session:
+    //    đánh dấu 'left' cho các session khác đang còn active của
+    //    cùng fingerprint, tránh bị auto-resume về phòng cũ.
+    await tx
+      .update(playerDevices)
+      .set({ status: "left", updatedAt: new Date() })
+      .where(
+        and(
+          eq(playerDevices.fingerprint, body?.fingerprint),
+          eq(playerDevices.status, "active"),
+          ne(playerDevices.sessionId, session.id),
+        ),
+      );
 
     return true;
   });
