@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSessionStore } from "~/stores/useSessionStore";
-
-const opacity = 0.12;
 
 export const IMAGE_NAMES = [
   "bg",
@@ -29,6 +27,7 @@ export function Background() {
   const { config } = useSessionStore();
   const [current, setCurrent] = useState(0);
   const [visible, setVisible] = useState(0);
+  const opacity = config?.backgroundOpacity ?? 0.12;
 
   useEffect(() => {
     const interval = setInterval(() => {

@@ -214,6 +214,10 @@ export async function clientLoader({
 
   const showBackground = localStorage.getItem("showBackground") === "true";
   const enableTTS = localStorage.getItem("textToSpeed") === "true";
+  const backgroundOpacity = (() => {
+    const saved = localStorage.getItem("backgroundOpacity");
+    return saved ? parseFloat(saved) : 0.12;
+  })();
   const playerPositions = JSON.parse(
     localStorage.getItem("player-positions") || "[]",
   );
@@ -229,7 +233,7 @@ export async function clientLoader({
         };
       })
       .sort((a, b) => a.orderNo - b.orderNo),
-    config: { ...data.config, showBackground, enableTTS },
+    config: { ...data.config, showBackground, enableTTS, backgroundOpacity },
     currentParticipant,
   };
 

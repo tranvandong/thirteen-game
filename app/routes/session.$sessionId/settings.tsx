@@ -59,6 +59,7 @@ import {
   FieldTitle,
 } from "~/components/ui/field";
 import { IMAGE_NAMES } from "~/components/background";
+import { Slider } from "~/components/ui/slider";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -444,6 +445,20 @@ export default function SettingsPage() {
     localStorage.setItem("showBackground", value.toString());
     updateConfig({ showBackground: value });
   };
+
+  const [backgroundOpacity, setBackgroundOpacity] = useState(() => {
+    if (typeof window === "undefined") return 0.12;
+    const saved = localStorage.getItem("backgroundOpacity");
+    return saved ? parseFloat(saved) : 0.12;
+  });
+
+  const handleOpacityChange = (value: number[]) => {
+    const opacity = value[0] ?? 0.12;
+    setBackgroundOpacity(opacity);
+    localStorage.setItem("backgroundOpacity", String(opacity));
+    updateConfig({ backgroundOpacity: opacity });
+  };
+
   const toggleTTS = (value: boolean) => {
     localStorage.setItem("textToSpeed", value.toString());
     updateConfig({ enableTTS: value });
@@ -694,7 +709,7 @@ export default function SettingsPage() {
               <span>Hiển thị hình nền</span>
             </FieldTitle>
             <FieldDescription>
-              Hình nền hiển thị và tự động thay đổi sau một thời gian.
+              Hình nền tự động thay đổi sau một thời gian.
               <Button
                 variant="ghost"
                 onClick={() => setVisible(true)}
@@ -703,12 +718,31 @@ export default function SettingsPage() {
                 Xem trước
               </Button>
             </FieldDescription>
+
+            {gameConfig?.showBackground && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Độ mờ</span>
+                  <span className="text-xs font-medium tabular-nums">
+                    {Math.round(backgroundOpacity * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  value={[backgroundOpacity]}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onValueChange={handleOpacityChange}
+                  className="mt-2 relative z-10 opacity-75"
+                />
+              </div>
+            )}
           </FieldContent>
           <Switch
             id="switch-enable-background"
             checked={gameConfig?.showBackground}
             onCheckedChange={toggleBackground}
-            className="relative z-10"
+            className="relative z-10 opacity-75"
           />
         </Field>
       </FieldLabel>
@@ -753,7 +787,7 @@ export default function SettingsPage() {
             id="switch-draggable-bubble"
             checked={draggableBubble}
             onCheckedChange={toggleDraggableBubble}
-            className="relative z-10"
+            className="relative z-10 opacity-75"
           />
         </Field>
       </FieldLabel>
@@ -772,7 +806,7 @@ export default function SettingsPage() {
             <button
               onClick={() => setShowFinishConfirm(true)}
               disabled={isBusy}
-              className="relative z-10 w-full flex items-center justify-center gap-2 h-11 rounded-2xl border border-destructive/40 text-destructive text-sm font-semibold hover:bg-destructive/5 transition-colors disabled:opacity-50"
+              className="relative z-10 opacity-75 w-full flex items-center justify-center gap-2 h-11 rounded-2xl border border-destructive/40 text-destructive text-sm font-semibold hover:bg-destructive/5 transition-colors disabled:opacity-50"
             >
               <LogOut className="size-4" />
               Kết thúc phiên chơi

@@ -26,6 +26,8 @@ export interface GameConfig {
   nhotBystanderPenalty: number;
   showBackground?: boolean;
   enableTTS?: boolean; 
+  /** Độ mờ của hình nền (0-1, mặc định 0.12) */
+  backgroundOpacity?: number;
 }
 
 export interface Player {
