@@ -191,7 +191,7 @@ export function PushNotificationsCard() {
             variant="outline"
             onClick={handleDisable}
             disabled={busy}
-            className="relative z-10"
+            className="relative z-10 bg-primary/70"
           >
             <BellRing className="size-4" /> Đã bật — Tắt thông báo
           </Button>
@@ -199,7 +199,7 @@ export function PushNotificationsCard() {
           <Button
             onClick={handleEnable}
             disabled={busy}
-            className="relative z-10"
+            className="relative z-10 bg-primary/70"
           >
             {busy ? (
               <div className="size-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />

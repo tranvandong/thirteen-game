@@ -166,12 +166,12 @@ export function DiamondTable({
                 }
               }}
               className={[
-                "relative z-10 flex cursor-pointer flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center shadow-sm transition-colors opacity-70",
+                "relative z-10 flex cursor-pointer flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center shadow-sm transition-colors bg-card/10",
                 isTaken
                   ? "cursor-not-allowed border-border/70 bg-muted/40 opacity-60"
                   : isMe
                     ? "border-primary bg-primary/10"
-                    : "border-border/70 bg-card/90 hover:border-primary/40 hover:bg-primary/5",
+                    : "border-border/70 hover:border-primary/40 hover:bg-primary/5",
               ].join(" ")}
             >
               {isMe && (
@@ -186,8 +186,8 @@ export function DiamondTable({
                 className={[
                   "flex size-12 items-center justify-center rounded-full text-base font-black opacity-90",
                   isMe
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-foreground",
+                    ? "bg-primary/40 text-primary-foreground"
+                    : "bg-muted/40 text-foreground",
                 ].join(" ")}
               >
                 {initials(p.name)}
