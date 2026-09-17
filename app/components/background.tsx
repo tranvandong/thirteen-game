@@ -41,20 +41,20 @@ export function Background() {
   return config?.showBackground ? (
     <>
       <div
-        className="fixed inset-0 transition-opacity duration-2000"
+        className="fixed inset-0 transition-opacity duration-2000 pointer-events-none"
         style={{
           background: `url('/images/${IMAGE_NAMES[visible === 0 ? current : (current + IMAGE_NAMES.length - 1) % IMAGE_NAMES.length]}.jpg') center/cover no-repeat`,
           opacity: visible === 0 ? opacity : 0,
-          zIndex: 1,
+          zIndex: 2,
         }}
       />
 
       <div
-        className="fixed inset-0 transition-opacity duration-2000"
+        className="fixed inset-0 transition-opacity duration-2000 pointer-events-none"
         style={{
           background: `url('/images/${IMAGE_NAMES[visible === 1 ? current : (current + IMAGE_NAMES.length - 1) % IMAGE_NAMES.length]}.jpg') center/cover no-repeat`,
           opacity: visible === 1 ? opacity : 0,
-          zIndex: 1,
+          zIndex: 2,
           backgroundPosition: "center"
         }}
       />

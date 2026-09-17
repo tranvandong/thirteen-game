@@ -576,7 +576,7 @@ export default function SettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={openNameDialog}
-                className="gap-1 relative z-10"
+                className="gap-1"
               >
                 <Pencil className="size-3.5" />
                 Sửa tên
@@ -585,7 +585,7 @@ export default function SettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={openArmorDialog}
-                className="gap-1 relative z-10"
+                className="gap-1"
               >
                 <Shield className="size-3.5" />
                 Thêm giáp
@@ -713,7 +713,6 @@ export default function SettingsPage() {
               <Button
                 variant="ghost"
                 onClick={() => setVisible(true)}
-                className="relative z-10"
               >
                 Xem trước
               </Button>
@@ -733,7 +732,7 @@ export default function SettingsPage() {
                   max={1}
                   step={0.01}
                   onValueChange={handleOpacityChange}
-                  className="mt-2 relative z-10 opacity-75"
+                  className="mt-2"
                 />
               </div>
             )}
@@ -742,7 +741,7 @@ export default function SettingsPage() {
             id="switch-enable-background"
             checked={gameConfig?.showBackground}
             onCheckedChange={toggleBackground}
-            className="relative z-10 opacity-75"
+            className="opacity-50 relative z-0"
           />
         </Field>
       </FieldLabel>
@@ -824,14 +823,14 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setShowFinishConfirm(false)}
                   disabled={isBusy}
-                  className="relative z-10 flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                  className="flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={handleFinishSession}
                   disabled={isBusy}
-                  className="relative z-10 flex-1 h-10 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 h-10 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isFinishing ? (
                     <div className="size-4 rounded-full border-2 border-destructive-foreground/30 border-t-destructive-foreground animate-spin" />
