@@ -443,7 +443,7 @@ export default function MatchPage() {
         )}
 
         {!showDraggableBubble && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-20">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-0">
             <div className="flex items-center justify-center gap-2 w-full">
               <div className="flex gap-4">
                 <Button

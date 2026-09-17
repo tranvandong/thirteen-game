@@ -448,7 +448,7 @@ function RoundTable({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <div className="h-[65vh] overflow-y-auto z-10 relative">
+      <div className="h-[65vh] overflow-y-auto z-0 relative">
         <table className="w-full table-fixed caption-bottom text-sm">
           <thead>
             <tr className="border-b border-border/70 bg-muted/70">

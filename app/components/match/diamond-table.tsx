@@ -78,7 +78,7 @@ export function DiamondTable({
 
   return (
     <div
-      className={`relative mx-auto aspect-square w-full max-w-sm ${className}`}
+      className={`relative z-0 mx-auto aspect-square w-full max-w-sm ${className}`}
     >
       {/* Hub giữa */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -166,7 +166,7 @@ export function DiamondTable({
                 }
               }}
               className={[
-                "relative z-10 flex cursor-pointer flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center shadow-sm transition-colors bg-card/10",
+                "flex cursor-pointer flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center shadow-sm transition-colors bg-card/10",
                 isTaken
                   ? "cursor-not-allowed border-border/70 bg-muted/40 opacity-60"
                   : isMe

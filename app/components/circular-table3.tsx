@@ -200,8 +200,8 @@ export function CircularTable3({
   };
   return (
     <>
-      <div className="relative z-10 mx-auto w-full">
-        <div className="relative mx-auto w-full aspect-square">
+      <div className="mx-auto w-full">
+        <div className="relative z-0 mx-auto w-full aspect-square">
           {/* Center hub */}
 
           <Button
@@ -558,7 +558,7 @@ export function CircularTable3({
                 <button
                   onClick={() => updateKhapCount(-1)}
                   disabled={khapCount <= 1}
-                  className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
+                  className="relative z-0 flex h-8 w-8 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
                 >
                   <Minus className="size-4" />
                 </button>
@@ -566,7 +566,7 @@ export function CircularTable3({
                 <button
                   onClick={() => updateKhapCount(1)}
                   disabled={khapCount >= gameConfig.maxKhapAccumulate}
-                  className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
+                  className="relative z-0 flex h-8 w-8 items-center justify-center rounded-full bg-background text-xs font-bold disabled:opacity-30"
                 >
                   <Plus className="size-4" />
                 </button>

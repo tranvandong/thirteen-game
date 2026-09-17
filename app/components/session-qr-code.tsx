@@ -69,14 +69,14 @@ export function SessionQRCode() {
   if (!session) return null;
 
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+    <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm relative z-0">
       <div className="flex flex-col items-center gap-5">
         <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
           <QrCode className="size-4 text-chart-4" />
           Chia sẻ phòng chơi
         </div>
 
-        <div className="relative flex flex-col items-center gap-3 rounded-3xl border bg-background p-5 shadow-sm">
+        <div className="flex flex-col items-center gap-3 rounded-3xl border bg-background p-5 shadow-sm">
           <div
             className={cn(
               "relative transition-opacity duration-300",
@@ -115,10 +115,10 @@ export function SessionQRCode() {
           {joinUrl || `Tham gia qua mã phòng: ${session.code}`}
         </p>
 
-        <div className="grid w-full grid-cols-2 gap-2 sm:max-w-xs">
+        <div className=" relative z-0 grid w-full grid-cols-2 gap-2 sm:max-w-xs">
           <Button
             variant="outline"
-            className="gap-2 rounded-2xl relative z-10"
+            className="gap-2 rounded-2xl"
             onClick={handleCopy}
           >
             {copied ? (
@@ -134,7 +134,7 @@ export function SessionQRCode() {
             )}
           </Button>
 
-          <Button className="gap-2 rounded-2xl relative z-10 bg-primary/60" onClick={handleShare}>
+          <Button className="gap-2 relative z-0 rounded-2xl" onClick={handleShare}>
             <Share2 className="size-4" />
             Chia sẻ
           </Button>

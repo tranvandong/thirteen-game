@@ -700,7 +700,7 @@ export default function SettingsPage() {
       </Card>
 
       <FieldLabel htmlFor="switch-share">
-        <Field orientation="horizontal">
+        <Field orientation="horizontal" className="relative z-20">
           <FieldContent>
             <FieldTitle className="flex items-center gap-2">
               <div className="flex items-center justify-center size-8 rounded-full bg-chart-4/20 text-chart-4">
@@ -732,7 +732,7 @@ export default function SettingsPage() {
                   max={1}
                   step={0.01}
                   onValueChange={handleOpacityChange}
-                  className="mt-2"
+                  className="mt-2 opacity-75"
                 />
               </div>
             )}
@@ -741,7 +741,7 @@ export default function SettingsPage() {
             id="switch-enable-background"
             checked={gameConfig?.showBackground}
             onCheckedChange={toggleBackground}
-            className="opacity-50 relative z-0"
+            className="opacity-75"
           />
         </Field>
       </FieldLabel>
@@ -764,7 +764,7 @@ export default function SettingsPage() {
             id="switch-enable-background"
             checked={gameConfig?.enableTTS}
             onCheckedChange={toggleTTS}
-            className="relative z-10"
+            className="relative z-0"
           />
         </Field>
       </FieldLabel>
@@ -786,7 +786,7 @@ export default function SettingsPage() {
             id="switch-draggable-bubble"
             checked={draggableBubble}
             onCheckedChange={toggleDraggableBubble}
-            className="relative z-10 opacity-75"
+            className="relative z-0"
           />
         </Field>
       </FieldLabel>
