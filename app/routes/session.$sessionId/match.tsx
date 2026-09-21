@@ -408,6 +408,36 @@ export default function MatchPage() {
           </div>
         </section>
 
+        {!showDraggableBubble && (
+          <div className="my-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-0">
+            <div className="flex items-center justify-center gap-2 w-full">
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-9 gap-2 font-black text-sm"
+                  onClick={() => m.setExpandBonus(true)}
+                >
+                  <Plus className="size-4" />
+                  Nhốt bài
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-9 gap-2 font-black text-sm"
+                  onClick={() => {
+                    m.setShowChatHeo(true);
+                    m.setShowChatHeoForm(true);
+                  }}
+                >
+                  <Plus className="size-4" />
+                  Chặt heo
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Nhốt bài (kết quả) ─────────────────────────── */}
         {m.expandBonus && (
           <NhotBaiResultCard
@@ -440,36 +470,6 @@ export default function MatchPage() {
             removeChatHeo={m.removeChatHeo}
             pShort={m.pShort}
           />
-        )}
-
-        {!showDraggableBubble && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between relative z-0">
-            <div className="flex items-center justify-center gap-2 w-full">
-              <div className="flex gap-4">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="h-9 gap-2 font-black text-sm"
-                  onClick={() => m.setExpandBonus(true)}
-                >
-                  <Plus className="size-4" />
-                  Nhốt bài
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="h-9 gap-2 font-black text-sm"
-                  onClick={() => {
-                    m.setShowChatHeo(true);
-                    m.setShowChatHeoForm(true);
-                  }}
-                >
-                  <Plus className="size-4" />
-                  Chặt heo
-                </Button>
-              </div>
-            </div>
-          </div>
         )}
       </main>
 

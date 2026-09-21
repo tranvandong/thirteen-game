@@ -596,7 +596,7 @@ export default function SessionLayout() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-48 bg-gradient-to-b from-primary/10 to-transparent" />
 
         {/* Header */}
-        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/10 backdrop-blur-xs">
+        <header className="sticky top-0 border-b border-border/70 bg-background/10 backdrop-blur-xs">
           <div className="mx-auto flex min-h-16 max-w-[430px] items-center bg-background/50 justify-between gap-2 px-3 py-2 sm:max-w-lg sm:px-4">
             <Link
               to="/"
@@ -656,7 +656,7 @@ export default function SessionLayout() {
         <Toaster />
 
         {/* Mobile-first Bottom Tab Bar: 5 equal columns */}
-        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/92 px-2 pb-[calc(0.5rem_+_env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+        <nav className="fixed inset-x-0 bottom-0 border-t border-border/70 bg-background/92 px-2 pb-[calc(0.5rem_+_env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
           <div className="mx-auto grid w-full max-w-[430px] grid-cols-5 items-end justify-center gap-0.5 px-1.5 sm:max-w-lg sm:px-0">
             {leftTabs.map((tab) => (
               <TabItem key={tab.to} tab={tab} />
