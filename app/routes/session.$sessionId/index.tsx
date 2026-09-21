@@ -137,10 +137,10 @@ function formatTimeRange(
     `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
 
   if (start.toDateString() === end.toDateString()) {
-    return `${fmtTime(start)} - ${fmtTime(end)} ngày ${fmtDate(end)}`;
+    return `từ ${fmtTime(start)} đến ${fmtTime(end)} ngày ${fmtDate(end)}`;
   }
 
-  return `${fmtTime(start)} ngày ${fmtDate(start)} - ${fmtTime(end)} ngày ${fmtDate(end)}`;
+  return `từ ${fmtTime(start)} ngày ${fmtDate(start)} đến ${fmtTime(end)} ngày ${fmtDate(end)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -317,7 +317,7 @@ export default function SessionScoreboard({
   const handleShare = async () => {
     addToast({ title: "Đang tạo ảnh...", duration: 2000 });
     try {
-      const width = 720;
+      const width = 360;
       const padding = 28;
       const titleHeight = 32;
       const timeHeight = 22;
@@ -362,8 +362,7 @@ export default function SessionScoreboard({
       const bg = "#ffffff";
       const titleColor = "#0f172a";
       const muted = "#64748b";
-      const border = "#e2e8f0";
-      const divider = "#f1f5f9";
+      const label = `Thời gian ${timeLabel}`;
 
       roundRect(0, 0, width, height, 24);
       ctx.clip();
@@ -379,8 +378,8 @@ export default function SessionScoreboard({
 
       ctx.fillStyle = muted;
       ctx.font =
-        '500 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-      ctx.fillText(timeLabel, width / 2, padding + 14 + 28);
+        '400 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+      ctx.fillText(label, width / 2, padding + 14 + 28);
 
       const tableTop = padding + titleHeight + timeHeight + 10;
 
@@ -413,9 +412,10 @@ export default function SessionScoreboard({
         const badgeHeight = 30;
         const badgeX = padding + 8;
         const badgeY = rowTop + rowHeight / 2 - badgeHeight / 2;
-        const badgeRadius = 15;
+        const badgeRadius = 16;
 
         roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeRadius);
+
         ctx.fillStyle =
           score > 0 ? "#16a34a" : score === 0 ? "#e2e8f0" : "#dc2626";
         ctx.fill();
@@ -499,8 +499,6 @@ export default function SessionScoreboard({
       ) {
         await navigator.share({
           files: [file],
-          title: `Bảng xếp hạng điểm - Phòng ${sessionCode}`,
-          text: `Bảng xếp hạng điểm phòng ${sessionCode}`,
         });
         addToast({ title: "Đã chia sẻ ảnh", icon: "success", duration: 3000 });
       } else {
