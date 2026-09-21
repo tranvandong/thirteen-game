@@ -223,7 +223,9 @@ function ScoreRow({
         </div>
       )}
       {/* Hệ số nhân điểm tổng (lưu trong game_configs, thiết lập khi tạo phòng, mặc định 3) */}
-      <span className="text-gray-500">{score * multiplier}</span>
+      <span className="text-gray-500">
+        {score * multiplier}
+      </span>
       <ScorePill score={score} />
     </div>
   );
@@ -330,6 +332,27 @@ export default function SessionScoreboard({
         10 +
         sorted.length * (rowHeight + rowGap) +
         padding;
+      const fonts = [
+        new FontFace("SFU Freeway", 'url("/fonts/SFUFreewayLight.TTF")', {
+          weight: "300",
+        }),
+        new FontFace("SFU Freeway", 'url("/fonts/SFUFreewayRoman.TTF")', {
+          weight: "400",
+        }),
+        new FontFace("SFU Freeway", 'url("/fonts/SFUFreewayDemi.TTF")', {
+          weight: "600",
+        }),
+        new FontFace("SFU Freeway", 'url("/fonts/SFUFreewayBlack.TTF")', {
+          weight: "900",
+        }),
+      ];
+
+      await Promise.all(
+        fonts.map(async (font) => {
+          const loaded = await font.load();
+          document.fonts.add(loaded);
+        }),
+      );
 
       const canvas = document.createElement("canvas");
       canvas.width = width * 2;
@@ -371,14 +394,15 @@ export default function SessionScoreboard({
 
       ctx.fillStyle = titleColor;
       ctx.font =
-        '800 28px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        '900 24px "SFU Freeway"';
+        console.log(ctx.font);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`PHÒNG ${sessionCode}`, width / 2, padding + 14);
 
       ctx.fillStyle = muted;
       ctx.font =
-        '400 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        '400 14px "SFU Freeway"';
       ctx.fillText(label, width / 2, padding + 14 + 28);
 
       const tableTop = padding + titleHeight + timeHeight + 10;
@@ -422,7 +446,7 @@ export default function SessionScoreboard({
 
         ctx.fillStyle = score > 0 || score < 0 ? "#ffffff" : "#475569";
         ctx.font =
-          '700 15px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          '700 15px "SFU Freeway"';
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(
@@ -433,7 +457,7 @@ export default function SessionScoreboard({
 
         ctx.fillStyle = "#0f172a";
         ctx.font =
-          '700 16px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          '700 16px "SFU Freeway"';
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
         const nameX = padding + 44;
@@ -443,7 +467,7 @@ export default function SessionScoreboard({
         if (p.initialScore > 0) {
           ctx.fillStyle = "#94a3b8";
           ctx.font =
-            '500 12px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+            '500 12px "SFU Freeway"';
           ctx.fillText(
             `(+${p.initialScore})`,
             nameX + ctx.measureText(nameText).width + 8,
@@ -458,7 +482,7 @@ export default function SessionScoreboard({
         const pillXMoney = width - padding - pillWidthMoney - 62;
         const pillYMoney = rowTop + rowHeight / 2;
         ctx.font =
-          '200 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          '200 14px "SFU Freeway"';
         ctx.fillText(scoreTextMoney, pillXMoney, pillYMoney);
         ctx.strokeStyle = "oklch(0.551 0.027 264.364)";
         ctx.lineWidth = 1;

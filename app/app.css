@@ -11,6 +11,40 @@
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+@font-face {
+  font-family: "SFUFreeway";
+  src: url("/fonts/SFUFreewayLight.TTF") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SFUFreeway";
+  src: url("/fonts/SFUFreewayRoman.TTF") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SFUFreeway";
+  src: url("/fonts/SFUFreewayDemi.TTF") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SFUFreeway";
+  src: url("/fonts/SFUFreewayBlack.TTF") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+
 html,
 body {
   position: relative;
@@ -23,6 +57,7 @@ body {
 }
 
 @theme inline {
+  --font-sfu-freeway: "SFUFreeway", sans-serif;
   --font-heading: var(--font-sans);
   --font-sans: 'Roboto Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
