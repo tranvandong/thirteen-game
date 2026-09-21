@@ -374,7 +374,7 @@ export default function SessionScoreboard({
         '800 28px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("BẢNG XẾP HẠNG", width / 2, padding + 14);
+      ctx.fillText(`PHÒNG ${sessionCode}`, width / 2, padding + 14);
 
       ctx.fillStyle = muted;
       ctx.font =
@@ -510,11 +510,6 @@ export default function SessionScoreboard({
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        addToast({
-          title: "Đã tải ảnh bảng xếp hạng",
-          icon: "success",
-          duration: 3000,
-        });
       }
     } catch (e) {
       console.error(e);
