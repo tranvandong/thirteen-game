@@ -3,15 +3,10 @@ import { db } from "~/db/client.server";
 import { sessions } from "~/db/schema/sessions";
 import { players } from "~/db/schema/players";
 import { sessionTotals } from "~/db/schema/session-totals";
-import { eq } from "drizzle-orm";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
-import { Trophy, Crown, Flame, Spade, Shield } from "lucide-react";
+import { rounds } from "~/db/schema/rounds";
+import { eq, desc } from "drizzle-orm";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Trophy, Shield, Share2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { getRoundMeta } from "~/lib/round.server";
 import {
@@ -22,7 +17,9 @@ import {
   useRevalidator,
 } from "react-router";
 import { useGameConfig, usePlayers } from "~/stores/useSessionStore";
+import { addToast } from "~/stores/useToastStore";
 import { useEffect, useMemo } from "react";
+import { Button } from "~/components/ui/button";
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -52,11 +49,31 @@ export async function loader({ params }: Route.LoaderArgs) {
     .orderBy(players.orderNo);
   const roundMeta = await getRoundMeta(session.id);
 
+  const [firstRound] = await db
+    .select({ createdAt: rounds.createdAt })
+    .from(rounds)
+    .where(eq(rounds.sessionId, session.id))
+    .orderBy(rounds.createdAt)
+    .limit(1);
+
+  const [lastRound] = await db
+    .select({ createdAt: rounds.createdAt })
+    .from(rounds)
+    .where(eq(rounds.sessionId, session.id))
+    .orderBy(desc(rounds.createdAt))
+    .limit(1);
+
+  const roundTimeRange = {
+    firstAt: firstRound?.createdAt ?? null,
+    lastAt: lastRound?.createdAt ?? null,
+  };
+
   return data(
     {
       session,
       playerTotals,
       roundMeta,
+      roundTimeRange,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
@@ -103,6 +120,27 @@ function scoreTone(score: number) {
     border: "border-border/70",
     ring: "ring-muted/10",
   };
+}
+
+function formatTimeRange(
+  firstAt: string | null,
+  lastAt: string | null,
+): string {
+  if (!firstAt || !lastAt) return "Chưa có ván đấu";
+
+  const start = new Date(firstAt);
+  const end = new Date(lastAt);
+
+  const fmtTime = (d: Date) =>
+    `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+  const fmtDate = (d: Date) =>
+    `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+
+  if (start.toDateString() === end.toDateString()) {
+    return `${fmtTime(start)} - ${fmtTime(end)} ngày ${fmtDate(end)}`;
+  }
+
+  return `${fmtTime(start)} ngày ${fmtDate(start)} - ${fmtTime(end)} ngày ${fmtDate(end)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +222,7 @@ function ScoreRow({
           </span>
         </div>
       )}
-       {/* Hệ số nhân điểm tổng (lưu trong game_configs, thiết lập khi tạo phòng, mặc định 3) */}
+      {/* Hệ số nhân điểm tổng (lưu trong game_configs, thiết lập khi tạo phòng, mặc định 3) */}
       <span className="text-gray-500">{score * multiplier}</span>
       <ScorePill score={score} />
     </div>
@@ -218,7 +256,7 @@ export default function SessionScoreboard({
   const revalidator = useRevalidator();
 
   // Không cần fetcher nữa — loaderData tự cập nhật sau khi revalidate
-  const { playerTotals, roundMeta } = loaderData;
+  const { playerTotals, roundMeta, roundTimeRange } = loaderData;
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -271,13 +309,242 @@ export default function SessionScoreboard({
     [config],
   );
 
+  const timeLabel = formatTimeRange(
+    roundTimeRange?.firstAt ?? null,
+    roundTimeRange?.lastAt ?? null,
+  );
+
+  const handleShare = async () => {
+    addToast({ title: "Đang tạo ảnh...", duration: 2000 });
+    try {
+      const width = 720;
+      const padding = 28;
+      const titleHeight = 32;
+      const timeHeight = 22;
+      const rowGap = 10;
+      const rowHeight = 64;
+      const height =
+        padding +
+        titleHeight +
+        timeHeight +
+        10 +
+        sorted.length * (rowHeight + rowGap) +
+        padding;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width * 2;
+      canvas.height = height * 2;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Không thể tạo canvas");
+
+      ctx.scale(2, 2);
+
+      const roundRect = (
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+      ) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      };
+
+      const bg = "#ffffff";
+      const titleColor = "#0f172a";
+      const muted = "#64748b";
+      const border = "#e2e8f0";
+      const divider = "#f1f5f9";
+
+      roundRect(0, 0, width, height, 24);
+      ctx.clip();
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = titleColor;
+      ctx.font =
+        '800 28px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("BẢNG XẾP HẠNG", width / 2, padding + 14);
+
+      ctx.fillStyle = muted;
+      ctx.font =
+        '500 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+      ctx.fillText(timeLabel, width / 2, padding + 14 + 28);
+
+      const tableTop = padding + titleHeight + timeHeight + 10;
+
+      sorted.forEach((p, idx) => {
+        const rowTop = tableTop + idx * (rowHeight + rowGap);
+        const score = p.totalScore ?? 0;
+
+        const rowBg =
+          score > 0
+            ? "oklab(0.508 -0.114299 0.0293215 / 0.08)"
+            : score === 0
+              ? "#f8fafc"
+              : "oklab(0.577 0.217662 0.112464 / 0.08)";
+        const rowBorder =
+          score > 0
+            ? "oklab(0.508 -0.114299 0.0293215 / 0.25)"
+            : score === 0
+              ? "#e2e8f0"
+              : "oklab(0.577 0.217662 0.112464 / 0.25)";
+        const scoreTextColor = score >= 0 ? "#16a34a" : "#dc2626";
+
+        roundRect(padding, rowTop, width - padding * 2, rowHeight, 18);
+        ctx.fillStyle = rowBg;
+        ctx.fill();
+        ctx.strokeStyle = rowBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        const badgeWidth = 30;
+        const badgeHeight = 30;
+        const badgeX = padding + 8;
+        const badgeY = rowTop + rowHeight / 2 - badgeHeight / 2;
+        const badgeRadius = 15;
+
+        roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeRadius);
+        ctx.fillStyle =
+          score > 0 ? "#16a34a" : score === 0 ? "#e2e8f0" : "#dc2626";
+        ctx.fill();
+
+        ctx.fillStyle = score > 0 || score < 0 ? "#ffffff" : "#475569";
+        ctx.font =
+          '700 15px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          `${idx + 1}`,
+          badgeX + badgeWidth / 2,
+          rowTop + rowHeight / 2,
+        );
+
+        ctx.fillStyle = "#0f172a";
+        ctx.font =
+          '700 16px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        const nameX = padding + 44;
+        const nameText = p.playerName;
+        ctx.fillText(nameText, nameX, rowTop + rowHeight / 2);
+
+        if (p.initialScore > 0) {
+          ctx.fillStyle = "#94a3b8";
+          ctx.font =
+            '500 12px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          ctx.fillText(
+            `(+${p.initialScore})`,
+            nameX + ctx.measureText(nameText).width + 8,
+            rowTop + rowHeight / 2,
+          );
+        }
+
+        // money
+        const scoreTextMoney = `${(config?.scoreMultiplier ?? 3) * score}`;
+        const textWidthMoney = ctx.measureText(scoreTextMoney).width;
+        const pillWidthMoney = textWidthMoney;
+        const pillXMoney = width - padding - pillWidthMoney - 62;
+        const pillYMoney = rowTop + rowHeight / 2;
+        ctx.font =
+          '200 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        ctx.fillText(scoreTextMoney, pillXMoney, pillYMoney);
+        ctx.strokeStyle = "oklch(0.551 0.027 264.364)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        const scoreText = score > 0 ? `+${score}` : `${score}`;
+        const textWidth = ctx.measureText(scoreText).width;
+        const pillWidth = textWidth + 24;
+        const pillHeight = 30;
+        const pillX = width - padding - pillWidth - 8;
+        const pillY = rowTop + rowHeight / 2 - pillHeight / 2;
+        roundRect(pillX, pillY, pillWidth, pillHeight, 18);
+        ctx.fillStyle = score >= 0 ? "#dcfce7" : "#fee2e2";
+        ctx.fill();
+        ctx.strokeStyle = score >= 0 ? "#bbf7d0" : "#fecaca";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = scoreTextColor;
+        ctx.font =
+          '800 15px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(scoreText, pillX + pillWidth / 2, rowTop + rowHeight / 2);
+      });
+
+      const blob = (await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png"),
+      )) as Blob;
+      const file = new File([blob], `bang-xep-hang-${sessionCode}.png`, {
+        type: "image/png",
+      });
+
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({
+          files: [file],
+          title: `Bảng xếp hạng điểm - Phòng ${sessionCode}`,
+          text: `Bảng xếp hạng điểm phòng ${sessionCode}`,
+        });
+        addToast({ title: "Đã chia sẻ ảnh", icon: "success", duration: 3000 });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = `bang-xep-hang-${sessionCode}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        addToast({
+          title: "Đã tải ảnh bảng xếp hạng",
+          icon: "success",
+          duration: 3000,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      addToast({
+        title: "Tạo ảnh thất bại",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-4 pb-32">
       {/* Ranking list */}
       <Card className="overflow-hidden border-border/70 shadow-sm">
         <CardHeader>
-          <div>
-            <CardTitle className="text-base">Xếp hạng hiện tại</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Xếp hạng hiện tại</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleShare}
+              title="Chia sẻ bảng xếp hạng"
+            >
+              <Share2 className="size-4" />
+            </Button>
           </div>
         </CardHeader>
 
