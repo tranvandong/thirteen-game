@@ -7,7 +7,7 @@ import { sessions } from "~/db/schema/sessions";
 import { gameConfigs } from "~/db/schema/game-configs";
 import { players as playersSchema } from "~/db/schema/players";
 import { participants } from "~/db/schema/participants";
-import { redirect } from "react-router";
+import { Form, redirect, useNavigation } from "react-router";
 import { eq } from "drizzle-orm";
 import { Link } from "react-router";
 import { Button } from "~/components/ui/button";
@@ -36,6 +36,7 @@ import {
   Crown,
   Zap,
   Target,
+  Loader2,
 } from "lucide-react";
 import { getOrCreateFingerprint } from "~/helpers/fingerprint.helper";
 import { playerDevices } from "~/db/schema";
@@ -321,6 +322,8 @@ export default function CreateSession() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state !== "idle";
 
   const set = (key: keyof typeof formData, val: string | number) =>
     setFormData((prev) => ({ ...prev, [key]: val }));
@@ -338,13 +341,7 @@ export default function CreateSession() {
     return Object.keys(errs).length === 0;
   };
 
-  // Chỉ validate phía client; submit thật sự qua React Router action
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (!validateForm()) {
-      e.preventDefault();
-    }
-    // Nếu valid → để form submit bình thường → action() chạy trên server
-  };
+
 
   useEffect(() => {
     async function checkFingerprint() {
@@ -416,11 +413,16 @@ export default function CreateSession() {
           </div>
         </section>
 
-        <form
+        <Form
           id="create-form"
           method="post"
-          onSubmit={handleSubmit}
+          onSubmit={(e) => {
+            if (!validateForm()) {
+              e.preventDefault();
+            }
+          }}
           className="flex flex-col gap-4"
+          aria-busy={isSubmitting}
         >
           {/* ── Chủ phòng ─────────────────────────────────── */}
           <Card className="overflow-hidden border-border/70 shadow-sm">
@@ -773,7 +775,7 @@ export default function CreateSession() {
             name="fingerprint"
             value={formData.fingerprint}
           />
-        </form>
+        </Form>
       </main>
 
       {/* Fixed Bottom */}
@@ -783,9 +785,16 @@ export default function CreateSession() {
           form="create-form"
           className="mx-auto flex h-12 w-full max-w-3xl gap-2 rounded-2xl text-base font-bold shadow-xl shadow-primary/20"
           size="lg"
+          disabled={isSubmitting}
         >
-          <Play className="size-4" />
-          Tạo phòng và bắt đầu chơi
+          {isSubmitting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Play className="size-4" />
+          )}
+          {isSubmitting
+            ? "Đang tạo phòng..."
+            : "Tạo phòng và bắt đầu chơi"}
         </Button>
       </div>
     </div>
