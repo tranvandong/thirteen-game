@@ -137,10 +137,10 @@ function formatTimeRange(
     `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
 
   if (start.toDateString() === end.toDateString()) {
-    return `từ ${fmtTime(start)} đến ${fmtTime(end)} ngày ${fmtDate(end)}`;
+    return `${fmtTime(start)} - ${fmtTime(end)} ${fmtDate(end)}`;
   }
 
-  return `từ ${fmtTime(start)} ngày ${fmtDate(start)} đến ${fmtTime(end)} ngày ${fmtDate(end)}`;
+  return `${fmtTime(start)} ${fmtDate(start)} - ${fmtTime(end)} ${fmtDate(end)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ function ScoreRow({
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-black text-foreground text-base">
-          {player.playerName}
+          {player.playerName.toUpperCase()}
         </p>
       </div>
       {player.initialScore > 0 && (
@@ -317,7 +317,6 @@ export default function SessionScoreboard({
   );
 
   const handleShare = async () => {
-    addToast({ title: "Đang tạo ảnh...", duration: 2000 });
     try {
       const width = 360;
       const padding = 28;
@@ -385,7 +384,7 @@ export default function SessionScoreboard({
       const bg = "#ffffff";
       const titleColor = "#0f172a";
       const muted = "#64748b";
-      const label = `Thời gian ${timeLabel}`;
+      const label = `${timeLabel}`;
 
       roundRect(0, 0, width, height, 24);
       ctx.clip();
@@ -432,17 +431,19 @@ export default function SessionScoreboard({
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        const badgeWidth = 30;
-        const badgeHeight = 30;
+        const badgeWidth = 28;
+        const badgeHeight = 28;
         const badgeX = padding + 8;
         const badgeY = rowTop + rowHeight / 2 - badgeHeight / 2;
-        const badgeRadius = 16;
+        const badgeRadius = 18;
 
         roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeRadius);
-
         ctx.fillStyle =
           score > 0 ? "#16a34a" : score === 0 ? "#e2e8f0" : "#dc2626";
         ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
         ctx.fillStyle = score > 0 || score < 0 ? "#ffffff" : "#475569";
         ctx.font =
@@ -461,7 +462,7 @@ export default function SessionScoreboard({
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
         const nameX = padding + 44;
-        const nameText = p.playerName;
+        const nameText = p.playerName.toUpperCase();
         ctx.fillText(nameText, nameX, rowTop + rowHeight / 2);
 
         if (p.initialScore > 0) {
@@ -524,7 +525,6 @@ export default function SessionScoreboard({
         await navigator.share({
           files: [file],
         });
-        addToast({ title: "Đã chia sẻ ảnh", icon: "success", duration: 3000 });
       } else {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");

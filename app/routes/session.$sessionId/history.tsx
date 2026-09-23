@@ -306,8 +306,8 @@ function RoundDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="">
         <DialogHeader>
-          <DialogTitle className="text-lg font-black">
-            Chi tiết ván {round.roundNo}
+          <DialogTitle className="text-lg font-black uppercase">
+            ván {round.roundNo}
           </DialogTitle>
         </DialogHeader>
 
@@ -355,7 +355,7 @@ function RoundDetailDialog({
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div
                       className={cn(
-                        "flex size-6 items-center justify-center rounded-xl font-black",
+                        "flex size-8 items-center justify-center rounded-xl font-black text-base",
                         isNhotter
                           ? "bg-primary text-primary-foreground"
                           : isNhotVictim
@@ -373,13 +373,13 @@ function RoundDetailDialog({
                         "-"
                       )}
                     </div>
-                    <p className="truncate text-base font-black text-foreground">
+                    <p className="truncate text-base font-black text-foreground uppercase">
                       {player?.name ?? "—"}
                     </p>
                   </div>
                   <span
                     className={[
-                      "inline-flex min-w-6 shrink-0 justify-center rounded-full px-2 py-1 text-base font-black tabular-nums border",
+                      "inline-flex min-w-6 shrink-0 justify-center rounded-full px-3 py-1 text-base font-black tabular-nums border",
                       scoreTone(result.score).bg,
                       scoreTone(result.score).border,
                       scoreTone(result.score).text,
@@ -461,7 +461,7 @@ function RoundTable({
                   key={player.id}
                   className="sticky top-0 z-20 bg-muted/70 p-2 text-center backdrop-blur-sm"
                 >
-                  <span className="max-w-full truncate font-black text-foreground">
+                  <span className="max-w-full truncate font-black text-foreground uppercase">
                     {player.shortName}
                   </span>
                 </th>
@@ -605,9 +605,6 @@ export default function HistoryPage() {
               <h1 className="text-base font-bold text-foreground">
                 Lịch sử ván đấu
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Bảng điểm theo từng ván. Nhấn vào một ván để xem chi tiết.
-              </p>
             </div>
           </div>
         </div>
