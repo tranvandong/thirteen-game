@@ -6,7 +6,7 @@ import { sessionTotals } from "~/db/schema/session-totals";
 import { rounds } from "~/db/schema/rounds";
 import { eq, desc } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Trophy, Shield, Share2 } from "lucide-react";
+import { Trophy, Shield, Share2, Download } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { getRoundMeta } from "~/lib/round.server";
 import {
@@ -18,7 +18,7 @@ import {
 } from "react-router";
 import { useGameConfig, usePlayers } from "~/stores/useSessionStore";
 import { addToast } from "~/stores/useToastStore";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "~/components/ui/button";
 
 // ---------------------------------------------------------------------------
@@ -316,7 +316,11 @@ export default function SessionScoreboard({
     roundTimeRange?.lastAt ?? null,
   );
 
-  const handleShare = async () => {
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Vẽ bảng xếp hạng ra canvas và trả về blob PNG. Trả về null nếu lỗi
+  // (đã hiện toast bên trong). Dùng chung cho cả Chia sẻ và Tải xuống.
+  const buildScoreboardBlob = async (): Promise<Blob | null> => {
     try {
       const width = 360;
       const padding = 28;
@@ -394,7 +398,6 @@ export default function SessionScoreboard({
       ctx.fillStyle = titleColor;
       ctx.font =
         '900 24px "SFU Freeway"';
-        console.log(ctx.font);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`PHÒNG ${sessionCode}`, width / 2, padding + 14);
@@ -510,9 +513,38 @@ export default function SessionScoreboard({
         ctx.fillText(scoreText, pillX + pillWidth / 2, rowTop + rowHeight / 2);
       });
 
-      const blob = (await new Promise<Blob | null>((resolve) =>
+      const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/png"),
-      )) as Blob;
+      );
+      if (!blob) throw new Error("Không thể tạo ảnh từ canvas");
+      return blob;
+    } catch (e) {
+      console.error(e);
+      addToast({
+        title: "Tạo ảnh thất bại",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return null;
+    }
+  };
+
+  const saveBlob = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `bang-xep-hang-${sessionCode}.png`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShare = async () => {
+    const blob = await buildScoreboardBlob();
+    if (!blob) return;
+
+    try {
       const file = new File([blob], `bang-xep-hang-${sessionCode}.png`, {
         type: "image/png",
       });
@@ -522,26 +554,31 @@ export default function SessionScoreboard({
         navigator.canShare &&
         navigator.canShare({ files: [file] })
       ) {
-        await navigator.share({
-          files: [file],
-        });
+        await navigator.share({ files: [file] });
       } else {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.download = `bang-xep-hang-${sessionCode}.png`;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        saveBlob(blob);
       }
     } catch (e) {
+      // Người dùng huỷ share sheet thì không báo lỗi
+      if (e instanceof DOMException && e.name === "AbortError") return;
       console.error(e);
       addToast({
-        title: "Tạo ảnh thất bại",
+        title: "Chia sẻ ảnh thất bại",
         variant: "destructive",
         duration: 3000,
       });
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await buildScoreboardBlob();
+      if (!blob) return;
+      saveBlob(blob);
+      addToast({ title: "Đã tải ảnh xuống", duration: 3000 });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -554,14 +591,28 @@ export default function SessionScoreboard({
             <div>
               <CardTitle className="text-base">Xếp hạng hiện tại</CardTitle>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShare}
-              title="Chia sẻ bảng xếp hạng"
-            >
-              <Share2 className="size-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDownload}
+                disabled={isExporting}
+                title="Tải ảnh bảng xếp hạng xuống"
+              >
+                <Download
+                  className={cn("size-4", isExporting && "animate-pulse")}
+                />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleShare}
+                disabled={isExporting}
+                title="Chia sẻ bảng xếp hạng"
+              >
+                <Share2 className="size-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
