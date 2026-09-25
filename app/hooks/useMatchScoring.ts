@@ -171,7 +171,7 @@ export function useMatchScoring({ sessionCode, loaderData }: UseMatchScoringArgs
       return {
         ...pt,
         initialScore: player?.initialScore ?? 0,
-        totalScore: (pt.totalScore ?? 0) + (player?.initialScore ?? 0),
+        totalScore: (pt.totalScore ?? 0),
       };
     })
     .sort((a, b) => b.totalScore - a.totalScore);

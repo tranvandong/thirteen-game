@@ -123,8 +123,8 @@ function scoreTone(score: number) {
 }
 
 function formatTimeRange(
-  firstAt: string | null,
-  lastAt: string | null,
+  firstAt: Date | string | null,
+  lastAt: Date | string | null,
 ): string {
   if (!firstAt || !lastAt) return "Chưa có ván đấu";
 
@@ -434,11 +434,11 @@ export default function SessionScoreboard({
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        const badgeWidth = 28;
-        const badgeHeight = 28;
+        const badgeWidth = 30;
+        const badgeHeight = 30;
         const badgeX = padding + 8;
         const badgeY = rowTop + rowHeight / 2 - badgeHeight / 2;
-        const badgeRadius = 18;
+        const badgeRadius = 16;
 
         roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeRadius);
         ctx.fillStyle =
@@ -467,17 +467,6 @@ export default function SessionScoreboard({
         const nameX = padding + 44;
         const nameText = p.playerName.toUpperCase();
         ctx.fillText(nameText, nameX, rowTop + rowHeight / 2);
-
-        if (p.initialScore > 0) {
-          ctx.fillStyle = "#94a3b8";
-          ctx.font =
-            '500 12px "SFU Freeway"';
-          ctx.fillText(
-            `(+${p.initialScore})`,
-            nameX + ctx.measureText(nameText).width + 8,
-            rowTop + rowHeight / 2,
-          );
-        }
 
         // money
         const scoreTextMoney = `${(config?.scoreMultiplier ?? 3) * score}`;

@@ -568,7 +568,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={totalScoreConfig} className="relative z-10">
+          <ChartContainer config={totalScoreConfig}>
             <BarChart
               data={totalScores}
               margin={{ top: 20, right: 0, left: 0, bottom: 5 }}
@@ -608,7 +608,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           <CardDescription>Điểm cộng dồn qua từng ván đấu</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={lineChartConfig} className="relative z-10">
+          <ChartContainer config={lineChartConfig} className="relative z-0">
             <LineChart data={roundScores} margin={{ left: 4, right: 4 }}>
               <CartesianGrid vertical={false} />
               <XAxis
@@ -654,7 +654,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={winRateChartConfig} className="relative z-10">
+          <ChartContainer config={winRateChartConfig} className="relative z-0">
             <BarChart
               data={winRateData}
               margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
@@ -761,7 +761,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={radarChartConfig} className="relative z-10">
+          <ChartContainer config={radarChartConfig} className="relative z-0">
             <RadarChart data={radarData}>
               <ChartTooltip
                 cursor={false}
@@ -800,7 +800,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={rankChartConfig} className="relative z-10">
+          <ChartContainer config={rankChartConfig} className="relative z-0">
             <BarChart
               data={rankData}
               margin={{ top: 30, right: 0, left: 0, bottom: 5 }}
@@ -877,7 +877,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={sanhChartConfig} className="relative z-10">
+          <ChartContainer config={sanhChartConfig} className="relative">
             <BarChart
               data={sanhData}
               margin={{ top: 30, right: 0, left: 0, bottom: 5 }}
@@ -932,7 +932,7 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={khapChartConfig} className="relative z-10">
+          <ChartContainer config={khapChartConfig}>
             <BarChart
               data={khapData}
               margin={{ top: 30, right: 0, left: 0, bottom: 5 }}
